@@ -1,36 +1,41 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { DeliveryStatusBadge } from "@/components/admin/DeliveryStatusBadge";
 import { useDeliveries, useUpdateDeliveryStatus, useReassignDelivery, type DeliveryWithRelations } from "@/services/deliveries";
 import { useCompanies } from "@/services/companies";
 import { useDrivers } from "@/services/drivers";
 import { useDeliveriesRealtime } from "@/services/realtime";
-import { Search, Filter, Eye, MoreHorizontal, X as XIcon, ChevronLeft, ChevronRight, Loader2, Printer, UserCheck, Package } from "lucide-react";
+import {
+  Search, Filter, Eye, MoreHorizontal, X as XIcon, ChevronLeft, ChevronRight,
+  Loader2, Printer, UserCheck, Package, Radio, Send, MapPin
+} from "lucide-react";
 import { format } from "date-fns";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import type { DeliveryStatus } from "@/types/models";
 
 const statusFilters = [
   { label: "Todas", value: "all" },
   { label: "Pendentes", value: "pending" },
+  { label: "Enviadas", value: "broadcasted" },
   { label: "Aceitas", value: "accepted" },
   { label: "Em Coleta", value: "collecting" },
   { label: "Em Rota", value: "in_route" },
   { label: "Finalizadas", value: "completed" },
   { label: "Canceladas", value: "cancelled" },
 ];
+
+function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export default function DeliveriesPage() {
   useDeliveriesRealtime();
@@ -45,6 +50,7 @@ export default function DeliveriesPage() {
 
   const [detailDelivery, setDetailDelivery] = useState<DeliveryWithRelations | null>(null);
   const [reassignDelivery, setReassignDelivery] = useState<DeliveryWithRelations | null>(null);
+  const [dispatchDelivery, setDispatchDelivery] = useState<DeliveryWithRelations | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState("");
 
   const { data, isLoading } = useDeliveries({
@@ -65,12 +71,57 @@ export default function DeliveriesPage() {
   const totalCount = data?.count ?? 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
+  const onlineDrivers = (drivers ?? []).filter((d) => d.is_online);
+
+  // Sort drivers by proximity to delivery
+  const getDriversSortedByProximity = (delivery: DeliveryWithRelations) => {
+    if (!delivery.latitude || !delivery.longitude) return onlineDrivers;
+    return [...onlineDrivers].sort((a, b) => {
+      const distA = a.latitude && a.longitude
+        ? haversineDistance(delivery.latitude!, delivery.longitude!, a.latitude, a.longitude)
+        : Infinity;
+      const distB = b.latitude && b.longitude
+        ? haversineDistance(delivery.latitude!, delivery.longitude!, b.latitude, b.longitude)
+        : Infinity;
+      return distA - distB;
+    });
+  };
+
+  const getDriverDistance = (driver: any, delivery: DeliveryWithRelations) => {
+    if (!delivery.latitude || !delivery.longitude || !driver.latitude || !driver.longitude) return null;
+    return haversineDistance(delivery.latitude, delivery.longitude, driver.latitude, driver.longitude);
+  };
+
   const handleReassign = async () => {
     if (!reassignDelivery) return;
     try {
       await reassignMut.mutateAsync({ id: reassignDelivery.id, driverId: selectedDriverId || null });
       toast({ title: "Entregador reatribuído!" });
       setReassignDelivery(null);
+      setSelectedDriverId("");
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  // Broadcast to all online drivers
+  const handleBroadcast = async (delivery: DeliveryWithRelations) => {
+    try {
+      await updateStatus.mutateAsync({ id: delivery.id, status: "broadcasted" });
+      toast({ title: "OS compartilhada!", description: `Enviada para ${onlineDrivers.length} entregador(es) online` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  // Dispatch to specific driver
+  const handleDispatch = async () => {
+    if (!dispatchDelivery || !selectedDriverId) return;
+    try {
+      await reassignMut.mutateAsync({ id: dispatchDelivery.id, driverId: selectedDriverId });
+      await updateStatus.mutateAsync({ id: dispatchDelivery.id, status: "broadcasted" });
+      toast({ title: "OS enviada!", description: "Entrega direcionada ao entregador selecionado" });
+      setDispatchDelivery(null);
       setSelectedDriverId("");
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -210,7 +261,7 @@ export default function DeliveriesPage() {
                         <p className="text-sm text-muted-foreground truncate max-w-[200px]">{delivery.address}</p>
                       </td>
                       <td className="p-4">
-                        <DeliveryStatusBadge status={delivery.status} />
+                        <DeliveryStatusBadge status={delivery.status as DeliveryStatus} />
                       </td>
                       <td className="p-4 hidden sm:table-cell">
                         <span className="text-sm font-semibold text-foreground">R$ {Number(delivery.value).toFixed(2)}</span>
@@ -222,6 +273,26 @@ export default function DeliveriesPage() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-1">
+                          {/* Broadcast button for pending deliveries */}
+                          {delivery.status === "pending" && (
+                            <button
+                              onClick={() => handleBroadcast(delivery)}
+                              className="p-2 rounded-lg hover:bg-primary/10 transition-colors"
+                              title="Compartilhar com todos os entregadores"
+                            >
+                              <Radio className="h-4 w-4 text-primary" />
+                            </button>
+                          )}
+                          {/* Dispatch button for pending deliveries */}
+                          {delivery.status === "pending" && (
+                            <button
+                              onClick={() => { setDispatchDelivery(delivery); setSelectedDriverId(""); }}
+                              className="p-2 rounded-lg hover:bg-info/10 transition-colors"
+                              title="Enviar para entregador específico"
+                            >
+                              <Send className="h-4 w-4 text-info" />
+                            </button>
+                          )}
                           <button
                             onClick={() => setDetailDelivery(delivery)}
                             className="p-2 rounded-lg hover:bg-muted transition-colors"
@@ -240,6 +311,17 @@ export default function DeliveriesPage() {
                               <DropdownMenuItem onClick={() => handlePrint(delivery)}>
                                 <Printer className="h-4 w-4 mr-2" /> Imprimir OS
                               </DropdownMenuItem>
+                              {delivery.status === "pending" && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleBroadcast(delivery)}>
+                                    <Radio className="h-4 w-4 mr-2" /> Compartilhar com todos
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => { setDispatchDelivery(delivery); setSelectedDriverId(""); }}>
+                                    <Send className="h-4 w-4 mr-2" /> Enviar para entregador
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                               {!["completed", "cancelled"].includes(delivery.status) && (
                                 <DropdownMenuItem onClick={() => { setReassignDelivery(delivery); setSelectedDriverId(delivery.driver_id || ""); }}>
                                   <UserCheck className="h-4 w-4 mr-2" /> Reatribuir
@@ -251,7 +333,7 @@ export default function DeliveriesPage() {
                                   Aceitar
                                 </DropdownMenuItem>
                               )}
-                              {delivery.status === "accepted" && (
+                              {(delivery.status === "accepted" || delivery.status === "broadcasted") && (
                                 <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "collecting" })}>
                                   Iniciar Coleta
                                 </DropdownMenuItem>
@@ -300,18 +382,10 @@ export default function DeliveriesPage() {
                   {page * pageSize + 1}–{Math.min((page + 1) * pageSize, totalCount)} de {totalCount}
                 </span>
                 <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setPage(Math.max(0, page - 1))}
-                    disabled={page === 0}
-                    className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30"
-                  >
+                  <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30">
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  <button
-                    onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
-                    disabled={page >= totalPages - 1}
-                    className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30"
-                  >
+                  <button onClick={() => setPage(Math.min(totalPages - 1, page + 1))} disabled={page >= totalPages - 1} className="p-1.5 rounded-lg hover:bg-muted disabled:opacity-30">
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
@@ -333,13 +407,31 @@ export default function DeliveriesPage() {
           {detailDelivery && (
             <div className="space-y-4 mt-2">
               <div className="flex items-center justify-between">
-                <DeliveryStatusBadge status={detailDelivery.status} />
-                <button
-                  onClick={() => handlePrint(detailDelivery)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
-                >
-                  <Printer className="h-4 w-4" /> Imprimir
-                </button>
+                <DeliveryStatusBadge status={detailDelivery.status as DeliveryStatus} />
+                <div className="flex gap-2">
+                  {detailDelivery.status === "pending" && (
+                    <>
+                      <button
+                        onClick={() => { handleBroadcast(detailDelivery); setDetailDelivery(null); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
+                      >
+                        <Radio className="h-4 w-4" /> Broadcast
+                      </button>
+                      <button
+                        onClick={() => { setDispatchDelivery(detailDelivery); setDetailDelivery(null); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-info/10 text-info text-sm font-medium hover:bg-info/20 transition-colors"
+                      >
+                        <Send className="h-4 w-4" /> Direcionar
+                      </button>
+                    </>
+                  )}
+                  <button
+                    onClick={() => handlePrint(detailDelivery)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
+                  >
+                    <Printer className="h-4 w-4" /> Imprimir
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -408,10 +500,7 @@ export default function DeliveriesPage() {
               ))}
             </select>
             <div className="flex gap-2">
-              <button
-                onClick={() => setReassignDelivery(null)}
-                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted"
-              >
+              <button onClick={() => setReassignDelivery(null)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted">
                 Cancelar
               </button>
               <button
@@ -424,6 +513,89 @@ export default function DeliveriesPage() {
               </button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dispatch Modal - Send to specific driver */}
+      <Dialog open={!!dispatchDelivery} onOpenChange={(open) => !open && setDispatchDelivery(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Send className="h-5 w-5 text-info" />
+              Enviar para Entregador
+            </DialogTitle>
+          </DialogHeader>
+          {dispatchDelivery && (
+            <div className="space-y-4 mt-2">
+              <div className="bg-muted/50 rounded-xl p-3">
+                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">OS</p>
+                <p className="text-sm font-medium text-foreground">
+                  #{dispatchDelivery.id.slice(0, 8).toUpperCase()} — {dispatchDelivery.customer_name}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">{dispatchDelivery.address}</p>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                  Entregadores Online ({onlineDrivers.length})
+                </p>
+                {onlineDrivers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Nenhum entregador online</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                    {getDriversSortedByProximity(dispatchDelivery).map((driver) => {
+                      const dist = getDriverDistance(driver, dispatchDelivery);
+                      return (
+                        <button
+                          key={driver.id}
+                          onClick={() => setSelectedDriverId(driver.id)}
+                          className={`w-full text-left rounded-xl p-3 transition-all ${
+                            selectedDriverId === driver.id
+                              ? "bg-primary/10 border border-primary/30"
+                              : "bg-muted/50 hover:bg-muted border border-transparent"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                <span className="text-xs font-bold text-primary">
+                                  {(driver.profiles?.full_name || "?")[0]}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{driver.profiles?.full_name || "—"}</p>
+                                <p className="text-xs text-muted-foreground">{driver.vehicle}</p>
+                              </div>
+                            </div>
+                            {dist !== null && (
+                              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded-full">
+                                <MapPin className="h-3 w-3" />
+                                {dist < 1 ? `${Math.round(dist * 1000)}m` : `${dist.toFixed(1)}km`}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={() => setDispatchDelivery(null)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted">
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDispatch}
+                  disabled={!selectedDriverId || reassignMut.isPending}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {reassignMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Enviar
+                </button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </AdminLayout>
