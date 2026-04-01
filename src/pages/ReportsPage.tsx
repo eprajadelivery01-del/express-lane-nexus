@@ -3,10 +3,12 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useDeliveries } from "@/services/deliveries";
 import { useCompanies } from "@/services/companies";
 import { useDrivers } from "@/services/drivers";
-import { BarChart3, Download, Loader2, Calendar, Building2, Bike, Filter } from "lucide-react";
+import { BarChart3, Download, Loader2, Filter } from "lucide-react";
 import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ReportsPage() {
+  const { toast } = useToast();
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [companyFilter, setCompanyFilter] = useState("");
@@ -28,7 +30,32 @@ export default function ReportsPage() {
   const totalValue = deliveries.reduce((s, d) => s + Number(d.value), 0);
   const totalCommission = deliveries.reduce((s, d) => s + Number(d.commission), 0);
   const completedCount = deliveries.filter((d) => d.status === "completed").length;
-  const cancelledCount = deliveries.filter((d) => d.status === "cancelled").length;
+
+  const handleExport = () => {
+    if (deliveries.length === 0) {
+      toast({ title: "Nenhum dado para exportar", variant: "destructive" });
+      return;
+    }
+    const headers = ["Data", "Cliente", "Empresa", "Endereço", "Status", "Valor", "Comissão"];
+    const rows = deliveries.map((d) => [
+      format(new Date(d.created_at), "dd/MM/yyyy HH:mm"),
+      d.customer_name,
+      (d as any).companies?.name || "",
+      d.address,
+      d.status,
+      Number(d.value).toFixed(2),
+      Number(d.commission).toFixed(2),
+    ]);
+    const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `relatorio_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Relatório exportado!" });
+  };
 
   return (
     <AdminLayout title="Financeiro / Relatórios" subtitle="Análise de dados e exportação">
@@ -91,8 +118,11 @@ export default function ReportsPage() {
       <div className="bg-card rounded-xl shadow-card border border-border overflow-hidden">
         <div className="flex items-center justify-between p-4 border-b border-border">
           <span className="text-sm font-semibold text-foreground">{deliveries.length} registros</span>
-          <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-sm font-medium text-foreground hover:bg-muted/80 transition-colors">
-            <Download className="h-4 w-4" /> Exportar
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Download className="h-4 w-4" /> Exportar CSV
           </button>
         </div>
         {isLoading ? (
@@ -149,6 +179,7 @@ function SummaryCard({ label, value, icon }: { label: string; value: string | nu
 function StatusDot({ status }: { status: string }) {
   const colors: Record<string, string> = {
     pending: "bg-warning",
+    broadcasted: "bg-info",
     accepted: "bg-info",
     collecting: "bg-accent",
     in_route: "bg-primary",
@@ -157,6 +188,7 @@ function StatusDot({ status }: { status: string }) {
   };
   const labels: Record<string, string> = {
     pending: "Pendente",
+    broadcasted: "Enviada",
     accepted: "Aceita",
     collecting: "Coletando",
     in_route: "Em Rota",

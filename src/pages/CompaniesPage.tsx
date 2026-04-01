@@ -2,21 +2,43 @@ import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useCompanies } from "@/services/companies";
 import { useRegions } from "@/services/regions";
-import { Building2, Phone, MapPin, Loader2, Plus, Camera } from "lucide-react";
+import { Building2, Phone, MapPin, Loader2, Plus, MoreHorizontal, Power } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 export default function CompaniesPage() {
   const { data: companies, isLoading } = useCompanies();
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+
+  const handleToggleActive = async (companyId: string, isActive: boolean) => {
+    const { error } = await supabase.from("companies").update({ is_active: !isActive }).eq("id", companyId);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: isActive ? "Empresa desativada" : "Empresa ativada" });
+      qc.invalidateQueries({ queryKey: ["companies"] });
+    }
+  };
+
+  const handleDelete = async (companyId: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta empresa?")) return;
+    const { error } = await supabase.from("companies").delete().eq("id", companyId);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Empresa excluída" });
+      qc.invalidateQueries({ queryKey: ["companies"] });
+    }
+  };
 
   return (
     <AdminLayout title="Empresas" subtitle="Gestão de lojas e estabelecimentos">
@@ -61,6 +83,21 @@ export default function CompaniesPage() {
                     </span>
                   </div>
                 </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="p-2 rounded-lg hover:bg-muted transition-colors opacity-0 group-hover:opacity-100">
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleToggleActive(company.id, company.is_active)}>
+                      <Power className="h-4 w-4 mr-2" />
+                      {company.is_active ? "Desativar" : "Ativar"}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(company.id)}>
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="space-y-2">
                 {company.phone && (
@@ -96,14 +133,8 @@ function CreateCompanyForm({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
-    companyName: "",
-    responsibleName: "",
-    email: "",
-    password: "",
-    phone: "",
-    document: "",
-    address: "",
-    regionId: "",
+    companyName: "", responsibleName: "", email: "", password: "",
+    phone: "", document: "", address: "", regionId: "",
   });
 
   const set = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
@@ -119,18 +150,11 @@ function CreateCompanyForm({ onSuccess }: { onSuccess: () => void }) {
     try {
       const res = await supabase.functions.invoke("create-admin", {
         body: {
-          email: form.email,
-          password: form.password,
-          fullName: form.responsibleName,
-          phone: form.phone,
-          document: form.document,
-          role: "company",
-          companyName: form.companyName,
-          address: form.address,
-          regionId: form.regionId || null,
+          email: form.email, password: form.password, fullName: form.responsibleName,
+          phone: form.phone, document: form.document, role: "company",
+          companyName: form.companyName, address: form.address, regionId: form.regionId || null,
         },
       });
-
       if (res.error) throw new Error(res.error.message);
       const data = res.data as any;
       if (data?.error) throw new Error(data.error);
@@ -148,18 +172,11 @@ function CreateCompanyForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <div className="space-y-5 mt-2">
-      {/* Stepper */}
       <div className="flex items-center gap-1">
         {steps.map((s, i) => (
           <div key={i} className="flex items-center gap-1 flex-1">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-              i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            }`}>
-              {i + 1}
-            </div>
-            <span className={`text-xs truncate ${i <= step ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-              {s}
-            </span>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{i + 1}</div>
+            <span className={`text-xs truncate ${i <= step ? "text-foreground font-medium" : "text-muted-foreground"}`}>{s}</span>
             {i < steps.length - 1 && <div className={`flex-1 h-0.5 mx-1 ${i < step ? "bg-primary" : "bg-muted"}`} />}
           </div>
         ))}
@@ -186,11 +203,8 @@ function CreateCompanyForm({ onSuccess }: { onSuccess: () => void }) {
           <FieldInput label="Endereço completo" value={form.address} onChange={(v) => set("address", v)} placeholder="Rua X, 123 - Bairro" />
           <div>
             <label className="text-sm font-medium mb-1.5 block text-foreground">Região padrão</label>
-            <select
-              value={form.regionId}
-              onChange={(e) => set("regionId", e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors"
-            >
+            <select value={form.regionId} onChange={(e) => set("regionId", e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors">
               <option value="">Sem região</option>
               {(regions ?? []).map((r) => (
                 <option key={r.id} value={r.id}>{r.name} — R$ {Number(r.price).toFixed(2)}</option>
@@ -200,29 +214,15 @@ function CreateCompanyForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
       )}
 
-      {/* Navigation */}
       <div className="flex gap-2">
         {step > 0 && (
-          <button onClick={() => setStep(step - 1)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors">
-            Voltar
-          </button>
+          <button onClick={() => setStep(step - 1)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors">Voltar</button>
         )}
         {step < 2 ? (
-          <button
-            onClick={() => setStep(step + 1)}
-            disabled={!canNext()}
-            className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition-colors"
-          >
-            Próximo
-          </button>
+          <button onClick={() => setStep(step + 1)} disabled={!canNext()} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition-colors">Próximo</button>
         ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Cadastrar Empresa
+          <button onClick={handleSubmit} disabled={loading} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />} Cadastrar Empresa
           </button>
         )}
       </div>
@@ -236,13 +236,8 @@ function FieldInput({ label, value, onChange, placeholder, type = "text" }: {
   return (
     <div>
       <label className="text-sm font-medium mb-1.5 block text-foreground">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors"
-      />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors" />
     </div>
   );
 }
