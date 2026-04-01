@@ -1,18 +1,26 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { DeliveryStatusBadge } from "@/components/admin/DeliveryStatusBadge";
-import { useDeliveries, useUpdateDeliveryStatus, useReassignDelivery } from "@/services/deliveries";
+import { useDeliveries, useUpdateDeliveryStatus, useReassignDelivery, type DeliveryWithRelations } from "@/services/deliveries";
 import { useCompanies } from "@/services/companies";
 import { useDrivers } from "@/services/drivers";
 import { useDeliveriesRealtime } from "@/services/realtime";
-import { Search, Filter, Eye, MoreHorizontal, X as XIcon, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Search, Filter, Eye, MoreHorizontal, X as XIcon, ChevronLeft, ChevronRight, Loader2, Printer, UserCheck, Package } from "lucide-react";
 import { format } from "date-fns";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const statusFilters = [
   { label: "Todas", value: "all" },
@@ -26,6 +34,7 @@ const statusFilters = [
 
 export default function DeliveriesPage() {
   useDeliveriesRealtime();
+  const { toast } = useToast();
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -33,6 +42,10 @@ export default function DeliveriesPage() {
   const [driverFilter, setDriverFilter] = useState("");
   const [page, setPage] = useState(0);
   const pageSize = 20;
+
+  const [detailDelivery, setDetailDelivery] = useState<DeliveryWithRelations | null>(null);
+  const [reassignDelivery, setReassignDelivery] = useState<DeliveryWithRelations | null>(null);
+  const [selectedDriverId, setSelectedDriverId] = useState("");
 
   const { data, isLoading } = useDeliveries({
     status: activeFilter,
@@ -46,11 +59,64 @@ export default function DeliveriesPage() {
   const { data: companies } = useCompanies();
   const { data: drivers } = useDrivers();
   const updateStatus = useUpdateDeliveryStatus();
-  const reassign = useReassignDelivery();
+  const reassignMut = useReassignDelivery();
 
   const deliveries = data?.data ?? [];
   const totalCount = data?.count ?? 0;
   const totalPages = Math.ceil(totalCount / pageSize);
+
+  const handleReassign = async () => {
+    if (!reassignDelivery) return;
+    try {
+      await reassignMut.mutateAsync({ id: reassignDelivery.id, driverId: selectedDriverId || null });
+      toast({ title: "Entregador reatribuído!" });
+      setReassignDelivery(null);
+      setSelectedDriverId("");
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handlePrint = (delivery: DeliveryWithRelations) => {
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (!w) return;
+    w.document.write(`
+      <html><head><title>OS #${delivery.id.slice(0, 8)}</title>
+      <style>
+        body { font-family: Arial, sans-serif; padding: 20px; font-size: 13px; }
+        h1 { font-size: 18px; margin-bottom: 4px; }
+        .label { color: #666; font-size: 11px; text-transform: uppercase; margin-top: 12px; }
+        .value { font-weight: bold; margin-bottom: 8px; }
+        hr { border: none; border-top: 1px dashed #ccc; margin: 16px 0; }
+        .footer { margin-top: 24px; text-align: center; font-size: 11px; color: #999; }
+      </style></head><body>
+        <h1>É Pra Já Delivery</h1>
+        <p style="color:#666;margin-top:0">Ordem de Serviço</p>
+        <hr/>
+        <div class="label">OS</div>
+        <div class="value">#${delivery.id.slice(0, 8).toUpperCase()}</div>
+        <div class="label">Cliente</div>
+        <div class="value">${delivery.customer_name}</div>
+        <div class="label">Endereço</div>
+        <div class="value">${delivery.address}</div>
+        <div class="label">Empresa</div>
+        <div class="value">${(delivery as any).companies?.name || "—"}</div>
+        <div class="label">Status</div>
+        <div class="value">${delivery.status}</div>
+        <div class="label">Valor</div>
+        <div class="value">R$ ${Number(delivery.value).toFixed(2)}</div>
+        <div class="label">Comissão</div>
+        <div class="value">R$ ${Number(delivery.commission).toFixed(2)}</div>
+        <div class="label">Data</div>
+        <div class="value">${format(new Date(delivery.created_at), "dd/MM/yyyy HH:mm")}</div>
+        ${delivery.notes ? `<div class="label">Observações</div><div class="value">${delivery.notes}</div>` : ""}
+        <hr/>
+        <div class="footer">Impresso em ${format(new Date(), "dd/MM/yyyy HH:mm")}</div>
+      </body></html>
+    `);
+    w.document.close();
+    w.print();
+  };
 
   return (
     <AdminLayout title="Entregas" subtitle="Gestão de corridas e ordens de serviço">
@@ -70,8 +136,6 @@ export default function DeliveriesPage() {
               <button onClick={() => setSearch("")}><XIcon className="h-3.5 w-3.5 text-muted-foreground" /></button>
             )}
           </div>
-
-          {/* Company filter */}
           <select
             value={companyFilter}
             onChange={(e) => { setCompanyFilter(e.target.value); setPage(0); }}
@@ -82,8 +146,6 @@ export default function DeliveriesPage() {
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
-
-          {/* Driver filter */}
           <select
             value={driverFilter}
             onChange={(e) => { setDriverFilter(e.target.value); setPage(0); }}
@@ -159,41 +221,65 @@ export default function DeliveriesPage() {
                         </span>
                       </td>
                       <td className="p-4">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger className="p-2 rounded-lg hover:bg-muted transition-colors">
-                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {delivery.status === "pending" && (
-                              <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "accepted" })}>
-                                Aceitar
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setDetailDelivery(delivery)}
+                            className="p-2 rounded-lg hover:bg-muted transition-colors"
+                            title="Ver detalhes"
+                          >
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger className="p-2 rounded-lg hover:bg-muted transition-colors">
+                              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setDetailDelivery(delivery)}>
+                                <Eye className="h-4 w-4 mr-2" /> Ver detalhes
                               </DropdownMenuItem>
-                            )}
-                            {delivery.status === "accepted" && (
-                              <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "collecting" })}>
-                                Iniciar Coleta
+                              <DropdownMenuItem onClick={() => handlePrint(delivery)}>
+                                <Printer className="h-4 w-4 mr-2" /> Imprimir OS
                               </DropdownMenuItem>
-                            )}
-                            {delivery.status === "collecting" && (
-                              <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "in_route" })}>
-                                Em Rota
-                              </DropdownMenuItem>
-                            )}
-                            {delivery.status === "in_route" && (
-                              <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "completed" })}>
-                                Finalizar
-                              </DropdownMenuItem>
-                            )}
-                            {!["completed", "cancelled"].includes(delivery.status) && (
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => updateStatus.mutate({ id: delivery.id, status: "cancelled" })}
-                              >
-                                Cancelar
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              {!["completed", "cancelled"].includes(delivery.status) && (
+                                <DropdownMenuItem onClick={() => { setReassignDelivery(delivery); setSelectedDriverId(delivery.driver_id || ""); }}>
+                                  <UserCheck className="h-4 w-4 mr-2" /> Reatribuir
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuSeparator />
+                              {delivery.status === "pending" && (
+                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "accepted" })}>
+                                  Aceitar
+                                </DropdownMenuItem>
+                              )}
+                              {delivery.status === "accepted" && (
+                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "collecting" })}>
+                                  Iniciar Coleta
+                                </DropdownMenuItem>
+                              )}
+                              {delivery.status === "collecting" && (
+                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "in_route" })}>
+                                  Em Rota
+                                </DropdownMenuItem>
+                              )}
+                              {delivery.status === "in_route" && (
+                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "completed" })}>
+                                  Finalizar
+                                </DropdownMenuItem>
+                              )}
+                              {!["completed", "cancelled"].includes(delivery.status) && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => updateStatus.mutate({ id: delivery.id, status: "cancelled" })}
+                                  >
+                                    Cancelar
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -203,11 +289,11 @@ export default function DeliveriesPage() {
 
             {deliveries.length === 0 && (
               <div className="p-12 text-center">
+                <Package className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground text-sm">Nenhuma entrega encontrada</p>
               </div>
             )}
 
-            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-border">
                 <span className="text-xs text-muted-foreground">
@@ -234,6 +320,121 @@ export default function DeliveriesPage() {
           </>
         )}
       </div>
+
+      {/* Detail Modal */}
+      <Dialog open={!!detailDelivery} onOpenChange={(open) => !open && setDetailDelivery(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-primary" />
+              OS #{detailDelivery?.id.slice(0, 8).toUpperCase()}
+            </DialogTitle>
+          </DialogHeader>
+          {detailDelivery && (
+            <div className="space-y-4 mt-2">
+              <div className="flex items-center justify-between">
+                <DeliveryStatusBadge status={detailDelivery.status} />
+                <button
+                  onClick={() => handlePrint(detailDelivery)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-sm font-medium hover:bg-muted/80 transition-colors"
+                >
+                  <Printer className="h-4 w-4" /> Imprimir
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <DetailField label="Cliente" value={detailDelivery.customer_name} />
+                <DetailField label="Empresa" value={(detailDelivery as any).companies?.name || "—"} />
+                <DetailField label="Valor" value={`R$ ${Number(detailDelivery.value).toFixed(2)}`} />
+                <DetailField label="Comissão" value={`R$ ${Number(detailDelivery.commission).toFixed(2)}`} />
+                <DetailField label="Região" value={(detailDelivery as any).regions?.name || "—"} />
+                <DetailField label="Criado em" value={format(new Date(detailDelivery.created_at), "dd/MM/yyyy HH:mm")} />
+              </div>
+
+              <DetailField label="Endereço" value={detailDelivery.address} />
+              
+              {detailDelivery.notes && (
+                <DetailField label="Observações" value={detailDelivery.notes} />
+              )}
+
+              <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+                {detailDelivery.accepted_at && <span>Aceita: {format(new Date(detailDelivery.accepted_at), "dd/MM HH:mm")}</span>}
+                {detailDelivery.collected_at && <span>Coletada: {format(new Date(detailDelivery.collected_at), "dd/MM HH:mm")}</span>}
+                {detailDelivery.completed_at && <span>Finalizada: {format(new Date(detailDelivery.completed_at), "dd/MM HH:mm")}</span>}
+                {detailDelivery.cancelled_at && <span>Cancelada: {format(new Date(detailDelivery.cancelled_at), "dd/MM HH:mm")}</span>}
+              </div>
+
+              {!["completed", "cancelled"].includes(detailDelivery.status) && (
+                <div className="flex gap-2 pt-2 border-t border-border">
+                  <button
+                    onClick={() => { setReassignDelivery(detailDelivery); setSelectedDriverId(detailDelivery.driver_id || ""); setDetailDelivery(null); }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-muted text-sm font-medium hover:bg-muted/80"
+                  >
+                    <UserCheck className="h-4 w-4" /> Reatribuir
+                  </button>
+                  <button
+                    onClick={() => { updateStatus.mutate({ id: detailDelivery.id, status: "cancelled" }); setDetailDelivery(null); }}
+                    className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reassign Modal */}
+      <Dialog open={!!reassignDelivery} onOpenChange={(open) => !open && setReassignDelivery(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Reatribuir Entregador</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-sm text-muted-foreground">
+              Selecione o entregador para a OS #{reassignDelivery?.id.slice(0, 8).toUpperCase()}
+            </p>
+            <select
+              value={selectedDriverId}
+              onChange={(e) => setSelectedDriverId(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary"
+            >
+              <option value="">Sem entregador</option>
+              {(drivers ?? []).map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.profiles?.full_name || "—"} {d.is_online ? "● Online" : ""}
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setReassignDelivery(null)}
+                className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleReassign}
+                disabled={reassignMut.isPending}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {reassignMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
+  );
+}
+
+function DetailField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-0.5">{label}</p>
+      <p className="text-sm font-medium text-foreground">{value}</p>
+    </div>
   );
 }
