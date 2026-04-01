@@ -514,6 +514,7 @@ export type Database = {
           full_name: string
           id: string
           phone: string | null
+          status: Database["public"]["Enums"]["user_status"]
           updated_at: string
           user_id: string
         }
@@ -524,6 +525,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
           user_id: string
         }
@@ -534,6 +536,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          status?: Database["public"]["Enums"]["user_status"]
           updated_at?: string
           user_id?: string
         }
@@ -648,6 +651,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_user_active: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "company" | "driver" | "customer"
@@ -667,6 +671,7 @@ export type Database = {
         | "ready"
         | "delivered"
         | "cancelled"
+      user_status: "pending" | "active" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -807,6 +812,7 @@ export const Constants = {
       invitation_status: ["pending", "accepted", "expired"],
       occurrence_type: ["motorcycle_issue", "accident", "robbery", "other"],
       order_status: ["pending", "preparing", "ready", "delivered", "cancelled"],
+      user_status: ["pending", "active", "rejected"],
     },
   },
 } as const

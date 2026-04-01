@@ -15,24 +15,58 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-
+    const { error, data: signInData } = await supabase.auth.signInWithPassword({ email, password });
+    
     if (error) {
+      setLoading(false);
       toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-      const userRoles = roles?.map(r => r.role) || [];
-
-      if (userRoles.includes("admin")) navigate("/admin");
-      else if (userRoles.includes("company")) navigate("/business");
-      else if (userRoles.includes("driver")) navigate("/driver");
-      else navigate("/admin");
+    const user = signInData.user;
+    if (!user) {
+      setLoading(false);
+      toast({ title: "Erro ao entrar", description: "Usuário não encontrado", variant: "destructive" });
+      return;
     }
+
+    // Check user approval status
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("status")
+      .eq("user_id", user.id)
+      .single();
+
+    if (profile?.status === "pending") {
+      await supabase.auth.signOut();
+      setLoading(false);
+      toast({
+        title: "Aguardando aprovação",
+        description: "Seu cadastro está pendente de aprovação pelo administrador. Tente novamente mais tarde.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (profile?.status === "rejected") {
+      await supabase.auth.signOut();
+      setLoading(false);
+      toast({
+        title: "Acesso negado",
+        description: "Seu cadastro foi recusado pelo administrador.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    const userRoles = roles?.map(r => r.role) || [];
+    setLoading(false);
+
+    if (userRoles.includes("admin")) navigate("/admin");
+    else if (userRoles.includes("company")) navigate("/business");
+    else if (userRoles.includes("driver")) navigate("/driver");
+    else navigate("/admin");
   };
 
   return (
