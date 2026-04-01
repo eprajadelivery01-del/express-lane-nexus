@@ -637,6 +637,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_region_for_point: {
+        Args: { _lat: number; _lng: number }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
