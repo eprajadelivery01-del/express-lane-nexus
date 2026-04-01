@@ -1,22 +1,44 @@
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { useDrivers } from "@/services/drivers";
+import { useDrivers, useToggleDriverOnline } from "@/services/drivers";
 import { useRegions } from "@/services/regions";
-import { Star, Phone, Bike, Loader2, MoreHorizontal, Plus, User, Camera, X } from "lucide-react";
+import { Star, Phone, Bike, Loader2, MoreHorizontal, Plus, Camera, Power } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 export default function DriversPage() {
   const { data: drivers, isLoading } = useDrivers();
+  const toggleOnline = useToggleDriverOnline();
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+
+  const handleDelete = async (driverId: string) => {
+    if (!confirm("Tem certeza que deseja excluir este entregador?")) return;
+    const { error } = await supabase.from("delivery_drivers").delete().eq("id", driverId);
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Entregador excluído" });
+      qc.invalidateQueries({ queryKey: ["drivers"] });
+    }
+  };
+
+  const handleToggleOnline = async (driverId: string, isOnline: boolean) => {
+    try {
+      await toggleOnline.mutateAsync({ driverId, isOnline: !isOnline });
+      toast({ title: isOnline ? "Entregador ficou offline" : "Entregador ficou online" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
 
   return (
     <AdminLayout title="Entregadores" subtitle="Gestão de motoboys e frota">
@@ -64,6 +86,21 @@ export default function DriversPage() {
                     </span>
                   </div>
                 </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="p-2 rounded-lg hover:bg-muted transition-colors opacity-0 group-hover:opacity-100">
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleToggleOnline(driver.id, driver.is_online)}>
+                      <Power className="h-4 w-4 mr-2" />
+                      {driver.is_online ? "Ficar Offline" : "Ficar Online"}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(driver.id)}>
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3">
@@ -108,14 +145,8 @@ function CreateDriverForm({ onSuccess }: { onSuccess: () => void }) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    phone: "",
-    document: "",
-    vehicle: "motorcycle",
-    licensePlate: "",
-    commissionRate: "15",
+    fullName: "", email: "", password: "", phone: "", document: "",
+    vehicle: "motorcycle", licensePlate: "", commissionRate: "15",
   });
 
   const set = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
@@ -138,23 +169,16 @@ function CreateDriverForm({ onSuccess }: { onSuccess: () => void }) {
     try {
       const res = await supabase.functions.invoke("create-admin", {
         body: {
-          email: form.email,
-          password: form.password,
-          fullName: form.fullName,
-          phone: form.phone,
-          document: form.document,
-          role: "driver",
-          vehicle: form.vehicle,
-          licensePlate: form.licensePlate,
+          email: form.email, password: form.password, fullName: form.fullName,
+          phone: form.phone, document: form.document, role: "driver",
+          vehicle: form.vehicle, licensePlate: form.licensePlate,
           commissionRate: parseFloat(form.commissionRate) || 15,
         },
       });
-
       if (res.error) throw new Error(res.error.message);
       const data = res.data as any;
       if (data?.error) throw new Error(data.error);
 
-      // Upload avatar if provided
       if (avatarFile && data?.userId) {
         const ext = avatarFile.name.split(".").pop();
         const path = `${data.userId}/avatar.${ext}`;
@@ -176,18 +200,11 @@ function CreateDriverForm({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <div className="space-y-5 mt-2">
-      {/* Stepper */}
       <div className="flex items-center gap-1">
         {steps.map((s, i) => (
           <div key={i} className="flex items-center gap-1 flex-1">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-              i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-            }`}>
-              {i + 1}
-            </div>
-            <span className={`text-xs truncate ${i <= step ? "text-foreground font-medium" : "text-muted-foreground"}`}>
-              {s}
-            </span>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${i <= step ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{i + 1}</div>
+            <span className={`text-xs truncate ${i <= step ? "text-foreground font-medium" : "text-muted-foreground"}`}>{s}</span>
             {i < steps.length - 1 && <div className={`flex-1 h-0.5 mx-1 ${i < step ? "bg-primary" : "bg-muted"}`} />}
           </div>
         ))}
@@ -195,15 +212,10 @@ function CreateDriverForm({ onSuccess }: { onSuccess: () => void }) {
 
       {step === 0 && (
         <div className="space-y-3">
-          {/* Avatar */}
           <div className="flex justify-center">
             <label className="relative cursor-pointer group">
               <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border group-hover:border-primary transition-colors">
-                {avatarPreview ? (
-                  <img src={avatarPreview} className="w-full h-full object-cover" />
-                ) : (
-                  <Camera className="h-6 w-6 text-muted-foreground" />
-                )}
+                {avatarPreview ? <img src={avatarPreview} className="w-full h-full object-cover" /> : <Camera className="h-6 w-6 text-muted-foreground" />}
               </div>
               <input type="file" accept="image/*" onChange={handleAvatar} className="hidden" />
             </label>
@@ -226,21 +238,9 @@ function CreateDriverForm({ onSuccess }: { onSuccess: () => void }) {
           <div>
             <label className="text-sm font-medium mb-1.5 block text-foreground">Tipo de veículo</label>
             <div className="flex gap-2">
-              {[
-                { value: "motorcycle", label: "Moto" },
-                { value: "bicycle", label: "Bicicleta" },
-                { value: "car", label: "Carro" },
-              ].map((v) => (
-                <button
-                  key={v.value}
-                  type="button"
-                  onClick={() => set("vehicle", v.value)}
-                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${
-                    form.vehicle === v.value
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:bg-muted"
-                  }`}
-                >
+              {[{ value: "motorcycle", label: "Moto" }, { value: "bicycle", label: "Bicicleta" }, { value: "car", label: "Carro" }].map((v) => (
+                <button key={v.value} type="button" onClick={() => set("vehicle", v.value)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${form.vehicle === v.value ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}>
                   {v.label}
                 </button>
               ))}
@@ -251,29 +251,15 @@ function CreateDriverForm({ onSuccess }: { onSuccess: () => void }) {
         </div>
       )}
 
-      {/* Navigation */}
       <div className="flex gap-2">
         {step > 0 && (
-          <button onClick={() => setStep(step - 1)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors">
-            Voltar
-          </button>
+          <button onClick={() => setStep(step - 1)} className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted transition-colors">Voltar</button>
         )}
         {step < 2 ? (
-          <button
-            onClick={() => setStep(step + 1)}
-            disabled={!canNext()}
-            className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition-colors"
-          >
-            Próximo
-          </button>
+          <button onClick={() => setStep(step + 1)} disabled={!canNext()} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:bg-primary/90 transition-colors">Próximo</button>
         ) : (
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Cadastrar Entregador
+          <button onClick={handleSubmit} disabled={loading} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />} Cadastrar Entregador
           </button>
         )}
       </div>
@@ -287,13 +273,8 @@ function FieldInput({ label, value, onChange, placeholder, type = "text" }: {
   return (
     <div>
       <label className="text-sm font-medium mb-1.5 block text-foreground">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors"
-      />
+      <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors" />
     </div>
   );
 }
