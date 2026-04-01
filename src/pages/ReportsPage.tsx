@@ -1,34 +1,172 @@
+import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { BarChart3, Download } from "lucide-react";
+import { useDeliveries } from "@/services/deliveries";
+import { useCompanies } from "@/services/companies";
+import { useDrivers } from "@/services/drivers";
+import { BarChart3, Download, Loader2, Calendar, Building2, Bike, Filter } from "lucide-react";
+import { format } from "date-fns";
 
 export default function ReportsPage() {
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("");
+  const [driverFilter, setDriverFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const { data: companies } = useCompanies();
+  const { data: drivers } = useDrivers();
+  const { data, isLoading } = useDeliveries({
+    status: statusFilter,
+    companyId: companyFilter || undefined,
+    driverId: driverFilter || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    pageSize: 1000,
+  });
+
+  const deliveries = data?.data ?? [];
+  const totalValue = deliveries.reduce((s, d) => s + Number(d.value), 0);
+  const totalCommission = deliveries.reduce((s, d) => s + Number(d.commission), 0);
+  const completedCount = deliveries.filter((d) => d.status === "completed").length;
+  const cancelledCount = deliveries.filter((d) => d.status === "cancelled").length;
+
   return (
-    <AdminLayout title="Relatórios" subtitle="Análise de dados e exportação">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[
-          { title: "Entregas por Empresa", desc: "Relatório detalhado por empresa" },
-          { title: "Entregas por Entregador", desc: "Performance individual" },
-          { title: "Faturamento por Período", desc: "Análise financeira" },
-          { title: "Regiões mais Ativas", desc: "Distribuição geográfica" },
-          { title: "Avaliações", desc: "Satisfação dos clientes" },
-          { title: "Ocorrências", desc: "Incidentes e resoluções" },
-        ].map((report, i) => (
-          <div key={i} className="bg-card rounded-xl p-5 shadow-card hover:shadow-card-hover transition-shadow group cursor-pointer">
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <BarChart3 className="h-5 w-5 text-primary" />
-              </div>
-              <Download className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-            <h3 className="font-semibold text-foreground text-sm mb-1">{report.title}</h3>
-            <p className="text-xs text-muted-foreground">{report.desc}</p>
-            <div className="flex gap-2 mt-3">
-              <span className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">Excel</span>
-              <span className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">PDF</span>
-            </div>
+    <AdminLayout title="Financeiro / Relatórios" subtitle="Análise de dados e exportação">
+      {/* Filters */}
+      <div className="bg-card rounded-xl p-4 shadow-card border border-border mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-semibold text-foreground">Filtros</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Data início</label>
+            <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary" />
           </div>
-        ))}
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Data fim</label>
+            <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Empresa</label>
+            <select value={companyFilter} onChange={(e) => setCompanyFilter(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none">
+              <option value="">Todas</option>
+              {(companies ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Entregador</label>
+            <select value={driverFilter} onChange={(e) => setDriverFilter(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none">
+              <option value="">Todos</option>
+              {(drivers ?? []).map((d) => <option key={d.id} value={d.id}>{d.profiles?.full_name || "—"}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Status</label>
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none">
+              <option value="all">Todos</option>
+              <option value="completed">Finalizadas</option>
+              <option value="cancelled">Canceladas</option>
+              <option value="pending">Pendentes</option>
+              <option value="in_route">Em Rota</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <SummaryCard label="Total de Corridas" value={deliveries.length} icon={<BarChart3 className="h-5 w-5 text-primary" />} />
+        <SummaryCard label="Finalizadas" value={completedCount} icon={<BarChart3 className="h-5 w-5 text-success" />} />
+        <SummaryCard label="Valor Total" value={`R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} icon={<BarChart3 className="h-5 w-5 text-info" />} />
+        <SummaryCard label="Comissões" value={`R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} icon={<BarChart3 className="h-5 w-5 text-warning" />} />
+      </div>
+
+      {/* Table */}
+      <div className="bg-card rounded-xl shadow-card border border-border overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <span className="text-sm font-semibold text-foreground">{deliveries.length} registros</span>
+          <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-sm font-medium text-foreground hover:bg-muted/80 transition-colors">
+            <Download className="h-4 w-4" /> Exportar
+          </button>
+        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left text-xs font-semibold text-muted-foreground p-3">Data</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground p-3">Cliente</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground p-3 hidden md:table-cell">Empresa</th>
+                  <th className="text-left text-xs font-semibold text-muted-foreground p-3">Status</th>
+                  <th className="text-right text-xs font-semibold text-muted-foreground p-3">Valor</th>
+                  <th className="text-right text-xs font-semibold text-muted-foreground p-3">Comissão</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {deliveries.slice(0, 50).map((d) => (
+                  <tr key={d.id} className="hover:bg-muted/30">
+                    <td className="p-3 text-xs text-muted-foreground">{format(new Date(d.created_at), "dd/MM HH:mm")}</td>
+                    <td className="p-3 text-sm text-foreground">{d.customer_name}</td>
+                    <td className="p-3 text-sm text-muted-foreground hidden md:table-cell">{(d as any).companies?.name || "—"}</td>
+                    <td className="p-3"><StatusDot status={d.status} /></td>
+                    <td className="p-3 text-sm text-foreground text-right font-semibold">R$ {Number(d.value).toFixed(2)}</td>
+                    <td className="p-3 text-sm text-muted-foreground text-right">R$ {Number(d.commission).toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </AdminLayout>
+  );
+}
+
+function SummaryCard({ label, value, icon }: { label: string; value: string | number; icon: React.ReactNode }) {
+  return (
+    <div className="bg-card rounded-xl p-4 shadow-card border border-border">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">{icon}</div>
+        <div>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-semibold">{label}</p>
+          <p className="text-lg font-display font-extrabold text-foreground">{value}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusDot({ status }: { status: string }) {
+  const colors: Record<string, string> = {
+    pending: "bg-warning",
+    accepted: "bg-info",
+    collecting: "bg-accent",
+    in_route: "bg-primary",
+    completed: "bg-success",
+    cancelled: "bg-destructive",
+  };
+  const labels: Record<string, string> = {
+    pending: "Pendente",
+    accepted: "Aceita",
+    collecting: "Coletando",
+    in_route: "Em Rota",
+    completed: "Finalizada",
+    cancelled: "Cancelada",
+  };
+  return (
+    <span className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+      <span className={`w-2 h-2 rounded-full ${colors[status] || "bg-muted"}`} />
+      {labels[status] || status}
+    </span>
   );
 }
