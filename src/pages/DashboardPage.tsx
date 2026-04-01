@@ -6,9 +6,12 @@ import { useDeliveryStats, useDeliveries } from "@/services/deliveries";
 import { useOnlineDrivers } from "@/services/drivers";
 import { useCompanies } from "@/services/companies";
 import { useAllRealtime } from "@/services/realtime";
+import { useState, useEffect } from "react";
 import {
-  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, XCircle
+  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, Search, MapPin, Loader2
 } from "lucide-react";
+
+const CITY_STORAGE_KEY = "epj_selected_city";
 
 export default function DashboardPage() {
   useAllRealtime();
@@ -22,6 +25,48 @@ export default function DashboardPage() {
   const inRouteCount = inRouteData?.count ?? 0;
   const completedCount = completedData?.count ?? 0;
 
+  // City selector state
+  const [cityQuery, setCityQuery] = useState("");
+  const [selectedCity, setSelectedCity] = useState<{ name: string; lat: number; lng: number } | null>(null);
+  const [citySuggestions, setCitySuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
+  const [searchingCity, setSearchingCity] = useState(false);
+
+  // Load persisted city
+  useEffect(() => {
+    const stored = localStorage.getItem(CITY_STORAGE_KEY);
+    if (stored) {
+      try {
+        setSelectedCity(JSON.parse(stored));
+      } catch {}
+    }
+  }, []);
+
+  const searchCity = async () => {
+    if (cityQuery.length < 2) return;
+    setSearchingCity(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityQuery)}&limit=5&addressdetails=1`
+      );
+      const data = await res.json();
+      setCitySuggestions(
+        data.map((r: any) => ({
+          name: r.display_name.split(",").slice(0, 3).join(","),
+          lat: parseFloat(r.lat),
+          lng: parseFloat(r.lon),
+        }))
+      );
+    } catch {}
+    setSearchingCity(false);
+  };
+
+  const selectCity = (city: { name: string; lat: number; lng: number }) => {
+    setSelectedCity(city);
+    localStorage.setItem(CITY_STORAGE_KEY, JSON.stringify(city));
+    setCitySuggestions([]);
+    setCityQuery("");
+  };
+
   return (
     <AdminLayout title="Dashboard" subtitle="Visão geral da operação">
       <div className="flex flex-col lg:flex-row gap-0 -m-4 md:-m-6 h-[calc(100vh-73px)]">
@@ -32,6 +77,61 @@ export default function DashboardPage() {
 
         {/* Center */}
         <div className="flex-1 flex flex-col min-w-0">
+          {/* City Selector */}
+          <div className="px-4 pt-3 pb-1">
+            <div className="relative">
+              <div className="flex items-center gap-2 bg-card rounded-xl border border-border px-3 py-2">
+                <MapPin className="h-4 w-4 text-primary shrink-0" />
+                {selectedCity ? (
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-sm font-medium text-foreground truncate">{selectedCity.name}</span>
+                    <button
+                      onClick={() => {
+                        setSelectedCity(null);
+                        localStorage.removeItem(CITY_STORAGE_KEY);
+                      }}
+                      className="text-xs text-muted-foreground hover:text-foreground shrink-0"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 flex-1">
+                    <input
+                      type="text"
+                      value={cityQuery}
+                      onChange={(e) => setCityQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && searchCity()}
+                      placeholder="Selecionar cidade..."
+                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                    />
+                    <button
+                      onClick={searchCity}
+                      disabled={searchingCity}
+                      className="text-primary hover:text-primary/80 shrink-0"
+                    >
+                      {searchingCity ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {citySuggestions.length > 0 && (
+                <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-card rounded-xl border border-border shadow-lg overflow-hidden">
+                  {citySuggestions.map((city, i) => (
+                    <button
+                      key={i}
+                      onClick={() => selectCity(city)}
+                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors border-b border-border last:border-0"
+                    >
+                      {city.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Stats Grid */}
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 p-4">
             <StatCard
@@ -75,7 +175,7 @@ export default function DashboardPage() {
 
           {/* Map */}
           <div className="flex-1 px-4 pb-4 min-h-[300px]">
-            <MapView />
+            <MapView centerCity={selectedCity} />
           </div>
         </div>
 
@@ -89,19 +189,10 @@ export default function DashboardPage() {
 }
 
 function StatCard({
-  icon,
-  label,
-  value,
-  iconBg,
-  iconColor,
-  pulse,
+  icon, label, value, iconBg, iconColor, pulse,
 }: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-  iconBg: string;
-  iconColor: string;
-  pulse?: boolean;
+  icon: React.ReactNode; label: string; value: string | number;
+  iconBg: string; iconColor: string; pulse?: boolean;
 }) {
   return (
     <div className="bg-card rounded-xl border border-border p-4 shadow-card hover:shadow-card-hover transition-all cursor-pointer group">
