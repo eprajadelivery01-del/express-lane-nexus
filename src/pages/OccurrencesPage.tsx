@@ -71,7 +71,7 @@ export default function OccurrencesPage() {
       return;
     }
     try {
-      await createOcc.mutateAsync({ type: form.type as any, description: form.description, driver_id: form.driver_id });
+      await createOcc.mutateAsync({ type: form.type as "motorcycle_issue" | "accident" | "robbery" | "other", description: form.description, driver_id: form.driver_id });
       toast({ title: "Ocorrência registrada!" });
       setCreateOpen(false);
       setForm({ type: "other", description: "", driver_id: "" });
