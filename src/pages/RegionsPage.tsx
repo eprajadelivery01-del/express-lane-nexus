@@ -166,15 +166,23 @@ export default function RegionsPage() {
       },
     });
 
-    m.addLayer({
-      id: "draw-line",
-      type: coords.length > 2 ? "fill" : "line",
-      source: "draw",
-      filter: coords.length > 2 ? ["==", "$type", "Polygon"] : ["==", "$type", "LineString"],
-      paint: coords.length > 2
-        ? { "fill-color": editColor, "fill-opacity": 0.3 }
-        : { "line-color": editColor, "line-width": 2, "line-dasharray": [2, 2] },
-    });
+    if (coords.length > 2) {
+      m.addLayer({
+        id: "draw-line",
+        type: "fill",
+        source: "draw",
+        filter: ["==", "$type", "Polygon"],
+        paint: { "fill-color": editColor, "fill-opacity": 0.3 },
+      });
+    } else {
+      m.addLayer({
+        id: "draw-line",
+        type: "line",
+        source: "draw",
+        filter: ["==", "$type", "LineString"],
+        paint: { "line-color": editColor, "line-width": 2, "line-dasharray": [2, 2] },
+      });
+    }
 
     m.addLayer({
       id: "draw-points",
