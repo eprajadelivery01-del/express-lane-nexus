@@ -1,11 +1,18 @@
 import { useEffect, useRef } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { mockDrivers, mockCompanies } from "@/data/mockData";
+import { useOnlineDrivers, type DriverWithProfile } from "@/services/drivers";
+import { useRegions } from "@/services/regions";
+import { useDeliveries } from "@/services/deliveries";
 
 export function MapView() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
+
+  const { data: drivers } = useOnlineDrivers();
+  const { data: regions } = useRegions();
+  const { data: deliveriesData } = useDeliveries({ status: "in_route" });
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -13,28 +20,79 @@ export function MapView() {
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-      center: [-46.6388, -23.5489], // São Paulo
-      zoom: 13,
+      center: [-56.0974, -15.5989], // Cuiabá
+      zoom: 12,
     });
 
     map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-    // Add driver markers
-    mockDrivers.forEach((driver, i) => {
-      const offsets = [
-        [-46.645, -23.545],
-        [-46.635, -23.550],
-        [-46.630, -23.555],
-        [-46.650, -23.560],
-      ];
-      const [lng, lat] = offsets[i] || [-46.640, -23.550];
+    return () => {
+      map.current?.remove();
+      map.current = null;
+    };
+  }, []);
+
+  // Render region polygons
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !regions) return;
+
+    const render = () => {
+      regions.forEach((region) => {
+        const fillId = `region-fill-${region.id}`;
+        const lineId = `region-line-${region.id}`;
+        const srcId = `region-${region.id}`;
+
+        if (m.getLayer(fillId)) m.removeLayer(fillId);
+        if (m.getLayer(lineId)) m.removeLayer(lineId);
+        if (m.getSource(srcId)) m.removeSource(srcId);
+
+        if (!region.geometry) return;
+        const geojson = region.geometry as any;
+        if (geojson.type !== "Polygon") return;
+
+        m.addSource(srcId, {
+          type: "geojson",
+          data: { type: "Feature", properties: {}, geometry: geojson },
+        });
+
+        m.addLayer({
+          id: fillId,
+          type: "fill",
+          source: srcId,
+          paint: { "fill-color": region.color, "fill-opacity": 0.15 },
+        });
+
+        m.addLayer({
+          id: lineId,
+          type: "line",
+          source: srcId,
+          paint: { "line-color": region.color, "line-width": 2 },
+        });
+      });
+    };
+
+    if (m.isStyleLoaded()) render();
+    else m.on("load", render);
+  }, [regions]);
+
+  // Render driver markers
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
+    // Clear old markers
+    markersRef.current.forEach((mk) => mk.remove());
+    markersRef.current = [];
+
+    (drivers ?? []).forEach((driver) => {
+      if (!driver.latitude || !driver.longitude) return;
 
       const el = document.createElement("div");
-      el.className = "driver-marker";
       el.innerHTML = `
         <div style="
           width: 36px; height: 36px; border-radius: 50%;
-          background: ${driver.is_online ? "#22c55e" : "#94a3b8"};
+          background: #22c55e;
           border: 3px solid white;
           display: flex; align-items: center; justify-content: center;
           box-shadow: 0 2px 8px rgba(0,0,0,0.2);
@@ -42,64 +100,22 @@ export function MapView() {
         ">🏍️</div>
       `;
 
-      new maplibregl.Marker({ element: el })
-        .setLngLat([lng, lat])
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([driver.longitude, driver.latitude])
         .setPopup(
           new maplibregl.Popup({ offset: 20 }).setHTML(`
             <div style="font-family: sans-serif; padding: 4px;">
-              <strong>${driver.name}</strong><br/>
-              <span style="color: ${driver.is_online ? '#22c55e' : '#94a3b8'}">
-                ${driver.is_online ? "● Online" : "● Offline"}
-              </span><br/>
-              <small>${driver.vehicle} • ⭐ ${driver.rating}</small>
+              <strong>${driver.profiles?.full_name || "Entregador"}</strong><br/>
+              <span style="color: #22c55e">● Online</span><br/>
+              <small>${driver.vehicle} • ⭐ ${Number(driver.rating).toFixed(1)}</small>
             </div>
           `)
         )
-        .addTo(map.current!);
+        .addTo(m);
+
+      markersRef.current.push(marker);
     });
-
-    // Add company markers
-    mockCompanies.forEach((company, i) => {
-      const offsets = [
-        [-46.642, -23.548],
-        [-46.632, -23.558],
-        [-46.652, -23.542],
-        [-46.625, -23.552],
-      ];
-      const [lng, lat] = offsets[i] || [-46.640, -23.555];
-
-      const el = document.createElement("div");
-      el.innerHTML = `
-        <div style="
-          background: white; border-radius: 8px; padding: 4px 10px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-          display: flex; align-items: center; gap: 6px;
-          font-family: sans-serif; font-size: 13px; font-weight: 600;
-          white-space: nowrap;
-        ">
-          📍 ${company.name}
-        </div>
-      `;
-
-      new maplibregl.Marker({ element: el })
-        .setLngLat([lng, lat])
-        .setPopup(
-          new maplibregl.Popup({ offset: 20 }).setHTML(`
-            <div style="font-family: sans-serif; padding: 4px;">
-              <strong>${company.name}</strong><br/>
-              <small>${company.address}</small><br/>
-              <small>${company.phone}</small>
-            </div>
-          `)
-        )
-        .addTo(map.current!);
-    });
-
-    return () => {
-      map.current?.remove();
-      map.current = null;
-    };
-  }, []);
+  }, [drivers]);
 
   return (
     <div ref={mapContainer} className="w-full h-full rounded-xl overflow-hidden" />

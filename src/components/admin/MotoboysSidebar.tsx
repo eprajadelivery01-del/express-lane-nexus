@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, ChevronDown, ChevronUp } from "lucide-react";
-import { mockDrivers, mockCompanies } from "@/data/mockData";
-import { cn } from "@/lib/utils";
+import { useDrivers } from "@/services/drivers";
+import { useCompanies } from "@/services/companies";
 
 export function MotoboysSidebar() {
   const [search, setSearch] = useState("");
@@ -9,12 +9,15 @@ export function MotoboysSidebar() {
   const [showOffline, setShowOffline] = useState(true);
   const [showLocais, setShowLocais] = useState(true);
 
-  const online = mockDrivers.filter(d => d.is_online);
-  const offline = mockDrivers.filter(d => !d.is_online);
+  const { data: drivers } = useDrivers();
+  const { data: companies } = useCompanies();
+
+  const allDrivers = drivers ?? [];
+  const online = allDrivers.filter((d) => d.is_online);
+  const offline = allDrivers.filter((d) => !d.is_online);
 
   return (
     <div className="h-full flex flex-col bg-card border-r border-border overflow-hidden">
-      {/* Header */}
       <div className="p-4 border-b border-border bg-primary">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-primary-foreground/20 flex items-center justify-center">
@@ -24,7 +27,6 @@ export function MotoboysSidebar() {
         </div>
       </div>
 
-      {/* Search */}
       <div className="p-3">
         <div className="flex items-center gap-2 bg-muted rounded-lg px-3 py-2">
           <Search className="h-4 w-4 text-muted-foreground" />
@@ -32,7 +34,7 @@ export function MotoboysSidebar() {
             type="text"
             placeholder="Pesquisar..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground"
           />
         </div>
@@ -45,23 +47,30 @@ export function MotoboysSidebar() {
             onClick={() => setShowOnline(!showOnline)}
             className="w-full flex items-center justify-between px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider hover:bg-muted/50"
           >
-            Motoboys Online
+            Motoboys Online ({online.length})
             {showOnline ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
-          {showOnline && online.map(driver => (
-            <div key={driver.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 cursor-pointer transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-xs">🏍️</span>
+          {showOnline &&
+            online
+              .filter((d) => !search || (d.profiles?.full_name || "").toLowerCase().includes(search.toLowerCase()))
+              .map((driver) => (
+                <div key={driver.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 cursor-pointer transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                      {driver.profiles?.avatar_url ? (
+                        <img src={driver.profiles.avatar_url} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs">🏍️</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{driver.profiles?.full_name || "—"}</p>
+                      <p className="text-[11px] text-muted-foreground">{driver.vehicle}</p>
+                    </div>
+                  </div>
+                  <span className="w-2.5 h-2.5 rounded-full bg-success" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{driver.name}</p>
-                  <p className="text-[11px] text-muted-foreground">Online há 2 min</p>
-                </div>
-              </div>
-              <span className="w-2.5 h-2.5 rounded-full bg-success" />
-            </div>
-          ))}
+              ))}
         </div>
 
         {/* Offline */}
@@ -70,45 +79,55 @@ export function MotoboysSidebar() {
             onClick={() => setShowOffline(!showOffline)}
             className="w-full flex items-center justify-between px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider hover:bg-muted/50"
           >
-            Motoboys Offline
+            Motoboys Offline ({offline.length})
             {showOffline ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
-          {showOffline && offline.map(driver => (
-            <div key={driver.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 cursor-pointer transition-colors">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-xs">🏍️</span>
+          {showOffline &&
+            offline
+              .filter((d) => !search || (d.profiles?.full_name || "").toLowerCase().includes(search.toLowerCase()))
+              .map((driver) => (
+                <div key={driver.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/50 cursor-pointer transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                      {driver.profiles?.avatar_url ? (
+                        <img src={driver.profiles.avatar_url} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs">🏍️</span>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{driver.profiles?.full_name || "—"}</p>
+                      <p className="text-[11px] text-muted-foreground">{driver.vehicle}</p>
+                    </div>
+                  </div>
+                  <span className="w-2.5 h-2.5 rounded-full bg-destructive" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-foreground">{driver.name}</p>
-                  <p className="text-[11px] text-muted-foreground">Offline há 10 min</p>
-                </div>
-              </div>
-              <span className="w-2.5 h-2.5 rounded-full bg-destructive" />
-            </div>
-          ))}
+              ))}
         </div>
 
-        {/* Locais Ativos */}
+        {/* Locais */}
         <div>
           <button
             onClick={() => setShowLocais(!showLocais)}
             className="w-full flex items-center justify-between px-4 py-2 text-xs font-bold text-muted-foreground uppercase tracking-wider hover:bg-muted/50"
           >
-            Locais Ativos
+            Locais Ativos ({companies?.length ?? 0})
             {showLocais ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
           </button>
-          {showLocais && mockCompanies.map(company => (
-            <div key={company.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 cursor-pointer transition-colors">
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                <span className="text-xs">🏪</span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-foreground">{company.name}</p>
-                <p className="text-[11px] text-muted-foreground">Logísticos</p>
-              </div>
-            </div>
-          ))}
+          {showLocais &&
+            (companies ?? [])
+              .filter((c) => !search || c.name.toLowerCase().includes(search.toLowerCase()))
+              .map((company) => (
+                <div key={company.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 cursor-pointer transition-colors">
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                    <span className="text-xs">🏪</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{company.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{company.phone || "—"}</p>
+                  </div>
+                </div>
+              ))}
         </div>
       </div>
     </div>
