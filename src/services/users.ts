@@ -14,6 +14,32 @@ export async function fetchProfiles() {
   return data ?? [];
 }
 
+export async function fetchPendingProfiles() {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("*, user_roles(role)")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function approveUser(userId: string) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status: "active" as any })
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function rejectUser(userId: string) {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ status: "rejected" as any })
+    .eq("user_id", userId);
+  if (error) throw error;
+}
+
 export async function updateProfile(userId: string, updates: { full_name?: string; phone?: string; document?: string; avatar_url?: string }) {
   const { data, error } = await supabase
     .from("profiles")
@@ -73,10 +99,8 @@ export async function validateInvitation(token: string) {
 }
 
 export async function acceptInvitation(token: string, userData: { email: string; password: string; fullName: string; phone: string; document: string }) {
-  // Validate invitation
   const invitation = await validateInvitation(token);
 
-  // Sign up
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: userData.email,
     password: userData.password,
@@ -85,7 +109,7 @@ export async function acceptInvitation(token: string, userData: { email: string;
   if (authError) throw authError;
   if (!authData.user) throw new Error("Erro ao criar conta");
 
-  // Update profile
+  // Profile is auto-created by trigger with status=pending
   await supabase
     .from("profiles")
     .update({
@@ -95,20 +119,17 @@ export async function acceptInvitation(token: string, userData: { email: string;
     })
     .eq("user_id", authData.user.id);
 
-  // Assign role
   await supabase.from("user_roles").insert({
     user_id: authData.user.id,
     role: invitation.role,
   });
 
-  // If driver role, create delivery_drivers record
   if (invitation.role === "driver") {
     await supabase.from("delivery_drivers").insert({
       user_id: authData.user.id,
     });
   }
 
-  // If company role, create companies record
   if (invitation.role === "company") {
     await supabase.from("companies").insert({
       user_id: authData.user.id,
@@ -116,7 +137,6 @@ export async function acceptInvitation(token: string, userData: { email: string;
     });
   }
 
-  // Mark invitation accepted
   await supabase
     .from("invitations")
     .update({ status: "accepted" })
@@ -129,6 +149,33 @@ export function useProfiles() {
   return useQuery({
     queryKey: ["profiles"],
     queryFn: fetchProfiles,
+  });
+}
+
+export function usePendingProfiles() {
+  return useQuery({
+    queryKey: ["profiles", "pending"],
+    queryFn: fetchPendingProfiles,
+  });
+}
+
+export function useApproveUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: approveUser,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+    },
+  });
+}
+
+export function useRejectUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: rejectUser,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+    },
   });
 }
 

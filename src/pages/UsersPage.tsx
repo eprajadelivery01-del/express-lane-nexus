@@ -2,9 +2,9 @@ import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useDrivers } from "@/services/drivers";
 import { useCompanies } from "@/services/companies";
-import { useInvitations, useCreateInvitation } from "@/services/users";
+import { useInvitations, useCreateInvitation, usePendingProfiles, useApproveUser, useRejectUser } from "@/services/users";
 import { useAuth } from "@/contexts/AuthContext";
-import { Users, Building2, Bike, Plus, Star, Mail, Copy, Loader2, Check } from "lucide-react";
+import { Users, Building2, Bike, Plus, Star, Mail, Copy, Loader2, Check, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -15,37 +15,50 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-type Tab = "drivers" | "companies" | "invitations";
+type Tab = "pending" | "drivers" | "companies" | "invitations";
 
 export default function UsersPage() {
-  const [tab, setTab] = useState<Tab>("drivers");
+  const [tab, setTab] = useState<Tab>("pending");
   const { data: drivers, isLoading: loadingDrivers } = useDrivers();
   const { data: companies, isLoading: loadingCompanies } = useCompanies();
   const { data: invitations, isLoading: loadingInvites } = useInvitations();
+  const { data: pendingProfiles, isLoading: loadingPending } = usePendingProfiles();
+
+  const pendingCount = pendingProfiles?.length ?? 0;
 
   return (
     <AdminLayout title="Usuários" subtitle="Gestão de entregadores, empresas e convites">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-1 bg-muted rounded-xl p-1 w-fit">
+        <div className="flex items-center gap-1 bg-muted rounded-xl p-1 w-fit flex-wrap">
           {([
-            { key: "drivers", icon: Bike, label: "Entregadores" },
-            { key: "companies", icon: Building2, label: "Empresas" },
-            { key: "invitations", icon: Mail, label: "Convites" },
-          ] as const).map((t) => (
+            { key: "pending" as const, icon: Clock, label: "Solicitações", badge: pendingCount },
+            { key: "drivers" as const, icon: Bike, label: "Entregadores" },
+            { key: "companies" as const, icon: Building2, label: "Empresas" },
+            { key: "invitations" as const, icon: Mail, label: "Convites" },
+          ]).map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
               className={cn(
-                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all",
+                "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all relative",
                 tab === t.key ? "bg-card shadow-card text-foreground" : "text-muted-foreground"
               )}
             >
               <t.icon className="h-4 w-4" /> {t.label}
+              {t.badge !== undefined && t.badge > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-warning text-warning-foreground text-[10px] font-bold leading-none">
+                  {t.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
         <InviteDialog />
       </div>
+
+      {tab === "pending" && (
+        loadingPending ? <LoadingGrid /> : <PendingApprovals profiles={pendingProfiles ?? []} />
+      )}
 
       {tab === "drivers" && (
         loadingDrivers ? <LoadingGrid /> : (
@@ -148,6 +161,92 @@ export default function UsersPage() {
         )
       )}
     </AdminLayout>
+  );
+}
+
+function PendingApprovals({ profiles }: { profiles: any[] }) {
+  const { toast } = useToast();
+  const approve = useApproveUser();
+  const reject = useRejectUser();
+
+  const handleApprove = async (userId: string, name: string) => {
+    try {
+      await approve.mutateAsync(userId);
+      toast({ title: "Aprovado!", description: `${name} agora pode acessar o sistema.` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleReject = async (userId: string, name: string) => {
+    try {
+      await reject.mutateAsync(userId);
+      toast({ title: "Rejeitado", description: `${name} foi bloqueado.` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  if (profiles.length === 0) {
+    return (
+      <div className="bg-card rounded-xl p-12 shadow-card text-center">
+        <CheckCircle2 className="h-10 w-10 text-success mx-auto mb-3" />
+        <p className="text-sm text-muted-foreground">Nenhuma solicitação pendente</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card rounded-xl shadow-card overflow-hidden">
+      <div className="p-4 border-b border-border">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Clock className="h-4 w-4 text-warning" />
+          Solicitações de Cadastro ({profiles.length})
+        </h3>
+      </div>
+      <div className="divide-y divide-border">
+        {profiles.map((profile) => {
+          const roles = profile.user_roles?.map((r: any) => r.role) ?? [];
+          const roleLabel = roles.includes("driver") ? "Entregador" : roles.includes("company") ? "Empresa" : roles[0] || "—";
+          const initials = (profile.full_name || "?").split(" ").map((n: string) => n[0]).join("").slice(0, 2);
+
+          return (
+            <div key={profile.id} className="p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-warning">{initials}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm text-foreground truncate">{profile.full_name || "Sem nome"}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">{roleLabel}</span>
+                    <span>{profile.phone || "—"}</span>
+                    <span>•</span>
+                    <span>{new Date(profile.created_at).toLocaleDateString("pt-BR")}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleApprove(profile.user_id, profile.full_name)}
+                  disabled={approve.isPending}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-success/10 text-success text-xs font-medium hover:bg-success/20 transition-colors disabled:opacity-50"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Aprovar
+                </button>
+                <button
+                  onClick={() => handleReject(profile.user_id, profile.full_name)}
+                  disabled={reject.isPending}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50"
+                >
+                  <XCircle className="h-3.5 w-3.5" /> Rejeitar
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
