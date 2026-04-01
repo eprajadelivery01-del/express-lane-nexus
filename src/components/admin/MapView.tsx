@@ -5,7 +5,11 @@ import { useOnlineDrivers, type DriverWithProfile } from "@/services/drivers";
 import { useRegions } from "@/services/regions";
 import { useDeliveries } from "@/services/deliveries";
 
-export function MapView() {
+interface MapViewProps {
+  centerCity?: { name: string; lat: number; lng: number } | null;
+}
+
+export function MapView({ centerCity }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
@@ -14,13 +18,23 @@ export function MapView() {
   const { data: regions } = useRegions();
   const { data: deliveriesData } = useDeliveries({ status: "in_route" });
 
+  // Default center (Cuiabá) or persisted city
+  const defaultCenter: [number, number] = centerCity
+    ? [centerCity.lng, centerCity.lat]
+    : [-56.0974, -15.5989];
+
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current) return;
+
+    if (map.current) {
+      map.current.remove();
+      map.current = null;
+    }
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
       style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-      center: [-56.0974, -15.5989], // Cuiabá
+      center: defaultCenter,
       zoom: 12,
     });
 
@@ -30,7 +44,13 @@ export function MapView() {
       map.current?.remove();
       map.current = null;
     };
-  }, []);
+  }, [centerCity?.lat, centerCity?.lng]);
+
+  // Fly to city when it changes
+  useEffect(() => {
+    if (!map.current || !centerCity) return;
+    map.current.flyTo({ center: [centerCity.lng, centerCity.lat], zoom: 13, duration: 1500 });
+  }, [centerCity]);
 
   // Render region polygons
   useEffect(() => {
@@ -76,12 +96,11 @@ export function MapView() {
     else m.on("load", render);
   }, [regions]);
 
-  // Render driver markers
+  // Render driver markers (realtime)
   useEffect(() => {
     const m = map.current;
     if (!m) return;
 
-    // Clear old markers
     markersRef.current.forEach((mk) => mk.remove());
     markersRef.current = [];
 
@@ -95,8 +114,9 @@ export function MapView() {
           background: #22c55e;
           border: 3px solid white;
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+          box-shadow: 0 2px 8px rgba(0,0,0,0.25);
           font-size: 14px;
+          animation: pulse 2s ease-in-out infinite;
         ">🏍️</div>
       `;
 
