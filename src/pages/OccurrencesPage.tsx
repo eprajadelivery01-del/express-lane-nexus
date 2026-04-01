@@ -47,8 +47,8 @@ function useUpdateOccurrenceStatus() {
 function useCreateOccurrence() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (occ: { type: string; description: string; driver_id: string; delivery_id?: string }) => {
-      const { error } = await supabase.from("occurrences").insert(occ);
+    mutationFn: async (occ: { type: "motorcycle_issue" | "accident" | "robbery" | "other"; description: string; driver_id: string; delivery_id?: string }) => {
+      const { error } = await supabase.from("occurrences").insert([occ]);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["occurrences"] }),
