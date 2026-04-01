@@ -46,12 +46,13 @@ Deno.serve(async (req) => {
 
     const userId = authData.user.id;
 
-    // Update profile
+    // Update profile with active status (admin-created users skip approval)
     await supabase.from("profiles").upsert({
       user_id: userId,
       full_name: fullName || "",
       phone: phone || null,
       document: document || null,
+      status: "active",
     });
 
     // Assign role
