@@ -2,10 +2,12 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useRegions, useCreateRegion, useUpdateRegion, useDeleteRegion } from "@/services/regions";
 import type { RegionRow } from "@/services/regions";
-import { MapPin, Plus, Trash2, Save, Pencil, Loader2, DollarSign, Search, X } from "lucide-react";
+import { MapPin, Plus, Trash2, Save, Pencil, Loader2, DollarSign, Search, X, MousePointer, PenTool } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+
+type DrawMode = "none" | "points" | "freehand";
 
 export default function RegionsPage() {
   const { data: regions, isLoading } = useRegions();
@@ -19,8 +21,9 @@ export default function RegionsPage() {
   const [editColor, setEditColor] = useState("#3B82F6");
   const [editPrice, setEditPrice] = useState("0");
   const [editCity, setEditCity] = useState("");
-  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawMode, setDrawMode] = useState<DrawMode>("none");
   const [drawnPoints, setDrawnPoints] = useState<[number, number][]>([]);
+  const isDrawingFreehand = useRef(false);
 
   // City search
   const [citySearch, setCitySearch] = useState("");
@@ -28,14 +31,19 @@ export default function RegionsPage() {
   const [searchingCity, setSearchingCity] = useState(false);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
 
+  // Region config modal
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [pendingGeometry, setPendingGeometry] = useState<any>(null);
+
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
     const m = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
       center: [-56.0974, -15.5989],
       zoom: 12,
     });
@@ -44,82 +52,161 @@ export default function RegionsPage() {
     return () => { m.remove(); mapRef.current = null; };
   }, []);
 
-  // Render regions
+  // Render regions on map
   useEffect(() => {
     const m = mapRef.current;
     if (!m || !regions) return;
     const handleLoad = () => {
+      // Clean old layers
       regions.forEach((r) => {
-        if (m.getLayer(`region-fill-${r.id}`)) m.removeLayer(`region-fill-${r.id}`);
-        if (m.getLayer(`region-line-${r.id}`)) m.removeLayer(`region-line-${r.id}`);
+        [`region-fill-${r.id}`, `region-line-${r.id}`, `region-highlight-${r.id}`].forEach((l) => {
+          if (m.getLayer(l)) m.removeLayer(l);
+        });
         if (m.getSource(`region-${r.id}`)) m.removeSource(`region-${r.id}`);
       });
+
       regions.forEach((region) => {
         if (!region.geometry) return;
         const geojson = region.geometry as any;
         if (geojson.type !== "Polygon") return;
+
         m.addSource(`region-${region.id}`, {
           type: "geojson",
-          data: { type: "Feature", properties: {}, geometry: geojson },
+          data: { type: "Feature", properties: { name: region.name, price: region.price }, geometry: geojson },
         });
+
         m.addLayer({
           id: `region-fill-${region.id}`,
           type: "fill",
           source: `region-${region.id}`,
-          paint: {
-            "fill-color": region.color,
-            "fill-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 0.4, 0.2],
-          },
+          paint: { "fill-color": region.color, "fill-opacity": 0.25 },
         });
+
         m.addLayer({
           id: `region-line-${region.id}`,
           type: "line",
           source: `region-${region.id}`,
           paint: { "line-color": region.color, "line-width": 2.5 },
         });
+
+        // Hover highlight
+        m.on("mouseenter", `region-fill-${region.id}`, (e) => {
+          if (drawMode !== "none") return;
+          m.getCanvas().style.cursor = "pointer";
+          m.setPaintProperty(`region-fill-${region.id}`, "fill-opacity", 0.45);
+          // Show popup
+          if (popupRef.current) popupRef.current.remove();
+          const popup = new maplibregl.Popup({ closeButton: false, offset: 10 })
+            .setLngLat(e.lngLat)
+            .setHTML(`<div style="font-family:sans-serif;padding:4px 0"><strong>${region.name}</strong><br/><span style="color:#888">R$ ${Number(region.price).toFixed(2)}</span></div>`)
+            .addTo(m);
+          popupRef.current = popup;
+        });
+
+        m.on("mouseleave", `region-fill-${region.id}`, () => {
+          if (drawMode !== "none") return;
+          m.getCanvas().style.cursor = "";
+          m.setPaintProperty(`region-fill-${region.id}`, "fill-opacity", 0.25);
+          if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
+        });
+
         m.on("click", `region-fill-${region.id}`, () => {
+          if (drawMode !== "none") return;
           setSelectedRegion(region);
           setEditName(region.name);
           setEditColor(region.color);
           setEditPrice(String(region.price));
-          setIsDrawing(false);
+          setDrawMode("none");
           setDrawnPoints([]);
         });
-        m.on("mouseenter", `region-fill-${region.id}`, () => { m.getCanvas().style.cursor = "pointer"; });
-        m.on("mouseleave", `region-fill-${region.id}`, () => { if (!isDrawing) m.getCanvas().style.cursor = ""; });
       });
-      if (m.getLayer("draw-line")) m.removeLayer("draw-line");
-      if (m.getLayer("draw-points")) m.removeLayer("draw-points");
+
+      // Clean drawing layers
+      ["draw-fill", "draw-line", "draw-points"].forEach((l) => { if (m.getLayer(l)) m.removeLayer(l); });
       if (m.getSource("draw")) m.removeSource("draw");
     };
     if (m.isStyleLoaded()) handleLoad();
     else m.on("load", handleLoad);
-  }, [regions]);
+  }, [regions, drawMode]);
 
-  // Drawing mode
+  // Points drawing mode - click to add vertices
   useEffect(() => {
     const m = mapRef.current;
     if (!m) return;
     const handleClick = (e: maplibregl.MapMouseEvent) => {
-      if (!isDrawing) return;
+      if (drawMode !== "points") return;
       setDrawnPoints((prev) => [...prev, [e.lngLat.lng, e.lngLat.lat]]);
     };
     m.on("click", handleClick);
-    if (isDrawing) m.getCanvas().style.cursor = "crosshair";
-    else m.getCanvas().style.cursor = "";
     return () => { m.off("click", handleClick); };
-  }, [isDrawing]);
+  }, [drawMode]);
+
+  // Freehand drawing mode - drag to draw
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    if (drawMode !== "freehand") return;
+
+    const canvas = m.getCanvas();
+    const onMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      isDrawingFreehand.current = true;
+      m.dragPan.disable();
+      setDrawnPoints([]);
+      const lngLat = m.unproject([e.offsetX, e.offsetY]);
+      setDrawnPoints([[lngLat.lng, lngLat.lat]]);
+    };
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDrawingFreehand.current) return;
+      const lngLat = m.unproject([e.offsetX, e.offsetY]);
+      setDrawnPoints((prev) => {
+        // Downsample: only add if distance > threshold
+        if (prev.length > 0) {
+          const last = prev[prev.length - 1];
+          const dx = lngLat.lng - last[0];
+          const dy = lngLat.lat - last[1];
+          if (Math.sqrt(dx * dx + dy * dy) < 0.0003) return prev;
+        }
+        return [...prev, [lngLat.lng, lngLat.lat]];
+      });
+    };
+    const onMouseUp = () => {
+      if (!isDrawingFreehand.current) return;
+      isDrawingFreehand.current = false;
+      m.dragPan.enable();
+    };
+    canvas.addEventListener("mousedown", onMouseDown);
+    canvas.addEventListener("mousemove", onMouseMove);
+    canvas.addEventListener("mouseup", onMouseUp);
+    return () => {
+      canvas.removeEventListener("mousedown", onMouseDown);
+      canvas.removeEventListener("mousemove", onMouseMove);
+      canvas.removeEventListener("mouseup", onMouseUp);
+      m.dragPan.enable();
+    };
+  }, [drawMode]);
+
+  // Update cursor
+  useEffect(() => {
+    const m = mapRef.current;
+    if (!m) return;
+    if (drawMode === "points") m.getCanvas().style.cursor = "crosshair";
+    else if (drawMode === "freehand") m.getCanvas().style.cursor = "url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22><circle cx=%2212%22 cy=%2212%22 r=%224%22 fill=%22%233B82F6%22/></svg>') 12 12, crosshair";
+    else m.getCanvas().style.cursor = "";
+  }, [drawMode]);
 
   // Drawing visualization
   useEffect(() => {
     const m = mapRef.current;
     if (!m || !m.isStyleLoaded()) return;
-    if (m.getLayer("draw-line")) m.removeLayer("draw-line");
-    if (m.getLayer("draw-points")) m.removeLayer("draw-points");
+    ["draw-fill", "draw-line", "draw-points"].forEach((l) => { if (m.getLayer(l)) m.removeLayer(l); });
     if (m.getSource("draw")) m.removeSource("draw");
     if (drawnPoints.length === 0) return;
+
     const coords = [...drawnPoints];
-    if (coords.length > 2) coords.push(coords[0]);
+    const isClosed = coords.length > 2;
+    if (isClosed) coords.push(coords[0]);
+
     m.addSource("draw", {
       type: "geojson",
       data: {
@@ -128,7 +215,7 @@ export default function RegionsPage() {
           {
             type: "Feature",
             properties: {},
-            geometry: coords.length > 2
+            geometry: isClosed
               ? { type: "Polygon", coordinates: [coords] }
               : { type: "LineString", coordinates: coords },
           },
@@ -140,13 +227,21 @@ export default function RegionsPage() {
         ],
       },
     });
-    if (coords.length > 2) {
+
+    if (isClosed) {
       m.addLayer({
-        id: "draw-line",
+        id: "draw-fill",
         type: "fill",
         source: "draw",
         filter: ["==", "$type", "Polygon"],
         paint: { "fill-color": editColor, "fill-opacity": 0.3 },
+      });
+      m.addLayer({
+        id: "draw-line",
+        type: "line",
+        source: "draw",
+        filter: ["==", "$type", "Polygon"],
+        paint: { "line-color": editColor, "line-width": 2.5 },
       });
     } else {
       m.addLayer({
@@ -157,16 +252,17 @@ export default function RegionsPage() {
         paint: { "line-color": editColor, "line-width": 2, "line-dasharray": [2, 2] },
       });
     }
+
     m.addLayer({
       id: "draw-points",
       type: "circle",
       source: "draw",
       filter: ["==", "$type", "Point"],
-      paint: { "circle-radius": 6, "circle-color": editColor, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
+      paint: { "circle-radius": 5, "circle-color": editColor, "circle-stroke-width": 2, "circle-stroke-color": "#fff" },
     });
   }, [drawnPoints, editColor]);
 
-  // City search via Nominatim
+  // City search
   const searchCity = useCallback((query: string) => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     if (!query.trim()) { setCitySuggestions([]); return; }
@@ -183,16 +279,14 @@ export default function RegionsPage() {
 
   const selectCity = (item: any) => {
     const m = mapRef.current;
-    if (m) {
-      m.flyTo({ center: [parseFloat(item.lon), parseFloat(item.lat)], zoom: 13, duration: 1500 });
-    }
+    if (m) m.flyTo({ center: [parseFloat(item.lon), parseFloat(item.lat)], zoom: 13, duration: 1500 });
     setCitySearch(item.display_name.split(",")[0]);
     setEditCity(item.display_name.split(",")[0]);
     setCitySuggestions([]);
   };
 
-  const startDrawing = () => {
-    setIsDrawing(true);
+  const startDrawing = (mode: DrawMode) => {
+    setDrawMode(mode);
     setDrawnPoints([]);
     setSelectedRegion(null);
     setEditName("");
@@ -202,35 +296,42 @@ export default function RegionsPage() {
   };
 
   const cancelDrawing = () => {
-    setIsDrawing(false);
+    setDrawMode("none");
     setDrawnPoints([]);
+    isDrawingFreehand.current = false;
+    mapRef.current?.dragPan.enable();
   };
 
-  const undoLastPoint = () => {
-    setDrawnPoints((prev) => prev.slice(0, -1));
-  };
+  const undoLastPoint = () => setDrawnPoints((prev) => prev.slice(0, -1));
 
-  const saveNewRegion = async () => {
+  const finishDrawing = () => {
     if (drawnPoints.length < 3) {
       toast({ title: "Desenhe pelo menos 3 pontos", variant: "destructive" });
       return;
     }
+    const coords = [...drawnPoints, drawnPoints[0]];
+    setPendingGeometry({ type: "Polygon", coordinates: [coords] });
+    setShowConfigModal(true);
+  };
+
+  const saveNewRegion = async () => {
+    if (!pendingGeometry) return;
     if (!editName.trim()) {
       toast({ title: "Digite um nome para a região", variant: "destructive" });
       return;
     }
-    const coords = [...drawnPoints, drawnPoints[0]];
-    const geometry = { type: "Polygon", coordinates: [coords] };
     try {
       await createRegion.mutateAsync({
         name: editName,
         color: editColor,
         price: parseFloat(editPrice) || 0,
-        geometry: geometry as any,
+        geometry: pendingGeometry as any,
       });
       toast({ title: "Região criada!" });
-      setIsDrawing(false);
+      setDrawMode("none");
       setDrawnPoints([]);
+      setShowConfigModal(false);
+      setPendingGeometry(null);
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
@@ -284,13 +385,9 @@ export default function RegionsPage() {
               )}
             </div>
             {citySuggestions.length > 0 && (
-              <div className="mt-1 bg-card rounded-xl border border-border shadow-lg overflow-hidden">
+              <div className="mt-1 bg-card rounded-xl border border-border shadow-lg overflow-hidden max-h-60 overflow-y-auto">
                 {citySuggestions.map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => selectCity(s)}
-                    className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors border-b border-border last:border-0"
-                  >
+                  <button key={i} onClick={() => selectCity(s)} className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors border-b border-border last:border-0">
                     <p className="font-medium text-foreground truncate">{s.display_name.split(",")[0]}</p>
                     <p className="text-xs text-muted-foreground truncate">{s.display_name}</p>
                   </button>
@@ -306,103 +403,158 @@ export default function RegionsPage() {
           </div>
 
           {/* Drawing controls */}
-          <div className="absolute top-4 left-4 flex gap-2 z-10">
-            {!isDrawing ? (
-              <button
-                onClick={startDrawing}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium shadow-md hover:bg-primary/90"
-              >
-                <Plus className="h-4 w-4" /> Desenhar Região
-              </button>
-            ) : (
-              <>
+          <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+            {drawMode === "none" ? (
+              <div className="flex gap-2">
                 <button
-                  onClick={saveNewRegion}
+                  onClick={() => startDrawing("points")}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium shadow-md hover:bg-primary/90"
+                >
+                  <MousePointer className="h-4 w-4" /> Modo Pontos
+                </button>
+                <button
+                  onClick={() => startDrawing("freehand")}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-medium shadow-md hover:bg-accent/90"
+                >
+                  <PenTool className="h-4 w-4" /> Modo Lápis
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={finishDrawing}
                   disabled={drawnPoints.length < 3 || createRegion.isPending}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium shadow-md disabled:opacity-50"
                 >
                   {createRegion.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Salvar
+                  Finalizar
                 </button>
-                {drawnPoints.length > 0 && (
-                  <button
-                    onClick={undoLastPoint}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card text-foreground text-sm font-medium shadow-md"
-                  >
+                {drawMode === "points" && drawnPoints.length > 0 && (
+                  <button onClick={undoLastPoint} className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card text-foreground text-sm font-medium shadow-md">
                     Desfazer
                   </button>
                 )}
-                <button
-                  onClick={cancelDrawing}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card text-foreground text-sm font-medium shadow-md"
-                >
+                <button onClick={cancelDrawing} className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-card text-foreground text-sm font-medium shadow-md">
                   Cancelar
                 </button>
-              </>
+              </div>
             )}
           </div>
 
-          {isDrawing && (
-            <div className="absolute bottom-4 left-4 bg-card rounded-xl p-3 shadow-md text-xs text-muted-foreground z-10">
-              Clique no mapa para adicionar pontos • {drawnPoints.length} ponto(s) • Mínimo 3
+          {/* Drawing mode indicator */}
+          {drawMode !== "none" && (
+            <div className="absolute bottom-4 left-4 bg-card rounded-xl p-3 shadow-md z-10 flex items-center gap-3">
+              <div className={`w-3 h-3 rounded-full animate-pulse ${drawMode === "points" ? "bg-primary" : "bg-accent"}`} />
+              <span className="text-xs text-muted-foreground">
+                {drawMode === "points"
+                  ? `Clique para adicionar vértices • ${drawnPoints.length} ponto(s) • Mín. 3`
+                  : `Arraste para desenhar • ${drawnPoints.length} ponto(s) • Solte para parar`}
+              </span>
             </div>
           )}
         </div>
 
-        {/* Sidebar */}
-        <div className="w-full lg:w-80 bg-card border-l border-border overflow-y-auto">
-          {(selectedRegion || isDrawing) && (
-            <div className="p-4 border-b border-border space-y-3">
-              <h3 className="font-display font-bold text-foreground text-sm">
-                {isDrawing ? "Nova Região" : "Editar Região"}
-              </h3>
+        {/* Region config modal overlay */}
+        {showConfigModal && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50">
+            <div className="bg-card rounded-2xl p-6 w-96 shadow-xl space-y-4">
+              <h3 className="font-bold text-lg text-foreground">Configurar Região</h3>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+                <label className="text-sm font-medium mb-1.5 block text-foreground">Nome da região *</label>
                 <input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  placeholder="Nome da região"
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary"
+                  placeholder="Ex: Centro"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary"
                 />
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="text-sm font-medium mb-1.5 block text-foreground">Cor</label>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer border-0 p-0" />
+                    <input value={editColor} onChange={(e) => setEditColor(e.target.value)} className="flex-1 px-3 py-2.5 rounded-xl border border-border bg-background text-sm outline-none font-mono" />
+                  </div>
+                </div>
+                <div className="w-28">
+                  <label className="text-sm font-medium mb-1.5 block text-foreground">Preço (R$)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1.5 block text-foreground">Cidade</label>
+                <input
+                  value={editCity}
+                  onChange={(e) => setEditCity(e.target.value)}
+                  placeholder="Ex: Cuiabá"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => { setShowConfigModal(false); setPendingGeometry(null); }}
+                  className="flex-1 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveNewRegion}
+                  disabled={createRegion.isPending || !editName.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {createRegion.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Salvar Região
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sidebar */}
+        <div className="w-full lg:w-80 bg-card border-l border-border overflow-y-auto">
+          {selectedRegion && (
+            <div className="p-4 border-b border-border space-y-3">
+              <h3 className="font-bold text-foreground text-sm">Editar Região</h3>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Nome</label>
+                <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary" />
               </div>
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label className="text-xs text-muted-foreground mb-1 block">Cor</label>
                   <div className="flex items-center gap-2">
                     <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
-                    <input value={editColor} onChange={(e) => setEditColor(e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none" />
+                    <input value={editColor} onChange={(e) => setEditColor(e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none font-mono" />
                   </div>
                 </div>
                 <div className="w-28">
                   <label className="text-xs text-muted-foreground mb-1 block">Preço (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editPrice}
-                    onChange={(e) => setEditPrice(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary"
-                  />
+                  <input type="number" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary" />
                 </div>
               </div>
-              {selectedRegion && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={saveEditRegion}
-                    disabled={updateRegion.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
-                  >
-                    {updateRegion.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Salvar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(selectedRegion.id)}
-                    disabled={deleteRegion.isPending}
-                    className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={saveEditRegion}
+                  disabled={updateRegion.isPending}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-50"
+                >
+                  {updateRegion.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar
+                </button>
+                <button
+                  onClick={() => handleDelete(selectedRegion.id)}
+                  disabled={deleteRegion.isPending}
+                  className="px-4 py-2 rounded-lg bg-destructive/10 text-destructive text-sm font-medium disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )}
 
@@ -412,9 +564,7 @@ export default function RegionsPage() {
             </h3>
             {isLoading ? (
               <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse rounded-xl bg-muted h-20" />
-                ))}
+                {[1, 2, 3].map((i) => <div key={i} className="animate-pulse rounded-xl bg-muted h-20" />)}
               </div>
             ) : (
               <div className="space-y-2">
@@ -426,9 +576,8 @@ export default function RegionsPage() {
                       setEditName(region.name);
                       setEditColor(region.color);
                       setEditPrice(String(region.price));
-                      setIsDrawing(false);
+                      setDrawMode("none");
                       setDrawnPoints([]);
-                      // Fly to region center
                       const geo = region.geometry as any;
                       if (geo?.type === "Polygon" && geo.coordinates?.[0]) {
                         const coords = geo.coordinates[0] as [number, number][];
@@ -444,10 +593,7 @@ export default function RegionsPage() {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${region.color}20` }}
-                      >
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${region.color}20` }}>
                         <MapPin className="h-4 w-4" style={{ color: region.color }} />
                       </div>
                       <div className="flex-1 min-w-0">
