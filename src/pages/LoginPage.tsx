@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Package, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
@@ -23,7 +23,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Fetch roles to redirect
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
@@ -32,23 +31,21 @@ export default function LoginPage() {
       if (userRoles.includes("admin")) navigate("/admin");
       else if (userRoles.includes("company")) navigate("/business");
       else if (userRoles.includes("driver")) navigate("/driver");
-      else navigate("/admin"); // fallback
+      else navigate("/admin");
     }
   };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mb-4">
-            <Package className="h-7 w-7 text-primary-foreground" />
+          <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mb-4 shadow-lg">
+            <Package className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="font-display text-2xl font-bold text-foreground">FleetDash</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gestão de Entregas</p>
+          <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight">É Pra Já</h1>
+          <p className="text-sm text-muted-foreground mt-1 font-medium">Delivery • Painel de Gestão</p>
         </div>
 
-        {/* Form */}
         <form onSubmit={handleLogin} className="bg-card rounded-2xl p-6 shadow-card space-y-4">
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
@@ -59,7 +56,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 required
               />
             </div>
@@ -74,7 +71,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors"
+                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 required
               />
               <button
@@ -82,11 +79,7 @@ export default function LoginPage() {
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
               </button>
             </div>
           </div>
@@ -94,14 +87,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
           >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             {loading ? "Entrando..." : "Entrar"}
           </button>
         </form>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
-          Acesso apenas por convite do administrador
+          Acesso exclusivo por convite do administrador
         </p>
       </div>
     </div>
