@@ -1,6 +1,7 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { mockReviews, mockDrivers } from "@/data/mockData";
 import { Star } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function ReviewsPage() {
   return (
