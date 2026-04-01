@@ -3,12 +3,14 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 type AppRole = "admin" | "company" | "driver" | "customer";
+type UserStatus = "pending" | "active" | "rejected";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
   roles: AppRole[];
+  userStatus: UserStatus | null;
   profile: { full_name: string; avatar_url: string | null; phone: string | null } | null;
   hasRole: (role: AppRole) => boolean;
   signOut: () => Promise<void>;
@@ -21,15 +23,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
   const [profile, setProfile] = useState<AuthContextType["profile"]>(null);
 
   const fetchUserData = async (userId: string) => {
     const [rolesRes, profileRes] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId),
-      supabase.from("profiles").select("full_name, avatar_url, phone").eq("user_id", userId).single(),
+      supabase.from("profiles").select("full_name, avatar_url, phone, status").eq("user_id", userId).single(),
     ]);
     if (rolesRes.data) setRoles(rolesRes.data.map((r) => r.role as AppRole));
-    if (profileRes.data) setProfile(profileRes.data);
+    if (profileRes.data) {
+      setProfile(profileRes.data);
+      setUserStatus((profileRes.data as any).status as UserStatus);
+    }
   };
 
   useEffect(() => {
@@ -42,6 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setRoles([]);
           setProfile(null);
+          setUserStatus(null);
         }
         setLoading(false);
       }
@@ -61,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => { await supabase.auth.signOut(); };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, roles, profile, hasRole, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, roles, userStatus, profile, hasRole, signOut }}>
       {children}
     </AuthContext.Provider>
   );
