@@ -653,6 +653,7 @@ export type Database = {
       app_role: "admin" | "company" | "driver" | "customer"
       delivery_status:
         | "pending"
+        | "broadcasted"
         | "accepted"
         | "collecting"
         | "in_route"
@@ -796,6 +797,7 @@ export const Constants = {
       app_role: ["admin", "company", "driver", "customer"],
       delivery_status: [
         "pending",
+        "broadcasted",
         "accepted",
         "collecting",
         "in_route",
