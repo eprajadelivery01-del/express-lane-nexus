@@ -2,23 +2,28 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { MotoboysSidebar } from "@/components/admin/MotoboysSidebar";
 import { NotificationsPanel } from "@/components/admin/NotificationsPanel";
 import { MapView } from "@/components/admin/MapView";
-import { mockDeliveries, mockDrivers, mockCompanies } from "@/data/mockData";
-import { Package, Bike, Building2, Wallet, Search, Bell, Settings, Camera } from "lucide-react";
+import { useDeliveryStats } from "@/services/deliveries";
+import { useOnlineDrivers } from "@/services/drivers";
+import { useCompanies } from "@/services/companies";
+import { useAllRealtime } from "@/services/realtime";
+import { Search, Bell, Settings, Camera } from "lucide-react";
 
 export default function DashboardPage() {
-  const onlineDrivers = mockDrivers.filter(d => d.is_online).length;
-  const totalRevenue = mockDeliveries.filter(d => d.status === "completed").reduce((sum, d) => sum + d.value, 0);
-  const todayOrders = mockDeliveries.length;
+  useAllRealtime();
+
+  const { data: stats } = useDeliveryStats();
+  const { data: onlineDrivers } = useOnlineDrivers();
+  const { data: companies } = useCompanies();
 
   return (
     <AdminLayout title="Dashboard" subtitle="Visão geral do sistema">
       <div className="flex flex-col lg:flex-row gap-0 -m-4 md:-m-6 h-[calc(100vh-73px)]">
-        {/* Left Panel - Motoboys & Locais */}
+        {/* Left Panel */}
         <div className="hidden xl:block w-64 shrink-0">
           <MotoboysSidebar />
         </div>
 
-        {/* Center - Stats + Map */}
+        {/* Center */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* Top bar */}
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card">
@@ -44,31 +49,31 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Stats Cards */}
+          {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4">
             <DashStatCard
               icon="📦"
               label="Pedidos do Dia"
-              value={todayOrders}
+              value={stats?.today ?? 0}
               color="bg-warning/10 border-warning/30"
             />
             <DashStatCard
               icon="🏍️"
               label="Motoboys Ativos"
-              value={onlineDrivers}
+              value={onlineDrivers?.length ?? 0}
               color="bg-success/10 border-success/30"
               highlight
             />
             <DashStatCard
               icon="🏪"
               label="Locais Ativos"
-              value={mockCompanies.length}
+              value={companies?.length ?? 0}
               color="bg-info/10 border-info/30"
             />
             <DashStatCard
               icon="💰"
               label="Carteira"
-              value={`R$ ${totalRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`}
+              value={`R$ ${(stats?.todayRevenue ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`}
               color="bg-destructive/10 border-destructive/30"
             />
           </div>
@@ -79,7 +84,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right Panel - Notifications & Chat */}
+        {/* Right Panel */}
         <div className="hidden xl:block w-72 shrink-0">
           <NotificationsPanel />
         </div>
