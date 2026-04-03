@@ -7,25 +7,25 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 // Pages
-import LoginPage from "./pages/LoginPage";
-import InvitePage from "./pages/InvitePage";
-import ProfilePage from "./pages/ProfilePage";
-import DashboardPage from "./pages/DashboardPage";
-import DeliveriesPage from "./pages/DeliveriesPage";
-import MapPage from "./pages/MapPage";
-import UsersPage from "./pages/UsersPage";
-import CompaniesPage from "./pages/CompaniesPage";
-import DriversPage from "./pages/DriversPage";
-import RegionsPage from "./pages/RegionsPage";
-import OccurrencesPage from "./pages/OccurrencesPage";
-import ReviewsPage from "./pages/ReviewsPage";
-import ReportsPage from "./pages/ReportsPage";
-import SettingsPage from "./pages/SettingsPage";
+import LoginPage from "./pages/cliente/LoginPage";
+import InvitePage from "./pages/cliente/InvitePage";
+import ProfilePage from "./pages/painel/ProfilePage";
+import DashboardPage from "./pages/painel/DashboardPage";
+import DeliveriesPage from "./pages/painel/DeliveriesPage";
+import MapPage from "./pages/painel/MapPage";
+import UsersPage from "./pages/painel/UsersPage";
+import CompaniesPage from "./pages/painel/CompaniesPage";
+import DriversPage from "./pages/painel/DriversPage";
+import RegionsPage from "./pages/painel/RegionsPage";
+import OccurrencesPage from "./pages/painel/OccurrencesPage";
+import ReviewsPage from "./pages/painel/ReviewsPage";
+import ReportsPage from "./pages/painel/ReportsPage";
+import SettingsPage from "./pages/painel/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 // Driver & Business
-import DriverHomePage from "./pages/driver/DriverHomePage";
-import BusinessHomePage from "./pages/business/BusinessHomePage";
+import DriverHomePage from "./pages/entregador/DriverHomePage";
+import BusinessHomePage from "./pages/lojista/BusinessHomePage";
 
 const queryClient = new QueryClient();
 
