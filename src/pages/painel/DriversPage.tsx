@@ -104,9 +104,9 @@ export default function DriversPage() {
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3">
-                  <span className="text-muted-foreground">{driver.vehicle}</span>
-                  {driver.license_plate && (
-                    <span className="bg-muted px-2 py-0.5 rounded text-xs font-mono text-foreground">{driver.license_plate}</span>
+                  <span className="text-muted-foreground">{driver.vehicle_type}</span>
+                  {driver.vehicle_plate && (
+                    <span className="bg-muted px-2 py-0.5 rounded text-xs font-mono text-foreground">{driver.vehicle_plate}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-1 font-bold text-foreground">
@@ -115,7 +115,7 @@ export default function DriversPage() {
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                <span>Comissão: {Number(driver.commission_rate)}%</span>
+                <span>Comissão: {Number(driver.rating)}%</span>
                 {driver.profiles?.phone && (
                   <span className="flex items-center gap-1">
                     <Phone className="h-3 w-3" /> {driver.profiles.phone}

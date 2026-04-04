@@ -560,7 +560,7 @@ export default function DeliveriesPage() {
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-foreground">{driver.profiles?.full_name || "—"}</p>
-                                <p className="text-xs text-muted-foreground">{driver.vehicle}</p>
+                                <p className="text-xs text-muted-foreground">{driver.vehicle_type}</p>
                               </div>
                             </div>
                             {dist !== null && (

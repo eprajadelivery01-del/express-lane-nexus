@@ -84,7 +84,7 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{driver.vehicle}</span>
+                  <span className="text-muted-foreground">{driver.vehicle_type}</span>
                   <span className="flex items-center gap-1 font-medium text-foreground">
                     <Star className="h-3.5 w-3.5 text-warning fill-warning" /> {Number(driver.rating).toFixed(1)}
                   </span>
