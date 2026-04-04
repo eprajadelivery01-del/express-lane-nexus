@@ -140,13 +140,12 @@ export default function UsersPage() {
                     <td className="p-4">
                       <span className={cn(
                         "px-2 py-1 rounded-full text-xs font-medium",
-                        inv.status === "pending" && "bg-warning/10 text-warning",
-                        inv.status === "accepted" && "bg-success/10 text-success",
-                        inv.status === "expired" && "bg-muted text-muted-foreground"
-                      )}>{inv.status}</span>
+                        !inv.accepted_at && "bg-warning/10 text-warning",
+                        !!inv.accepted_at && "bg-success/10 text-success",
+                      )}>{inv.accepted_at ? "accepted" : "pending"}</span>
                     </td>
                     <td className="p-4">
-                      {inv.status === "pending" && <CopyLinkButton token={inv.token} />}
+                      {!inv.accepted_at && <CopyLinkButton token={inv.token} />}
                     </td>
                   </tr>
                 ))}

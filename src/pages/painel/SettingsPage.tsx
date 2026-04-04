@@ -21,13 +21,13 @@ export default function SettingsPage() {
     supabase
       .from("profiles")
       .select("*")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (data) {
           setFullName(data.full_name || "");
           setPhone(data.phone || "");
-          setDocument(data.document || "");
+          setDocument("");
         }
       });
   }, [user]);
@@ -38,8 +38,8 @@ export default function SettingsPage() {
     try {
       const { error } = await supabase
         .from("profiles")
-        .update({ full_name: fullName, phone, document })
-        .eq("user_id", user.id);
+        .update({ full_name: fullName, phone } as any)
+        .eq("id", user.id);
       if (error) throw error;
       toast({ title: "Configurações salvas!" });
       setSaved(true);

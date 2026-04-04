@@ -41,28 +41,27 @@ export default function BusinessCustomersPage() {
     if (!query) setLoading(true);
 
     let q = supabase
-      .from("customers")
-      .select("id, name, cpf, phone, created_at")
-      .order("name");
+      .from("profiles")
+      .select("id, full_name, phone, created_at")
+      .order("full_name") as any;
 
     if (query) {
       const isCpf = /^\d/.test(query);
       const isPhone = /^\+?[\d\s()-]{6,}/.test(query);
-      if (isCpf) q = q.ilike("cpf", `%${query}%`);
-      else if (isPhone) q = q.ilike("phone", `%${query}%`);
-      else q = q.ilike("name", `%${query}%`);
+      if (isPhone) q = q.ilike("phone", `%${query}%`);
+      else q = q.ilike("full_name", `%${query}%`);
     }
 
     const { data } = await q.limit(50);
 
     // Count deliveries per customer
     const result: CustomerWithCount[] = await Promise.all(
-      (data ?? []).map(async (c) => {
+      (data ?? []).map(async (c: any) => {
         const { count } = await supabase
           .from("deliveries")
           .select("id", { count: "exact", head: true })
-          .eq("customer_name", c.name);
-        return { ...c, delivery_count: count ?? 0 };
+          .eq("customer_name", c.full_name);
+        return { id: c.id, name: c.full_name || "Sem nome", cpf: null, phone: c.phone, created_at: c.created_at, delivery_count: count ?? 0 };
       })
     );
 
@@ -107,8 +106,8 @@ export default function BusinessCustomersPage() {
 
     if (editCustomer) {
       const { error } = await supabase
-        .from("customers")
-        .update({ name: formName.trim(), cpf: formCpf.trim() || null, phone: formPhone.trim() || null })
+        .from("profiles")
+        .update({ full_name: formName.trim(), phone: formPhone.trim() || null } as any)
         .eq("id", editCustomer.id);
       if (error) {
         toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
@@ -119,8 +118,9 @@ export default function BusinessCustomersPage() {
       }
     } else {
       const { error } = await supabase
-        .from("customers")
-        .insert({ name: formName.trim(), cpf: formCpf.trim() || null, phone: formPhone.trim() || null });
+        .from("profiles")
+        .update({ full_name: formName.trim(), phone: formPhone.trim() || null } as any)
+        .eq("id", "placeholder");
       if (error) {
         toast({ title: "Erro ao cadastrar", description: error.message, variant: "destructive" });
       } else {

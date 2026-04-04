@@ -106,12 +106,12 @@ export function useDeliveryStats() {
         supabase.from("deliveries").select("id", { count: "exact", head: true }),
         supabase.from("deliveries").select("id", { count: "exact", head: true })
           .gte("created_at", today.toISOString()),
-        supabase.from("deliveries").select("value")
-          .eq("status", "completed")
+        supabase.from("deliveries").select("price")
+          .eq("status", "delivered")
           .gte("created_at", today.toISOString()),
       ]);
 
-      const totalRevenue = (completedRes.data ?? []).reduce((sum, d) => sum + Number(d.value), 0);
+      const totalRevenue = (completedRes.data ?? []).reduce((sum, d) => sum + Number(d.price ?? 0), 0);
 
       return {
         total: allRes.count ?? 0,
