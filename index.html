@@ -4,28 +4,64 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- TODO: Set the document title to the name of your application -->
-    <title>Lovable App</title>
-    <meta name="description" content="Lovable Generated Project">
-    <meta name="author" content="Lovable" />
+    <title>É Pra Já Delivery</title>
+    <meta name="description" content="É Pra Já Delivery - O Painel de Gestão Completo para o seu Negócio.">
+    <meta name="author" content="É Pra Já" />
 
-    <!-- TODO: Update og:title to match your application name -->
-    
-    
+    <meta property="og:title" content="É Pra Já Delivery" />
+    <meta property="og:description" content="O Painel de Gestão Completo para o seu Negócio." />
     <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec5ccdab-6245-441f-ac6b-95e4dc20e193/id-preview-9ac5f0bb--39221985-4d8d-40f6-bd62-3f611e9c64e4.lovable.app-1775265720110.png">
+    <meta property="og:image" content="/splash.png">
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/ec5ccdab-6245-441f-ac6b-95e4dc20e193/id-preview-9ac5f0bb--39221985-4d8d-40f6-bd62-3f611e9c64e4.lovable.app-1775265720110.png">
-    <meta property="og:title" content="Lovable App">
-  <meta name="twitter:title" content="Lovable App">
-  <meta property="og:description" content="Lovable Generated Project">
-  <meta name="twitter:description" content="Lovable Generated Project">
-  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <meta name="twitter:title" content="É Pra Já Delivery" />
+    <meta name="twitter:description" content="O Painel de Gestão Completo para o seu Negócio." />
+    <meta name="twitter:image" content="/splash.png">
+    
+    <link rel="icon" type="image/png" href="/logo.png">
+    
+    <style>
+      #splash-screen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: white;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out;
+      }
+      .splash-logo {
+        width: 120px;
+        height: 120px;
+        object-fit: contain;
+        margin-bottom: 20px;
+        animation: pulse 2s infinite;
+      }
+      @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.05); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      #root:not(:empty) + #splash-screen {
+        opacity: 0;
+        pointer-events: none;
+      }
+    </style>
 </head>
 
   <body>
     <div id="root"></div>
+    <div id="splash-screen">
+      <img src="/logo.png" alt="É Pra Já" class="splash-logo">
+      <div style="width: 40px; height: 40px; border: 3px solid #f3f3f3; border-top: 3px solid #F97316; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <p style="margin-top: 20px; font-family: sans-serif; font-weight: bold; color: #666; font-size: 14px; letter-spacing: 2px;">CARREGANDO</p>
+    </div>
+    <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
