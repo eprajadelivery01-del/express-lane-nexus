@@ -28,7 +28,7 @@ export async function approveUser(userId: string) {
   const { error } = await supabase
     .from("profiles")
     .update({ status: "active" as any })
-    .eq("user_id", userId);
+    .eq("id", userId);
   if (error) throw error;
 }
 
@@ -36,7 +36,7 @@ export async function rejectUser(userId: string) {
   const { error } = await supabase
     .from("profiles")
     .update({ status: "rejected" as any })
-    .eq("user_id", userId);
+    .eq("id", userId);
   if (error) throw error;
 }
 
@@ -44,7 +44,7 @@ export async function updateProfile(userId: string, updates: { full_name?: strin
   const { data, error } = await supabase
     .from("profiles")
     .update(updates)
-    .eq("user_id", userId)
+    .eq("id", userId)
     .select()
     .single();
   if (error) throw error;
@@ -90,8 +90,8 @@ export async function validateInvitation(token: string) {
     .from("invitations")
     .select("*")
     .eq("token", token)
-    .eq("status", "pending")
-    .single();
+    .is("accepted_at", null)
+    .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Convite não encontrado");
   if (new Date(data.expires_at) < new Date()) throw new Error("Convite expirado");
@@ -115,31 +115,31 @@ export async function acceptInvitation(token: string, userData: { email: string;
     .update({
       full_name: userData.fullName,
       phone: userData.phone,
-      document: userData.document,
-    })
-    .eq("user_id", authData.user.id);
+    } as any)
+    .eq("id", authData.user.id);
 
-  await supabase.from("user_roles").insert({
+  await supabase.from("user_roles").insert([{
     user_id: authData.user.id,
-    role: invitation.role,
-  });
+    role: invitation.role as any,
+  }]);
 
   if (invitation.role === "driver") {
-    await supabase.from("delivery_drivers").insert({
+    await supabase.from("delivery_drivers").insert([{
       user_id: authData.user.id,
-    });
+      full_name: userData.fullName,
+    }]);
   }
 
   if (invitation.role === "company") {
-    await supabase.from("companies").insert({
+    await supabase.from("companies").insert([{
       user_id: authData.user.id,
       name: userData.fullName,
-    });
+    }]);
   }
 
   await supabase
     .from("invitations")
-    .update({ status: "accepted" })
+    .update({ accepted_at: new Date().toISOString() })
     .eq("token", token);
 
   return authData;
