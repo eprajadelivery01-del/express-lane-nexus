@@ -26,6 +26,11 @@ import NotFound from "./pages/NotFound";
 // Driver & Business
 import DriverHomePage from "./pages/entregador/DriverHomePage";
 import BusinessHomePage from "./pages/lojista/BusinessHomePage";
+import BusinessMapPage from "./pages/lojista/BusinessMapPage";
+import BusinessCustomersPage from "./pages/lojista/BusinessCustomersPage";
+import BusinessFinancePage from "./pages/lojista/BusinessFinancePage";
+import BusinessHistoryPage from "./pages/lojista/BusinessHistoryPage";
+import BusinessProfilePage from "./pages/lojista/BusinessProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +66,11 @@ const App = () => (
 
             {/* Business */}
             <Route path="/business" element={<ProtectedRoute requiredRole="company"><BusinessHomePage /></ProtectedRoute>} />
+            <Route path="/business/map" element={<ProtectedRoute requiredRole="company"><BusinessMapPage /></ProtectedRoute>} />
+            <Route path="/business/customers" element={<ProtectedRoute requiredRole="company"><BusinessCustomersPage /></ProtectedRoute>} />
+            <Route path="/business/finance" element={<ProtectedRoute requiredRole="company"><BusinessFinancePage /></ProtectedRoute>} />
+            <Route path="/business/history" element={<ProtectedRoute requiredRole="company"><BusinessHistoryPage /></ProtectedRoute>} />
+            <Route path="/business/profile" element={<ProtectedRoute requiredRole="company"><BusinessProfilePage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
