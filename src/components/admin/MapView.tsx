@@ -148,7 +148,7 @@ export function MapView({ centerCity }: MapViewProps) {
     markersRef.current = [];
 
     (drivers ?? []).forEach((driver) => {
-      if (!driver.latitude || !driver.longitude) return;
+      if (!driver.current_latitude || !driver.current_longitude) return;
 
       const el = document.createElement("div");
       el.innerHTML = `
@@ -163,13 +163,13 @@ export function MapView({ centerCity }: MapViewProps) {
       `;
 
       const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([driver.longitude, driver.latitude])
+        .setLngLat([driver.current_longitude, driver.current_latitude])
         .setPopup(
           new maplibregl.Popup({ offset: 20 }).setHTML(`
             <div style="font-family: sans-serif; padding: 4px;">
               <strong>${driver.profiles?.full_name || "Entregador"}</strong><br/>
               <span style="color: #22c55e">● Online</span><br/>
-              <small>${driver.vehicle} • ⭐ ${Number(driver.rating).toFixed(1)}</small>
+              <small>${driver.vehicle_type} • ⭐ ${Number(driver.rating).toFixed(1)}</small>
             </div>
           `)
         )

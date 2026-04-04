@@ -7,9 +7,9 @@ import { DollarSign, TrendingUp, Clock, CheckCircle, Truck, Calendar } from "luc
 type Delivery = {
   id: string;
   customer_name: string;
-  address: string;
+  dropoff_address: string;
   status: string;
-  value: number;
+  price: number;
   created_at: string;
 };
 
@@ -39,7 +39,7 @@ export default function BusinessFinancePage() {
 
     supabase
       .from("deliveries")
-      .select("id, customer_name, address, status, value, created_at")
+      .select("id, customer_name, dropoff_address, status, price, created_at")
       .eq("company_id", companyId)
       .gte("created_at", startOfMonth)
       .order("created_at", { ascending: false })
@@ -49,15 +49,15 @@ export default function BusinessFinancePage() {
       });
   }, [companyId]);
 
-  const totalAll = deliveries.reduce((sum, d) => sum + Number(d.value), 0);
+  const totalAll = deliveries.reduce((sum, d) => sum + Number(d.price ?? 0), 0);
   const totalCompleted = deliveries
-    .filter((d) => d.status === "completed")
-    .reduce((sum, d) => sum + Number(d.value), 0);
+    .filter((d) => d.status === "delivered")
+    .reduce((sum, d) => sum + Number(d.price ?? 0), 0);
   const totalPending = deliveries
-    .filter((d) => d.status !== "completed" && d.status !== "cancelled")
-    .reduce((sum, d) => sum + Number(d.value), 0);
-  const countCompleted = deliveries.filter((d) => d.status === "completed").length;
-  const countPending = deliveries.filter((d) => d.status !== "completed" && d.status !== "cancelled").length;
+    .filter((d) => d.status !== "delivered" && d.status !== "cancelled")
+    .reduce((sum, d) => sum + Number(d.price ?? 0), 0);
+  const countCompleted = deliveries.filter((d) => d.status === "delivered").length;
+  const countPending = deliveries.filter((d) => d.status !== "delivered" && d.status !== "cancelled").length;
 
   const monthName = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
@@ -67,7 +67,8 @@ export default function BusinessFinancePage() {
     accepted: { label: "Aceito", color: "text-primary" },
     collecting: { label: "Coletando", color: "text-primary" },
     in_route: { label: "Em rota", color: "text-primary" },
-    completed: { label: "Concluído", color: "text-green-500" },
+    delivered: { label: "Concluído", color: "text-green-500" },
+    in_transit: { label: "Em rota", color: "text-primary" },
     cancelled: { label: "Cancelado", color: "text-red-400" },
   };
 
@@ -153,7 +154,7 @@ export default function BusinessFinancePage() {
                       <p className="text-xs text-muted-foreground">{date}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-foreground">R$ {Number(d.value).toFixed(2)}</p>
+                      <p className="text-sm font-bold text-foreground">R$ {Number(d.price ?? 0).toFixed(2)}</p>
                       <p className={`text-[10px] font-semibold ${st.color}`}>{st.label}</p>
                     </div>
                   </div>

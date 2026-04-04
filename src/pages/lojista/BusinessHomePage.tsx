@@ -13,9 +13,9 @@ import { useQueryClient } from "@tanstack/react-query";
 type Delivery = {
   id: string;
   customer_name: string;
-  address: string;
+  dropoff_address: string;
   status: string;
-  value: number;
+  price: number;
   created_at: string;
 };
 
@@ -36,7 +36,7 @@ export default function BusinessOrdersPage() {
   // Counters
   const pending = deliveries.filter((d) => d.status === "pending" || d.status === "broadcasted").length;
   const inRoute = deliveries.filter((d) => d.status === "accepted" || d.status === "collecting" || d.status === "in_route").length;
-  const done = deliveries.filter((d) => d.status === "completed").length;
+  const done = deliveries.filter((d) => d.status === "delivered").length;
 
   // Fetch company
   useEffect(() => {
@@ -56,9 +56,9 @@ export default function BusinessOrdersPage() {
 
     supabase
       .from("deliveries")
-      .select("id, customer_name, address, status, value, created_at")
+      .select("id, customer_name, dropoff_address, status, price, created_at")
       .eq("company_id", companyId)
-      .not("status", "in", '("completed","cancelled")')
+      .not("status", "in", '("delivered","cancelled")')
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setDeliveries(data ?? []);
@@ -73,9 +73,9 @@ export default function BusinessOrdersPage() {
         () => {
           supabase
             .from("deliveries")
-            .select("id, customer_name, address, status, value, created_at")
+            .select("id, customer_name, dropoff_address, status, price, created_at")
             .eq("company_id", companyId)
-            .not("status", "in", '("completed","cancelled")')
+            .not("status", "in", '("delivered","cancelled")')
             .order("created_at", { ascending: false })
             .then(({ data }) => setDeliveries(data ?? []));
         }
@@ -90,8 +90,8 @@ export default function BusinessOrdersPage() {
     broadcasted: { label: "Buscando entregador", color: "text-blue-400" },
     accepted: { label: "Entregador a caminho", color: "text-primary" },
     collecting: { label: "Coletando", color: "text-primary" },
-    in_route: { label: "Em rota", color: "text-primary" },
-    completed: { label: "Concluído", color: "text-green-500" },
+    in_transit: { label: "Em rota", color: "text-primary" },
+    delivered: { label: "Concluído", color: "text-green-500" },
     cancelled: { label: "Cancelado", color: "text-red-400" },
   };
 
@@ -160,11 +160,11 @@ export default function BusinessOrdersPage() {
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-foreground truncate">{d.customer_name}</p>
                           <span className="text-sm font-bold text-primary shrink-0">
-                            R$ {Number(d.value).toFixed(2)}
+                            R$ {Number(d.price ?? 0).toFixed(2)}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground truncate mt-0.5 flex items-center gap-1">
-                          <MapPin className="h-3 w-3 shrink-0" /> {d.address}
+                          <MapPin className="h-3 w-3 shrink-0" /> {d.dropoff_address}
                         </p>
                         <span className={`text-[10px] font-semibold ${st.color} mt-1 block`}>
                           ● {st.label}
@@ -231,16 +231,16 @@ function NewDeliveryForm({
       const isCpf = /^\d/.test(q);
       const isPhone = /^\+?[\d\s()-]{6,}/.test(q);
 
-      let query = supabase.from("customers").select("id, name, cpf, phone");
+      let query = supabase.from("profiles").select("id, full_name, phone") as any;
       if (isCpf) {
-        query = query.ilike("cpf", `%${q}%`);
-      } else if (isPhone) {
+        query = query.ilike("full_name", `%${q}%`);
+      } else if (isPhone) {        
         query = query.ilike("phone", `%${q}%`);
       } else {
-        query = query.ilike("name", `%${q}%`);
+        query = query.ilike("full_name", `%${q}%`);
       }
       const { data } = await query.limit(8);
-      setSearchResults(data ?? []);
+      setSearchResults((data ?? []).map((d: any) => ({ id: d.id, name: d.full_name || "Sem nome", cpf: null, phone: d.phone })));
       setSearching(false);
     }, 300);
   }, [searchQuery]);
@@ -265,14 +265,10 @@ function NewDeliveryForm({
       const lng = parseFloat(results[0].lon);
       setCoords({ lat, lng });
 
-      const { data: regionId } = await supabase.rpc("find_region_for_point", { _lat: lat, _lng: lng });
-      if (regionId) {
-        const { data: region } = await supabase
-          .from("regions")
-          .select("name, price, color")
-          .eq("id", regionId)
-          .single();
-        if (region) setRegionInfo({ name: region.name, price: Number(region.price), color: region.color });
+      const { data: regionData } = await supabase.rpc("find_region_for_point", { _lat: lat, _lng: lng });
+      if (regionData && regionData.length > 0) {
+        const r = regionData[0];
+        setRegionInfo({ name: r.region_name, price: Number(r.region_price), color: r.region_color });
       } else {
         toast({ title: "Endereço fora das regiões cadastradas", description: "Preço será R$ 0,00" });
       }
@@ -288,17 +284,14 @@ function NewDeliveryForm({
       toast({ title: "Nome é obrigatório", variant: "destructive" });
       return null;
     }
-    const { data, error } = await supabase
-      .from("customers")
-      .insert({ name: custName.trim(), cpf: custCpf.trim() || null, phone: custPhone.trim() || null })
-      .select("id, name, cpf, phone")
-      .single();
-    if (error) {
-      toast({ title: "Erro ao salvar cliente", description: error.message, variant: "destructive" });
-      return null;
-    }
-    toast({ title: "Cliente salvo!", description: custName });
-    return data as Customer;
+    // We don't have a customers table, just use the name directly
+    const customer: Customer = {
+      id: crypto.randomUUID(),
+      name: custName.trim(),
+      cpf: custCpf.trim() || null,
+      phone: custPhone.trim() || null,
+    };
+    return customer;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -329,16 +322,19 @@ function NewDeliveryForm({
     }
 
     setSubmitting(true);
-    const { error } = await supabase.from("deliveries").insert({
+    const { error } = await supabase.from("deliveries").insert([{
       company_id: companyId,
       customer_name: customer.name,
-      address: address.trim(),
-      value: regionInfo?.price ?? 0,
-      commission: (regionInfo?.price ?? 0) * 0.15,
-      latitude: coords?.lat ?? null,
-      longitude: coords?.lng ?? null,
+      customer_phone: customer.phone,
+      pickup_address: "Loja",
+      dropoff_address: address.trim(),
+      price: regionInfo?.price ?? 0,
+      pickup_latitude: coords?.lat ?? null,
+      pickup_longitude: coords?.lng ?? null,
+      dropoff_latitude: coords?.lat ?? null,
+      dropoff_longitude: coords?.lng ?? null,
       notes: notes.trim() || null,
-    });
+    }]);
 
     if (error) {
       toast({ title: "Erro ao criar pedido", description: error.message, variant: "destructive" });

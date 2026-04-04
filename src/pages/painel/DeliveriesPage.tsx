@@ -75,21 +75,21 @@ export default function DeliveriesPage() {
 
   // Sort drivers by proximity to delivery
   const getDriversSortedByProximity = (delivery: DeliveryWithRelations) => {
-    if (!delivery.latitude || !delivery.longitude) return onlineDrivers;
+    if (!delivery.pickup_latitude || !delivery.pickup_longitude) return onlineDrivers;
     return [...onlineDrivers].sort((a, b) => {
-      const distA = a.latitude && a.longitude
-        ? haversineDistance(delivery.latitude!, delivery.longitude!, a.latitude, a.longitude)
+      const distA = a.current_latitude && a.current_longitude
+        ? haversineDistance(delivery.pickup_latitude!, delivery.pickup_longitude!, a.current_latitude, a.current_longitude)
         : Infinity;
-      const distB = b.latitude && b.longitude
-        ? haversineDistance(delivery.latitude!, delivery.longitude!, b.latitude, b.longitude)
+      const distB = b.current_latitude && b.current_longitude
+        ? haversineDistance(delivery.pickup_latitude!, delivery.pickup_longitude!, b.current_latitude, b.current_longitude)
         : Infinity;
       return distA - distB;
     });
   };
 
   const getDriverDistance = (driver: any, delivery: DeliveryWithRelations) => {
-    if (!delivery.latitude || !delivery.longitude || !driver.latitude || !driver.longitude) return null;
-    return haversineDistance(delivery.latitude, delivery.longitude, driver.latitude, driver.longitude);
+    if (!delivery.pickup_latitude || !delivery.pickup_longitude || !driver.current_latitude || !driver.current_longitude) return null;
+    return haversineDistance(delivery.pickup_latitude, delivery.pickup_longitude, driver.current_latitude, driver.current_longitude);
   };
 
   const handleReassign = async () => {
@@ -149,15 +149,13 @@ export default function DeliveriesPage() {
         <div class="label">Cliente</div>
         <div class="value">${delivery.customer_name}</div>
         <div class="label">Endereço</div>
-        <div class="value">${delivery.address}</div>
+        <div class="value">${delivery.dropoff_address}</div>
         <div class="label">Empresa</div>
         <div class="value">${(delivery as any).companies?.name || "—"}</div>
         <div class="label">Status</div>
         <div class="value">${delivery.status}</div>
         <div class="label">Valor</div>
-        <div class="value">R$ ${Number(delivery.value).toFixed(2)}</div>
-        <div class="label">Comissão</div>
-        <div class="value">R$ ${Number(delivery.commission).toFixed(2)}</div>
+        <div class="value">R$ ${Number(delivery.price ?? 0).toFixed(2)}</div>
         <div class="label">Data</div>
         <div class="value">${format(new Date(delivery.created_at), "dd/MM/yyyy HH:mm")}</div>
         ${delivery.notes ? `<div class="label">Observações</div><div class="value">${delivery.notes}</div>` : ""}
@@ -258,13 +256,13 @@ export default function DeliveriesPage() {
                         <p className="text-sm text-foreground">{(delivery as any).companies?.name || "—"}</p>
                       </td>
                       <td className="p-4 hidden lg:table-cell">
-                        <p className="text-sm text-muted-foreground truncate max-w-[200px]">{delivery.address}</p>
+                        <p className="text-sm text-muted-foreground truncate max-w-[200px]">{delivery.dropoff_address}</p>
                       </td>
                       <td className="p-4">
                         <DeliveryStatusBadge status={delivery.status as DeliveryStatus} />
                       </td>
                       <td className="p-4 hidden sm:table-cell">
-                        <span className="text-sm font-semibold text-foreground">R$ {Number(delivery.value).toFixed(2)}</span>
+                        <span className="text-sm font-semibold text-foreground">R$ {Number(delivery.price ?? 0).toFixed(2)}</span>
                       </td>
                       <td className="p-4 hidden lg:table-cell">
                         <span className="text-xs text-muted-foreground">
@@ -322,7 +320,7 @@ export default function DeliveriesPage() {
                                   </DropdownMenuItem>
                                 </>
                               )}
-                              {!["completed", "cancelled"].includes(delivery.status) && (
+                              {!["delivered", "cancelled"].includes(delivery.status) && (
                                 <DropdownMenuItem onClick={() => { setReassignDelivery(delivery); setSelectedDriverId(delivery.driver_id || ""); }}>
                                   <UserCheck className="h-4 w-4 mr-2" /> Reatribuir
                                 </DropdownMenuItem>
@@ -339,16 +337,16 @@ export default function DeliveriesPage() {
                                 </DropdownMenuItem>
                               )}
                               {delivery.status === "collecting" && (
-                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "in_route" })}>
+                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "in_transit" })}>
                                   Em Rota
                                 </DropdownMenuItem>
                               )}
-                              {delivery.status === "in_route" && (
-                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "completed" })}>
+                              {delivery.status === "in_transit" && (
+                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "delivered" })}>
                                   Finalizar
                                 </DropdownMenuItem>
                               )}
-                              {!["completed", "cancelled"].includes(delivery.status) && (
+                              {!["delivered", "cancelled"].includes(delivery.status) && (
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
@@ -437,13 +435,11 @@ export default function DeliveriesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <DetailField label="Cliente" value={detailDelivery.customer_name} />
                 <DetailField label="Empresa" value={(detailDelivery as any).companies?.name || "—"} />
-                <DetailField label="Valor" value={`R$ ${Number(detailDelivery.value).toFixed(2)}`} />
-                <DetailField label="Comissão" value={`R$ ${Number(detailDelivery.commission).toFixed(2)}`} />
-                <DetailField label="Região" value={(detailDelivery as any).regions?.name || "—"} />
+                <DetailField label="Valor" value={`R$ ${Number(detailDelivery.price ?? 0).toFixed(2)}`} />
                 <DetailField label="Criado em" value={format(new Date(detailDelivery.created_at), "dd/MM/yyyy HH:mm")} />
               </div>
 
-              <DetailField label="Endereço" value={detailDelivery.address} />
+              <DetailField label="Endereço" value={detailDelivery.dropoff_address} />
               
               {detailDelivery.notes && (
                 <DetailField label="Observações" value={detailDelivery.notes} />
@@ -452,11 +448,11 @@ export default function DeliveriesPage() {
               <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
                 {detailDelivery.accepted_at && <span>Aceita: {format(new Date(detailDelivery.accepted_at), "dd/MM HH:mm")}</span>}
                 {detailDelivery.collected_at && <span>Coletada: {format(new Date(detailDelivery.collected_at), "dd/MM HH:mm")}</span>}
-                {detailDelivery.completed_at && <span>Finalizada: {format(new Date(detailDelivery.completed_at), "dd/MM HH:mm")}</span>}
+                {detailDelivery.delivered_at && <span>Finalizada: {format(new Date(detailDelivery.delivered_at), "dd/MM HH:mm")}</span>}
                 {detailDelivery.cancelled_at && <span>Cancelada: {format(new Date(detailDelivery.cancelled_at), "dd/MM HH:mm")}</span>}
               </div>
 
-              {!["completed", "cancelled"].includes(detailDelivery.status) && (
+              {!["delivered", "cancelled"].includes(detailDelivery.status) && (
                 <div className="flex gap-2 pt-2 border-t border-border">
                   <button
                     onClick={() => { setReassignDelivery(detailDelivery); setSelectedDriverId(detailDelivery.driver_id || ""); setDetailDelivery(null); }}
@@ -532,7 +528,7 @@ export default function DeliveriesPage() {
                 <p className="text-sm font-medium text-foreground">
                   #{dispatchDelivery.id.slice(0, 8).toUpperCase()} — {dispatchDelivery.customer_name}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">{dispatchDelivery.address}</p>
+                <p className="text-xs text-muted-foreground mt-1">{dispatchDelivery.dropoff_address}</p>
               </div>
 
               <div>
@@ -564,7 +560,7 @@ export default function DeliveriesPage() {
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-foreground">{driver.profiles?.full_name || "—"}</p>
-                                <p className="text-xs text-muted-foreground">{driver.vehicle}</p>
+                                <p className="text-xs text-muted-foreground">{driver.vehicle_type}</p>
                               </div>
                             </div>
                             {dist !== null && (

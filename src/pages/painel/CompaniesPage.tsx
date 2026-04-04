@@ -20,7 +20,7 @@ export default function CompaniesPage() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const handleToggleActive = async (companyId: string, isActive: boolean) => {
-    const { error } = await supabase.from("companies").update({ is_active: !isActive }).eq("id", companyId);
+    const { error } = await supabase.from("companies").update({ active: !isActive }).eq("id", companyId);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
@@ -78,8 +78,8 @@ export default function CompaniesPage() {
                   </div>
                   <div>
                     <p className="font-bold text-foreground">{company.name}</p>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${company.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
-                      {company.is_active ? "Ativo" : "Inativo"}
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${company.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                      {company.active ? "Ativo" : "Inativo"}
                     </span>
                   </div>
                 </div>
@@ -88,9 +88,9 @@ export default function CompaniesPage() {
                     <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleToggleActive(company.id, company.is_active)}>
+                    <DropdownMenuItem onClick={() => handleToggleActive(company.id, !!company.active)}>
                       <Power className="h-4 w-4 mr-2" />
-                      {company.is_active ? "Desativar" : "Ativar"}
+                      {company.active ? "Desativar" : "Ativar"}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(company.id)}>

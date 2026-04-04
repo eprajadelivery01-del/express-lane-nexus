@@ -5,7 +5,6 @@ import type { Tables } from "@/integrations/supabase/types";
 export type DeliveryWithRelations = Tables<"deliveries"> & {
   companies?: { name: string } | null;
   delivery_drivers?: { id: string; user_id: string } & { profiles?: { full_name: string } | null } | null;
-  regions?: { name: string; color: string } | null;
 };
 
 interface DeliveryFilters {
@@ -25,8 +24,7 @@ export async function fetchDeliveries(filters: DeliveryFilters = {}) {
     .select(`
       *,
       companies(name),
-      delivery_drivers(id, user_id),
-      regions(name, color)
+      delivery_drivers(id, user_id)
     `, { count: "exact" })
     .order("created_at", { ascending: false });
 
@@ -40,7 +38,7 @@ export async function fetchDeliveries(filters: DeliveryFilters = {}) {
     query = query.eq("driver_id", filters.driverId);
   }
   if (filters.search) {
-    query = query.or(`customer_name.ilike.%${filters.search}%,address.ilike.%${filters.search}%`);
+    query = query.or(`customer_name.ilike.%${filters.search}%,dropoff_address.ilike.%${filters.search}%`);
   }
   if (filters.dateFrom) {
     query = query.gte("created_at", filters.dateFrom);
@@ -108,12 +106,12 @@ export function useDeliveryStats() {
         supabase.from("deliveries").select("id", { count: "exact", head: true }),
         supabase.from("deliveries").select("id", { count: "exact", head: true })
           .gte("created_at", today.toISOString()),
-        supabase.from("deliveries").select("value")
-          .eq("status", "completed")
+        supabase.from("deliveries").select("price")
+          .eq("status", "delivered")
           .gte("created_at", today.toISOString()),
       ]);
 
-      const totalRevenue = (completedRes.data ?? []).reduce((sum, d) => sum + Number(d.value), 0);
+      const totalRevenue = (completedRes.data ?? []).reduce((sum, d) => sum + Number(d.price ?? 0), 0);
 
       return {
         total: allRes.count ?? 0,

@@ -27,9 +27,9 @@ export default function ReportsPage() {
   });
 
   const deliveries = data?.data ?? [];
-  const totalValue = deliveries.reduce((s, d) => s + Number(d.value), 0);
-  const totalCommission = deliveries.reduce((s, d) => s + Number(d.commission), 0);
-  const completedCount = deliveries.filter((d) => d.status === "completed").length;
+  const totalValue = deliveries.reduce((s, d) => s + Number(d.price ?? 0), 0);
+  const totalCommission = 0;
+  const completedCount = deliveries.filter((d) => d.status === "delivered").length;
 
   const handleExport = () => {
     if (deliveries.length === 0) {
@@ -41,10 +41,10 @@ export default function ReportsPage() {
       format(new Date(d.created_at), "dd/MM/yyyy HH:mm"),
       d.customer_name,
       (d as any).companies?.name || "",
-      d.address,
+      d.dropoff_address,
       d.status,
-      Number(d.value).toFixed(2),
-      Number(d.commission).toFixed(2),
+      Number(d.price ?? 0).toFixed(2),
+      "0.00",
     ]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
@@ -149,8 +149,8 @@ export default function ReportsPage() {
                     <td className="p-3 text-sm text-foreground">{d.customer_name}</td>
                     <td className="p-3 text-sm text-muted-foreground hidden md:table-cell">{(d as any).companies?.name || "—"}</td>
                     <td className="p-3"><StatusDot status={d.status} /></td>
-                    <td className="p-3 text-sm text-foreground text-right font-semibold">R$ {Number(d.value).toFixed(2)}</td>
-                    <td className="p-3 text-sm text-muted-foreground text-right">R$ {Number(d.commission).toFixed(2)}</td>
+                    <td className="p-3 text-sm text-foreground text-right font-semibold">R$ {Number(d.price ?? 0).toFixed(2)}</td>
+                    <td className="p-3 text-sm text-muted-foreground text-right">—</td>
                   </tr>
                 ))}
               </tbody>
