@@ -21,8 +21,8 @@ function useOccurrences() {
     queryKey: ["occurrences"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("occurrences")
-        .select("*, delivery_drivers!occurrences_driver_id_fkey(id, user_id, profiles:user_id(full_name))")
+        .from("delivery_occurrences")
+        .select("*, delivery_drivers!delivery_occurrences_driver_id_fkey(id, user_id)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -35,8 +35,8 @@ function useUpdateOccurrenceStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const { error } = await supabase
-        .from("occurrences")
-        .update({ status })
+        .from("delivery_occurrences")
+        .update({ resolved: status === "resolved", resolved_at: status === "resolved" ? new Date().toISOString() : null } as any)
         .eq("id", id);
       if (error) throw error;
     },
@@ -47,8 +47,13 @@ function useUpdateOccurrenceStatus() {
 function useCreateOccurrence() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (occ: { type: "motorcycle_issue" | "accident" | "robbery" | "other"; description: string; driver_id: string; delivery_id?: string }) => {
-      const { error } = await supabase.from("occurrences").insert([occ]);
+    mutationFn: async (occ: { type: string; description: string; driver_id: string; delivery_id?: string }) => {
+      const { error } = await supabase.from("delivery_occurrences").insert([{
+        type: occ.type as any,
+        description: occ.description,
+        driver_id: occ.driver_id,
+        delivery_id: occ.delivery_id || "00000000-0000-0000-0000-000000000000",
+      }]);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["occurrences"] }),
@@ -109,40 +114,40 @@ export default function OccurrencesPage() {
       ) : (
         <div className="space-y-3">
           {(occurrences ?? []).map((occ) => {
-            const driverName = (occ as any).delivery_drivers?.profiles?.full_name || "—";
+            const driverName = (occ as any).delivery_drivers?.full_name || "—";
             return (
               <div key={occ.id} className="bg-card rounded-xl p-5 shadow-card border border-border">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     <div className={cn(
                       "w-10 h-10 rounded-xl flex items-center justify-center",
-                      occ.status === "open" ? "bg-destructive/10" : "bg-success/10"
+                      !(occ as any).resolved ? "bg-destructive/10" : "bg-success/10"
                     )}>
-                      <AlertTriangle className={cn("h-5 w-5", occ.status === "open" ? "text-destructive" : "text-success")} />
+                      <AlertTriangle className={cn("h-5 w-5", !(occ as any).resolved ? "text-destructive" : "text-success")} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-bold text-foreground">{typeLabels[occ.type] || occ.type}</span>
+                        <span className="text-sm font-bold text-foreground">{typeLabels[(occ as any).type] || (occ as any).type}</span>
                         <button
-                          onClick={() => toggleStatus(occ.id, occ.status)}
+                          onClick={() => toggleStatus(occ.id, (occ as any).resolved ? "resolved" : "open")}
                           disabled={updateStatus.isPending}
                           className={cn(
                             "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium cursor-pointer hover:opacity-80 transition-opacity",
-                            occ.status === "open" ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"
+                            !(occ as any).resolved ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"
                           )}
                         >
-                          {occ.status === "open" ? <Clock className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
-                          {occ.status === "open" ? "Aberta" : "Resolvida"}
+                          {!(occ as any).resolved ? <Clock className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                          {!(occ as any).resolved ? "Aberta" : "Resolvida"}
                         </button>
                       </div>
-                      <p className="text-sm text-muted-foreground mb-1">{occ.description}</p>
+                      <p className="text-sm text-muted-foreground mb-1">{(occ as any).description}</p>
                       <p className="text-xs text-muted-foreground">
                         Entregador: <span className="font-medium text-foreground">{driverName}</span>
                       </p>
                     </div>
                   </div>
                   <span className="text-xs text-muted-foreground whitespace-nowrap">
-                    {format(new Date(occ.created_at), "dd/MM/yyyy")}
+                    {format(new Date((occ as any).created_at), "dd/MM/yyyy")}
                   </span>
                 </div>
               </div>
@@ -171,10 +176,10 @@ export default function OccurrencesPage() {
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary"
               >
-                <option value="motorcycle_issue">Problema na Moto</option>
-                <option value="accident">Acidente</option>
-                <option value="robbery">Assalto</option>
-                <option value="other">Outro</option>
+                <option value="delay">Atraso</option>
+                <option value="damage">Dano</option>
+                <option value="absence">Ausência</option>
+                <option value="other">Outro</option>            
               </select>
             </div>
             <div>

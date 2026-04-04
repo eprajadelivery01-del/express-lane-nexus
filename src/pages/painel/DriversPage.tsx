@@ -184,7 +184,7 @@ function CreateDriverForm({ onSuccess }: { onSuccess: () => void }) {
         const path = `${data.userId}/avatar.${ext}`;
         await supabase.storage.from("avatars").upload(path, avatarFile, { upsert: true });
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
-        await supabase.from("profiles").update({ avatar_url: urlData.publicUrl }).eq("user_id", data.userId);
+        await supabase.from("profiles").update({ avatar_url: urlData.publicUrl }).eq("id", data.userId);
       }
 
       toast({ title: "Entregador cadastrado com sucesso!" });
