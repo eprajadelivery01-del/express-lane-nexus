@@ -346,55 +346,6 @@ function NewDeliveryForm({
     setSubmitting(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!companyId) {
-      toast({ title: "Empresa não encontrada", variant: "destructive" });
-      return;
-    }
-
-    let customer = selectedCustomer;
-
-    // If creating new customer, save first
-    if (!customer && showNewCustomer) {
-      setSubmitting(true);
-      customer = await saveNewCustomer();
-      if (!customer) { setSubmitting(false); return; }
-      setSelectedCustomer(customer);
-    }
-
-    if (!customer) {
-      toast({ title: "Selecione ou cadastre um cliente", variant: "destructive" });
-      return;
-    }
-
-    if (!address.trim()) {
-      toast({ title: "Endereço é obrigatório", variant: "destructive" });
-      return;
-    }
-
-    setSubmitting(true);
-    const { error } = await supabase.from("deliveries").insert({
-      company_id: companyId,
-      customer_name: customer.name,
-      address: address.trim(),
-      value: regionInfo?.price ?? 0,
-      commission: (regionInfo?.price ?? 0) * 0.15,
-      latitude: coords?.lat ?? null,
-      longitude: coords?.lng ?? null,
-      notes: notes.trim() || null,
-    });
-
-    if (error) {
-      toast({ title: "Erro ao criar pedido", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Pedido criado!", description: "Aguardando entregador" });
-      qc.invalidateQueries({ queryKey: ["deliveries"] });
-      onClose();
-    }
-    setSubmitting(false);
-  };
-
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <button
