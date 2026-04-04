@@ -18,24 +18,27 @@ export default function LoginPage() {
     const { error, data: signInData } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
+      console.error("Erro de Autenticação Supabase:", error.message);
       setLoading(false);
       toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
       return;
     }
 
     const user = signInData.user;
-    if (!user) {
-      setLoading(false);
-      toast({ title: "Erro ao entrar", description: "Usuário não encontrado", variant: "destructive" });
-      return;
-    }
+    console.log("Usuário logado com sucesso:", user.id);
 
     // Check user approval status
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("status")
-      .eq("user_id", user.id)
+      .eq("id", user.id)
       .single();
+
+    if (profileError) {
+      console.warn("Erro ao buscar perfil (usuário pode não ter perfil criado):", profileError);
+    }
+    
+    console.log("Status do Perfil:", profile?.status);
 
     if (profile?.status === "pending") {
       await supabase.auth.signOut();
@@ -59,14 +62,30 @@ export default function LoginPage() {
       return;
     }
 
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    const { data: roles, error: rolesError } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    
+    if (rolesError) {
+      console.error("Erro ao buscar papéis (roles):", rolesError);
+    }
+
     const userRoles = roles?.map(r => r.role) || [];
+    console.log("Papéis encontrados:", userRoles);
+    
     setLoading(false);
 
-    if (userRoles.includes("admin")) navigate("/admin");
-    else if (userRoles.includes("company")) navigate("/business");
-    else if (userRoles.includes("driver")) navigate("/driver");
-    else navigate("/admin");
+    if (userRoles.includes("admin")) {
+      console.log("Redirecionando para Admin...");
+      navigate("/admin");
+    } else if (userRoles.includes("company")) {
+      console.log("Redirecionando para Lojista...");
+      navigate("/business");
+    } else if (userRoles.includes("driver")) {
+      console.log("Redirecionando para Entregador...");
+      navigate("/driver");
+    } else {
+      console.log("Nenhum papel encontrado. Tentando Admin por padrão...");
+      navigate("/admin");
+    }
   };
 
   return (
