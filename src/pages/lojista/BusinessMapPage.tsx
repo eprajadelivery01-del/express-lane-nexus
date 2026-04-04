@@ -14,7 +14,7 @@ type Region = {
   color: string;
   price: number;
   geometry: any;
-  is_active: boolean;
+  active: boolean;
 };
 
 export default function BusinessMapPage() {
@@ -49,7 +49,8 @@ export default function BusinessMapPage() {
     const { data } = await supabase
       .from("regions")
       .select("id, name, color, price, geometry, is_active")
-      .eq("is_active", true)
+      .select("id, name, color, price, geometry, active")
+      .eq("active", true)
       .order("name");
     setRegions((data as Region[]) ?? []);
     setLoading(false);
@@ -209,7 +210,7 @@ export default function BusinessMapPage() {
     setSendingRequest(false);
   };
 
-  const activeRegions = regions.filter((r) => r.is_active);
+  const activeRegions = regions.filter((r) => r.active);
 
   return (
     <BusinessLayout title="Mapa de Regiões">
