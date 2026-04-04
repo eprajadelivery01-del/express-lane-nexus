@@ -73,7 +73,7 @@ export default function BusinessHistoryPage() {
 
     const { data } = await q;
     if (data && data.length > 0) {
-      setDeliveries((prev) => [...prev, ...(data as unknown as Delivery[])]);
+      setDeliveries((prev) => [...prev, ...(data as Delivery[])]);
       setPage(next);
     }
   };
@@ -137,19 +137,19 @@ export default function BusinessHistoryPage() {
           <>
             <div className="space-y-2">
               {deliveries.map((d) => {
-                const isCompleted = d.status === "delivered";
+                const isDelivered = d.status === "delivered";
                 const isCancelled = d.status === "cancelled";
                 return (
                   <div key={d.id} className="bg-card rounded-2xl p-4 shadow-card">
                     <div className="flex items-start gap-3">
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          isCompleted ? "bg-green-500/10" : isCancelled ? "bg-red-500/10" : "bg-muted"
+                          isDelivered ? "bg-green-500/10" : isCancelled ? "bg-red-500/10" : "bg-muted"
                         }`}
                       >
                         <Truck
                           className={`h-5 w-5 ${
-                            isCompleted ? "text-green-500" : isCancelled ? "text-red-400" : "text-muted-foreground"
+                            isDelivered ? "text-green-500" : isCancelled ? "text-red-400" : "text-muted-foreground"
                           }`}
                         />
                       </div>
@@ -157,7 +157,7 @@ export default function BusinessHistoryPage() {
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-foreground truncate">{d.customer_name}</p>
                           <span className="text-sm font-bold text-foreground shrink-0">
-                            R$ {Number(d.price ?? 0).toFixed(2)}
+                            R$ {Number(d.price).toFixed(2)}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
@@ -166,14 +166,14 @@ export default function BusinessHistoryPage() {
                         <div className="flex items-center gap-3 mt-1.5">
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              isCompleted
+                              isDelivered
                                 ? "bg-green-500/10 text-green-500"
                                 : isCancelled
                                 ? "bg-red-500/10 text-red-400"
                                 : "bg-muted text-muted-foreground"
                             }`}
                           >
-                            {isCompleted ? "Concluído" : isCancelled ? "Cancelado" : d.status}
+                            {isDelivered ? "Concluído" : isCancelled ? "Cancelado" : d.status}
                           </span>
                           <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                             <Calendar className="h-3 w-3" /> {formatDate(d.created_at)}

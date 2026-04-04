@@ -84,9 +84,9 @@ export default function UsersPage() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">{driver.vehicle_type}</span>
+                  <span className="text-muted-foreground">{driver.vehicle_type || "moto"}</span>
                   <span className="flex items-center gap-1 font-medium text-foreground">
-                    <Star className="h-3.5 w-3.5 text-warning fill-warning" /> {Number(driver.rating).toFixed(1)}
+                    <Star className="h-3.5 w-3.5 text-warning fill-warning" /> {Number(driver.rating || 5).toFixed(1)}
                   </span>
                 </div>
               </div>
@@ -140,12 +140,13 @@ export default function UsersPage() {
                     <td className="p-4">
                       <span className={cn(
                         "px-2 py-1 rounded-full text-xs font-medium",
-                        !inv.accepted_at && "bg-warning/10 text-warning",
-                        !!inv.accepted_at && "bg-success/10 text-success",
-                      )}>{inv.accepted_at ? "accepted" : "pending"}</span>
+                        inv.status === "pending" && "bg-warning/10 text-warning",
+                        inv.status === "accepted" && "bg-success/10 text-success",
+                        inv.status === "expired" && "bg-muted text-muted-foreground"
+                      )}>{inv.status}</span>
                     </td>
                     <td className="p-4">
-                      {!inv.accepted_at && <CopyLinkButton token={inv.token} />}
+                      {inv.status === "pending" && <CopyLinkButton token={inv.token} />}
                     </td>
                   </tr>
                 ))}
@@ -227,14 +228,14 @@ function PendingApprovals({ profiles }: { profiles: any[] }) {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button
-                  onClick={() => handleApprove(profile.user_id, profile.full_name)}
+                  onClick={() => handleApprove(profile.id, profile.full_name)}
                   disabled={approve.isPending}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-success/10 text-success text-xs font-medium hover:bg-success/20 transition-colors disabled:opacity-50"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5" /> Aprovar
                 </button>
                 <button
-                  onClick={() => handleReject(profile.user_id, profile.full_name)}
+                  onClick={() => handleReject(profile.id, profile.full_name)}
                   disabled={reject.isPending}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors disabled:opacity-50"
                 >

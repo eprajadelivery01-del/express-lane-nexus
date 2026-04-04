@@ -49,13 +49,13 @@ export default function BusinessFinancePage() {
       });
   }, [companyId]);
 
-  const totalAll = deliveries.reduce((sum, d) => sum + Number(d.price ?? 0), 0);
+  const totalAll = deliveries.reduce((sum, d) => sum + Number(d.price), 0);
   const totalCompleted = deliveries
     .filter((d) => d.status === "delivered")
-    .reduce((sum, d) => sum + Number(d.price ?? 0), 0);
+    .reduce((sum, d) => sum + Number(d.price), 0);
   const totalPending = deliveries
     .filter((d) => d.status !== "delivered" && d.status !== "cancelled")
-    .reduce((sum, d) => sum + Number(d.price ?? 0), 0);
+    .reduce((sum, d) => sum + Number(d.price), 0);
   const countCompleted = deliveries.filter((d) => d.status === "delivered").length;
   const countPending = deliveries.filter((d) => d.status !== "delivered" && d.status !== "cancelled").length;
 
@@ -63,12 +63,11 @@ export default function BusinessFinancePage() {
 
   const statusLabel: Record<string, { label: string; color: string }> = {
     pending: { label: "Pendente", color: "text-yellow-500" },
-    broadcasted: { label: "Em busca", color: "text-blue-400" },
+    searching: { label: "Em busca", color: "text-blue-400" },
     accepted: { label: "Aceito", color: "text-primary" },
-    collecting: { label: "Coletando", color: "text-primary" },
-    in_route: { label: "Em rota", color: "text-primary" },
-    delivered: { label: "Concluído", color: "text-green-500" },
+    picked_up: { label: "Coletado", color: "text-primary" },
     in_transit: { label: "Em rota", color: "text-primary" },
+    delivered: { label: "Concluído", color: "text-green-500" },
     cancelled: { label: "Cancelado", color: "text-red-400" },
   };
 
@@ -154,7 +153,7 @@ export default function BusinessFinancePage() {
                       <p className="text-xs text-muted-foreground">{date}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-foreground">R$ {Number(d.price ?? 0).toFixed(2)}</p>
+                      <p className="text-sm font-bold text-foreground">R$ {Number(d.price).toFixed(2)}</p>
                       <p className={`text-[10px] font-semibold ${st.color}`}>{st.label}</p>
                     </div>
                   </div>
