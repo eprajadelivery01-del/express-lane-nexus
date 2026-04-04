@@ -23,10 +23,15 @@ export function DriverLayout({ children, title }: DriverLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-card border-b border-border px-4 py-3 flex items-center justify-between">
-        <h1 className="text-lg font-display font-bold text-foreground">{title || "FleetDash"}</h1>
-        <button onClick={signOut} className="p-2 rounded-lg hover:bg-muted transition-colors">
-          <LogOut className="h-5 w-5 text-muted-foreground" />
+      <header className="sticky top-0 z-30 bg-card border-b border-border px-4 py-3 flex items-center justify-between shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm p-1">
+            <img src="/logo.png" alt="É Pra Já" className="w-full h-full object-contain" />
+          </div>
+          <span className="font-display font-black text-foreground tracking-tighter uppercase text-sm">É Pra Já</span>
+        </div>
+        <button onClick={signOut} className="p-2 rounded-lg hover:bg-destructive/10 transition-colors group">
+          <LogOut className="h-5 w-5 text-muted-foreground group-hover:text-destructive" />
         </button>
       </header>
 

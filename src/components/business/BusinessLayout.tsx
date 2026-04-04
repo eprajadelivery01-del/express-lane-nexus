@@ -61,12 +61,12 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
         {/* Brand */}
         <div className="px-5 py-5 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-glow">
-              <Zap className="h-5 w-5 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-md p-1">
+              <img src="/logo.png" alt="É Pra Já" className="w-full h-full object-contain" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground leading-none mb-0.5">É Pra Já</p>
-              <p className="text-sm font-bold text-foreground leading-none truncate max-w-[130px]">
+              <p className="text-xs text-muted-foreground leading-none mb-0.5 font-bold uppercase tracking-widest">É Pra Já</p>
+              <p className="text-sm font-semibold text-foreground leading-none truncate max-w-[130px] mt-0.5">
                 {profile?.full_name || "Lojista"}
               </p>
             </div>

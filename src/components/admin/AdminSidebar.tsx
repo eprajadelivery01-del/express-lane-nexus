@@ -84,14 +84,14 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
         )}>
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-md shrink-0">
-                <Package className="h-5 w-5 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-md shrink-0 p-1">
+                <img src="/logo.png" alt="É Pra Já" className="w-full h-full object-contain" />
               </div>
               <div>
-                <h1 className="font-display text-base font-extrabold text-sidebar-foreground tracking-tight">
+                <h1 className="font-display text-base font-extrabold text-sidebar-foreground tracking-tight leading-none">
                   É Pra Já
                 </h1>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest">
+                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5">
                   Delivery
                 </p>
               </div>
@@ -99,8 +99,8 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
           )}
 
           {collapsed && (
-            <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-md">
-              <Package className="h-4 w-4 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-md p-1">
+              <img src="/logo.png" alt="É Pra Já" className="w-full h-full object-contain" />
             </div>
           )}
 
