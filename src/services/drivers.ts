@@ -5,12 +5,22 @@ export type DriverWithProfile = {
   id: string;
   user_id: string;
   vehicle_type: string | null;
-  is_online: boolean;
-  rating: number;
+  is_online: boolean | null;
+  online: boolean | null;
+  rating: number | null;
   current_latitude: number | null;
   current_longitude: number | null;
+  latitude: number | null;
+  longitude: number | null;
   vehicle_plate: string | null;
+  status: string | null;
+  total_deliveries: number | null;
+  full_name: string;
+  phone: string | null;
+  avatar_url: string | null;
+  document: string | null;
   created_at: string;
+  updated_at: string | null;
   profiles?: { full_name: string; phone: string | null; avatar_url: string | null } | null;
 };
 
