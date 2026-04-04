@@ -7,14 +7,14 @@ import { ClipboardList, Truck, MapPin, Calendar, Filter, ChevronDown } from "luc
 type Delivery = {
   id: string;
   customer_name: string;
-  address: string;
+  dropoff_address: string;
   status: string;
-  value: number;
+  price: number;
   created_at: string;
-  completed_at: string | null;
+  delivered_at: string | null;
 };
 
-type FilterStatus = "all" | "completed" | "cancelled";
+type FilterStatus = "all" | "delivered" | "cancelled";
 
 export default function BusinessHistoryPage() {
   const { user } = useAuth();
@@ -42,14 +42,14 @@ export default function BusinessHistoryPage() {
 
     let q = supabase
       .from("deliveries")
-      .select("id, customer_name, address, status, value, created_at, completed_at")
+      .select("id, customer_name, dropoff_address, status, price, created_at, delivered_at")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .range(0, pageSize - 1);
 
-    if (filterStatus === "completed") q = q.eq("status", "completed");
+    if (filterStatus === "delivered") q = q.eq("status", "delivered");
     else if (filterStatus === "cancelled") q = q.eq("status", "cancelled");
-    else q = q.in("status", ["completed", "cancelled"]);
+    else q = q.in("status", ["delivered", "cancelled"]);
 
     q.then(({ data }) => {
       setDeliveries(data ?? []);
@@ -62,18 +62,18 @@ export default function BusinessHistoryPage() {
     const next = page + 1;
     let q = supabase
       .from("deliveries")
-      .select("id, customer_name, address, status, value, created_at, completed_at")
+      .select("id, customer_name, dropoff_address, status, price, created_at, delivered_at")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .range(next * pageSize, (next + 1) * pageSize - 1);
 
-    if (filterStatus === "completed") q = q.eq("status", "completed");
+    if (filterStatus === "delivered") q = q.eq("status", "delivered");
     else if (filterStatus === "cancelled") q = q.eq("status", "cancelled");
-    else q = q.in("status", ["completed", "cancelled"]);
+    else q = q.in("status", ["delivered", "cancelled"]);
 
     const { data } = await q;
     if (data && data.length > 0) {
-      setDeliveries((prev) => [...prev, ...(data as Delivery[])]);
+      setDeliveries((prev) => [...prev, ...(data as unknown as Delivery[])]);
       setPage(next);
     }
   };
@@ -89,7 +89,7 @@ export default function BusinessHistoryPage() {
 
   const filters: { key: FilterStatus; label: string }[] = [
     { key: "all", label: "Todos" },
-    { key: "completed", label: "Concluídos" },
+    { key: "delivered", label: "Concluídos" },
     { key: "cancelled", label: "Cancelados" },
   ];
 
@@ -137,7 +137,7 @@ export default function BusinessHistoryPage() {
           <>
             <div className="space-y-2">
               {deliveries.map((d) => {
-                const isCompleted = d.status === "completed";
+                const isCompleted = d.status === "delivered";
                 const isCancelled = d.status === "cancelled";
                 return (
                   <div key={d.id} className="bg-card rounded-2xl p-4 shadow-card">
@@ -157,11 +157,11 @@ export default function BusinessHistoryPage() {
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-foreground truncate">{d.customer_name}</p>
                           <span className="text-sm font-bold text-foreground shrink-0">
-                            R$ {Number(d.value).toFixed(2)}
+                            R$ {Number(d.price ?? 0).toFixed(2)}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
-                          <MapPin className="h-3 w-3 shrink-0" /> {d.address}
+                          <MapPin className="h-3 w-3 shrink-0" /> {d.dropoff_address}
                         </p>
                         <div className="flex items-center gap-3 mt-1.5">
                           <span
