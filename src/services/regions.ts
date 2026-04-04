@@ -3,30 +3,44 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
 export type RegionRow = Tables<"regions">;
+export type CreateRegionInput = TablesInsert<"regions"> & { city?: string };
+export type UpdateRegionInput = TablesUpdate<"regions"> & { city?: string };
 
-export async function fetchRegions() {
-  const { data, error } = await supabase
-    .from("regions")
-    .select("*")
-    .order("name");
+export async function fetchRegions(city?: string) {
+  let query = supabase.from("regions").select("*").order("name");
+  if (city) query = query.eq("city", city);
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
 
-export async function createRegion(region: TablesInsert<"regions">) {
+export async function fetchCitiesWithRegions() {
   const { data, error } = await supabase
     .from("regions")
-    .insert(region)
+    .select("city")
+    .not("city", "is", null);
+  
+  if (error) throw error;
+  
+  // Return unique sorted list of cities
+  const cities = Array.from(new Set(data.map(r => r.city as string))).sort();
+  return cities;
+}
+
+export async function createRegion(region: CreateRegionInput) {
+  const { data, error } = await supabase
+    .from("regions")
+    .insert(region as any)
     .select()
     .single();
   if (error) throw error;
   return data;
 }
 
-export async function updateRegion(id: string, updates: TablesUpdate<"regions">) {
+export async function updateRegion(id: string, updates: UpdateRegionInput) {
   const { data, error } = await supabase
     .from("regions")
-    .update(updates)
+    .update(updates as any)
     .eq("id", id)
     .select()
     .single();
@@ -42,10 +56,17 @@ export async function deleteRegion(id: string) {
   if (error) throw error;
 }
 
-export function useRegions() {
+export function useRegions(city?: string) {
   return useQuery({
-    queryKey: ["regions"],
-    queryFn: fetchRegions,
+    queryKey: ["regions", city],
+    queryFn: () => fetchRegions(city),
+  });
+}
+
+export function useCitiesWithRegions() {
+  return useQuery({
+    queryKey: ["cities-with-regions"],
+    queryFn: fetchCitiesWithRegions,
   });
 }
 
@@ -53,16 +74,22 @@ export function useCreateRegion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createRegion,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["regions"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["regions"] });
+      qc.invalidateQueries({ queryKey: ["cities-with-regions"] });
+    },
   });
 }
 
 export function useUpdateRegion() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: TablesUpdate<"regions"> }) =>
+    mutationFn: ({ id, updates }: { id: string; updates: UpdateRegionInput }) =>
       updateRegion(id, updates),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["regions"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["regions"] });
+      qc.invalidateQueries({ queryKey: ["cities-with-regions"] });
+    },
   });
 }
 
@@ -70,6 +97,9 @@ export function useDeleteRegion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteRegion,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["regions"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["regions"] });
+      qc.invalidateQueries({ queryKey: ["cities-with-regions"] });
+    },
   });
 }
