@@ -13,6 +13,8 @@ interface AuthContextType {
   userStatus: UserStatus | null;
   profile: { full_name: string; avatar_url: string | null; phone: string | null } | null;
   hasRole: (role: AppRole) => boolean;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -28,11 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserData = async (userId: string) => {
     const [rolesRes, profileRes] = await Promise.all([
-<<<<<<< HEAD
       supabase.from("user_roles").select("role").eq("user_id", userId),
-=======
-      supabase.from("user_roles").select("role").eq("id", userId),
->>>>>>> 95ed552 (fix: compatibilidade do esquema de perfis (id vs user_id))
       supabase.from("profiles").select("full_name, avatar_url, phone, status").eq("id", userId).single(),
     ]);
     if (rolesRes.data) setRoles(rolesRes.data.map((r) => r.role as AppRole));
@@ -69,10 +67,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const hasRole = (role: AppRole) => roles.includes(role);
+  
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+  };
+
+  const signUp = async (email: string, password: string, fullName: string) => {
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password, 
+      options: { data: { full_name: fullName } } 
+    });
+    if (error) throw error;
+  };
+
   const signOut = async () => { await supabase.auth.signOut(); };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, roles, userStatus, profile, hasRole, signOut }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      session, 
+      loading, 
+      roles, 
+      userStatus, 
+      profile, 
+      hasRole, 
+      signIn,
+      signUp,
+      signOut 
+    }}>
       {children}
     </AuthContext.Provider>
   );
