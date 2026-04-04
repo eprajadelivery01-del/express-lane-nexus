@@ -62,12 +62,16 @@ export default function LoginPage() {
       return;
     }
 
+<<<<<<< HEAD
     const { data: roles, error: rolesError } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
     
     if (rolesError) {
       console.error("Erro ao buscar papéis (roles):", rolesError);
     }
 
+=======
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("id", user.id);
+>>>>>>> 95ed552 (fix: compatibilidade do esquema de perfis (id vs user_id))
     const userRoles = roles?.map(r => r.role) || [];
     console.log("Papéis encontrados:", userRoles);
     

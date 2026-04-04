@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAllRealtime } from "@/services/realtime";
 import { useState } from "react";
 
 const tabs = [
@@ -31,6 +32,9 @@ interface BusinessLayoutProps {
 }
 
 export function BusinessLayout({ children, title }: BusinessLayoutProps) {
+  // Activate global realtime listeners
+  useAllRealtime();
+  
   const location = useLocation();
   const { signOut, profile } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);

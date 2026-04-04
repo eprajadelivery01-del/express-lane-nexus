@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Home, Truck, AlertTriangle, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAllRealtime } from "@/services/realtime";
 
 const tabs = [
   { label: "Início", icon: Home, href: "/driver" },
@@ -17,6 +18,9 @@ interface DriverLayoutProps {
 }
 
 export function DriverLayout({ children, title }: DriverLayoutProps) {
+  // Activate global realtime listeners
+  useAllRealtime();
+
   const location = useLocation();
   const { signOut, profile } = useAuth();
 

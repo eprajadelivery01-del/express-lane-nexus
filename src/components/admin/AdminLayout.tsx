@@ -1,4 +1,5 @@
-import { ReactNode, useState } from "react";
+import { useAllRealtime } from "@/services/realtime";
+import { ReactNode, useState, useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 
@@ -9,6 +10,9 @@ interface AdminLayoutProps {
 }
 
 export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
+  // Activate global realtime listeners (Deliveries and Drivers)
+  useAllRealtime();
+
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
       return localStorage.getItem("epj_sidebar_collapsed") === "true";

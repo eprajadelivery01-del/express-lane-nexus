@@ -5,66 +5,52 @@ import { MapView } from "@/components/admin/MapView";
 import { useDeliveryStats, useDeliveries } from "@/services/deliveries";
 import { useOnlineDrivers } from "@/services/drivers";
 import { useCompanies } from "@/services/companies";
+import { useRegions, useCitiesWithRegions } from "@/services/regions";
 import { useAllRealtime } from "@/services/realtime";
+import { UnifiedMap } from "@/components/shared/UnifiedMap";
 import { useState, useEffect } from "react";
 import {
-  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, Search, MapPin, Loader2
+  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, ChevronDown, MapPin, Loader2
 } from "lucide-react";
 
 const CITY_STORAGE_KEY = "epj_selected_city";
 
 export default function DashboardPage() {
-  useAllRealtime();
-
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
   const { data: companies } = useCompanies();
   const { data: inRouteData } = useDeliveries({ status: "in_route" });
   const { data: completedData } = useDeliveries({ status: "completed" });
+  
+  // New: Get cities that have drawings
+  const { data: availableCities } = useCitiesWithRegions();
 
   const inRouteCount = inRouteData?.count ?? 0;
   const completedCount = completedData?.count ?? 0;
 
   // City selector state
-  const [cityQuery, setCityQuery] = useState("");
-  const [selectedCity, setSelectedCity] = useState<{ name: string; lat: number; lng: number } | null>(null);
-  const [citySuggestions, setCitySuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
-  const [searchingCity, setSearchingCity] = useState(false);
+  const [selectedCityName, setSelectedCityName] = useState<string | null>(null);
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+
+  // Load regions for selected city
+  const { data: regions } = useRegions(selectedCityName || undefined);
 
   // Load persisted city
   useEffect(() => {
     const stored = localStorage.getItem(CITY_STORAGE_KEY);
     if (stored) {
-      try {
-        setSelectedCity(JSON.parse(stored));
-      } catch {}
+      setSelectedCityName(stored);
     }
   }, []);
 
-  const searchCity = async () => {
-    if (cityQuery.length < 2) return;
-    setSearchingCity(true);
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityQuery)}&limit=5&addressdetails=1`
-      );
-      const data = await res.json();
-      setCitySuggestions(
-        data.map((r: any) => ({
-          name: r.display_name.split(",").slice(0, 3).join(","),
-          lat: parseFloat(r.lat),
-          lng: parseFloat(r.lon),
-        }))
-      );
-    } catch {}
-    setSearchingCity(false);
-  };
-
-  const selectCity = (city: { name: string; lat: number; lng: number }) => {
-    setSelectedCity(city);
-    localStorage.setItem(CITY_STORAGE_KEY, JSON.stringify(city));
-    setCitySuggestions([]);
-    setCityQuery("");
+  const selectCity = (cityName: string | null) => {
+    setSelectedCityName(cityName);
+    if (cityName) {
+      localStorage.setItem(CITY_STORAGE_KEY, cityName);
+    } else {
+      localStorage.removeItem(CITY_STORAGE_KEY);
+    }
+    setShowCityDropdown(false);
   };
 
   return (
@@ -80,53 +66,42 @@ export default function DashboardPage() {
           {/* City Selector */}
           <div className="px-4 pt-3 pb-1">
             <div className="relative">
-              <div className="flex items-center gap-2 bg-card rounded-xl border border-border px-3 py-2">
-                <MapPin className="h-4 w-4 text-primary shrink-0" />
-                {selectedCity ? (
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <span className="text-sm font-medium text-foreground truncate">{selectedCity.name}</span>
-                    <button
-                      onClick={() => {
-                        setSelectedCity(null);
-                        localStorage.removeItem(CITY_STORAGE_KEY);
-                      }}
-                      className="text-xs text-muted-foreground hover:text-foreground shrink-0"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 flex-1">
-                    <input
-                      type="text"
-                      value={cityQuery}
-                      onChange={(e) => setCityQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && searchCity()}
-                      placeholder="Selecionar cidade..."
-                      className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
-                    />
-                    <button
-                      onClick={searchCity}
-                      disabled={searchingCity}
-                      className="text-primary hover:text-primary/80 shrink-0"
-                    >
-                      {searchingCity ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => setShowCityDropdown(!showCityDropdown)}
+                className="w-full flex items-center justify-between gap-2 bg-card rounded-xl border border-border px-4 py-2.5 hover:bg-muted transition-all shadow-sm"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <MapPin className="h-4 w-4 text-primary shrink-0" />
+                  <span className="text-sm font-bold text-foreground truncate">
+                    {selectedCityName || "Selecionar cidade..."}
+                  </span>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showCityDropdown ? "rotate-180" : ""}`} />
+              </button>
 
-              {citySuggestions.length > 0 && (
-                <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-card rounded-xl border border-border shadow-lg overflow-hidden">
-                  {citySuggestions.map((city, i) => (
-                    <button
-                      key={i}
-                      onClick={() => selectCity(city)}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-muted transition-colors border-b border-border last:border-0"
-                    >
-                      {city.name}
-                    </button>
-                  ))}
+              {showCityDropdown && (
+                <div className="absolute z-50 top-full mt-2 left-0 right-0 bg-card rounded-2xl border border-border shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+                  <button
+                    onClick={() => selectCity(null)}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-muted transition-colors border-b border-border text-muted-foreground"
+                  >
+                    Todas as regiões
+                  </button>
+                  {(availableCities ?? []).length > 0 ? (
+                    availableCities?.map((city, i) => (
+                      <button
+                        key={i}
+                        onClick={() => selectCity(city)}
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-muted transition-colors border-b border-border last:border-0 font-medium"
+                      >
+                        {city}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-sm text-muted-foreground italic">
+                      Nenhuma cidade com regiões desenhadas
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -175,7 +150,7 @@ export default function DashboardPage() {
 
           {/* Map */}
           <div className="flex-1 px-4 pb-4 min-h-[300px]">
-            <MapView centerCity={selectedCity} />
+            <UnifiedMap regions={regions ?? []} />
           </div>
         </div>
 
