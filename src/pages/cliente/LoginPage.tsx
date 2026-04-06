@@ -15,94 +15,89 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error, data: signInData } = await supabase.auth.signInWithPassword({ email, password });
     
-    if (error) {
-      console.error("Erro detetado no Supabase Auth:");
-      console.error("- Mensagem:", error.message);
-      console.error("- Status:", (error as any).status);
-      console.error("- Detalhes:", (error as any).details);
+    try {
+      console.log("Iniciando tentativa de login para:", email);
+      const { error, data: signInData } = await supabase.auth.signInWithPassword({ email, password });
       
-      if (error.message === "Failed to fetch") {
-        console.error("ALERTA: O navegador não conseguiu alcançar o Supabase. Verifique seu Adblocker ou Firewall.");
-        toast({ 
-          title: "Erro de Conexão", 
-          description: "Não foi possível conectar ao servidor. Verifique se o seu Adblock está bloqueando o Supabase.", 
-          variant: "destructive" 
-        });
-      } else {
-        toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
+      if (error) {
+        console.error("Erro detetado no Supabase Auth:");
+        console.error("- Mensagem:", error.message);
+        console.error("- Status:", (error as any).status);
+        
+        if (error.message === "Failed to fetch") {
+          toast({ 
+            title: "Erro de Conexão", 
+            description: "O navegador não conseguiu alcançar o servidor. Verifique se o seu Adblock ou Firewall está bloqueando o domínio do Supabase.", 
+            variant: "destructive" 
+          });
+        } else {
+          toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
+        }
+        setLoading(false);
+        return;
+      }
+
+      if (!signInData.user) {
+        throw new Error("Dados do usuário não retornados após o login.");
+      }
+
+      console.log("Usuário autenticado:", signInData.user.id);
+
+      // Check profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("status")
+        .eq("id", signInData.user.id)
+        .single();
+
+      if (profileError) {
+        console.warn("Aviso ao buscar perfil:", profileError.message);
       }
       
-      setLoading(false);
-      return;
-    }
+      if (profile?.status === "pending") {
+        await supabase.auth.signOut();
+        toast({ title: "Aguardando aprovação", description: "Seu cadastro está pendente de aprovação.", variant: "destructive" });
+        setLoading(false);
+        return;
+      }
 
-    const user = signInData.user;
-    console.log("Usuário logado com sucesso:", user.id);
+      // Check roles
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", signInData.user.id);
+      
+      if (rolesError) {
+        console.error("Erro ao buscar papéis (roles):", rolesError);
+      }
 
-    // Check user approval status
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("status")
-      .eq("id", user.id)
-      .single();
-
-    if (profileError) {
-      console.warn("Erro ao buscar perfil (usuário pode não ter perfil criado):", profileError);
-    }
-    
-    console.log("Status do Perfil:", profile?.status);
-
-    if (profile?.status === "pending") {
-      await supabase.auth.signOut();
-      setLoading(false);
-      toast({
-        title: "Aguardando aprovação",
-        description: "Seu cadastro está pendente de aprovação pelo administrador. Tente novamente mais tarde.",
-        variant: "destructive",
+      const userRoles = roles?.map(r => r.role) || [];
+      console.log("Papéis encontrados:", userRoles);
+      
+      if (userRoles.includes("admin")) {
+        navigate("/admin");
+      } else if (userRoles.includes("company")) {
+        navigate("/business");
+      } else if (userRoles.includes("driver")) {
+        navigate("/driver");
+      } else {
+        navigate("/admin");
+      }
+    } catch (err: any) {
+      console.error("ERRO CRÍTICO NO LOGIN:", err);
+      toast({ 
+        title: "Erro Inesperado", 
+        description: err.message || "Ocorreu um erro interno ao processar o login.", 
+        variant: "destructive" 
       });
-      return;
-    }
-
-    if (profile?.status === "rejected") {
-      await supabase.auth.signOut();
+    } finally {
       setLoading(false);
-      toast({
-        title: "Acesso negado",
-        description: "Seu cadastro foi recusado pelo administrador.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const { data: roles, error: rolesError } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-    
-    if (rolesError) {
-      console.error("Erro ao buscar papéis (roles):", rolesError);
-    }
-
-    const userRoles = roles?.map(r => r.role) || [];
-    console.log("Papéis encontrados:", userRoles);
-    
-    setLoading(false);
-
-    if (userRoles.includes("admin")) {
-      console.log("Redirecionando para Admin...");
-      navigate("/admin");
-    } else if (userRoles.includes("company")) {
-      console.log("Redirecionando para Lojista...");
-      navigate("/business");
-    } else if (userRoles.includes("driver")) {
-      console.log("Redirecionando para Entregador...");
-      navigate("/driver");
-    } else {
-      console.log("Nenhum papel encontrado. Tentando Admin por padrão...");
-      navigate("/admin");
     }
   };
 
   return (
+
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
