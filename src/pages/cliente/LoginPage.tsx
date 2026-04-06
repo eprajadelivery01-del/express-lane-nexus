@@ -18,9 +18,23 @@ export default function LoginPage() {
     const { error, data: signInData } = await supabase.auth.signInWithPassword({ email, password });
     
     if (error) {
-      console.error("Erro de Autenticação Supabase:", error.message);
+      console.error("Erro detetado no Supabase Auth:");
+      console.error("- Mensagem:", error.message);
+      console.error("- Status:", (error as any).status);
+      console.error("- Detalhes:", (error as any).details);
+      
+      if (error.message === "Failed to fetch") {
+        console.error("ALERTA: O navegador não conseguiu alcançar o Supabase. Verifique seu Adblocker ou Firewall.");
+        toast({ 
+          title: "Erro de Conexão", 
+          description: "Não foi possível conectar ao servidor. Verifique se o seu Adblock está bloqueando o Supabase.", 
+          variant: "destructive" 
+        });
+      } else {
+        toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
+      }
+      
       setLoading(false);
-      toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
       return;
     }
 
@@ -62,16 +76,12 @@ export default function LoginPage() {
       return;
     }
 
-<<<<<<< HEAD
     const { data: roles, error: rolesError } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
     
     if (rolesError) {
       console.error("Erro ao buscar papéis (roles):", rolesError);
     }
 
-=======
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("id", user.id);
->>>>>>> 95ed552 (fix: compatibilidade do esquema de perfis (id vs user_id))
     const userRoles = roles?.map(r => r.role) || [];
     console.log("Papéis encontrados:", userRoles);
     
