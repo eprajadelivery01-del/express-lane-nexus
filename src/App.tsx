@@ -25,6 +25,11 @@ import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 import DriverHomePage from "./pages/driver/DriverHomePage";
 import BusinessHomePage from "./pages/business/BusinessHomePage";
+import BusinessMapPage from "./pages/business/BusinessMapPage";
+import BusinessCustomersPage from "./pages/business/BusinessCustomersPage";
+import BusinessFinancePage from "./pages/business/BusinessFinancePage";
+import BusinessHistoryPage from "./pages/business/BusinessHistoryPage";
+import BusinessProfilePage from "./pages/business/BusinessProfilePage";
 
 import ChatPage from "./pages/ChatPage";
 
@@ -60,6 +65,11 @@ const App = () => (
 
                 <Route path="/driver" element={<ProtectedRoute requiredRole="driver"><DriverHomePage /></ProtectedRoute>} />
                 <Route path="/business" element={<ProtectedRoute requiredRole="company"><BusinessHomePage /></ProtectedRoute>} />
+                <Route path="/business/map" element={<ProtectedRoute requiredRole="company"><BusinessMapPage /></ProtectedRoute>} />
+                <Route path="/business/customers" element={<ProtectedRoute requiredRole="company"><BusinessCustomersPage /></ProtectedRoute>} />
+                <Route path="/business/finance" element={<ProtectedRoute requiredRole="company"><BusinessFinancePage /></ProtectedRoute>} />
+                <Route path="/business/history" element={<ProtectedRoute requiredRole="company"><BusinessHistoryPage /></ProtectedRoute>} />
+                <Route path="/business/profile" element={<ProtectedRoute requiredRole="company"><BusinessProfilePage /></ProtectedRoute>} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
