@@ -28,7 +28,7 @@ export async function approveUser(userId: string) {
   const { error } = await supabase
     .from("profiles")
     .update({ status: "active" as any })
-    .eq("id", userId);
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
@@ -36,7 +36,7 @@ export async function rejectUser(userId: string) {
   const { error } = await supabase
     .from("profiles")
     .update({ status: "rejected" as any })
-    .eq("id", userId);
+    .eq("user_id", userId);
   if (error) throw error;
 }
 
@@ -44,7 +44,7 @@ export async function updateProfile(userId: string, updates: { full_name?: strin
   const { data, error } = await supabase
     .from("profiles")
     .update(updates)
-    .eq("id", userId)
+    .eq("user_id", userId)
     .select()
     .single();
   if (error) throw error;
@@ -116,7 +116,7 @@ export async function acceptInvitation(token: string, userData: { email: string;
       full_name: userData.fullName,
       phone: userData.phone,
     } as any)
-    .eq("id", authData.user.id);
+    .eq("user_id", authData.user.id);
 
   await supabase.from("user_roles").insert([{
     user_id: authData.user.id,

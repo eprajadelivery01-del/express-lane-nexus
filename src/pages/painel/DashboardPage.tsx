@@ -8,12 +8,11 @@ import { useCompanies } from "@/services/companies";
 import { useRegions, useCitiesWithRegions } from "@/services/regions";
 import { useAllRealtime } from "@/services/realtime";
 import { UnifiedMap } from "@/components/shared/UnifiedMap";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useCity } from "@/contexts/CityContext";
 import {
   Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, ChevronDown, MapPin, Loader2
 } from "lucide-react";
-
-const CITY_STORAGE_KEY = "epj_selected_city";
 
 export default function DashboardPage() {
   const { data: stats } = useDeliveryStats();
@@ -22,34 +21,20 @@ export default function DashboardPage() {
   const { data: inRouteData } = useDeliveries({ status: "in_route" });
   const { data: completedData } = useDeliveries({ status: "completed" });
   
+  const { selectedCity, setCity, selectedCityCoords } = useCity();
+  const [showCityDropdown, setShowCityDropdown] = useState(false);
+
   // New: Get cities that have drawings
   const { data: availableCities } = useCitiesWithRegions();
 
   const inRouteCount = inRouteData?.count ?? 0;
   const completedCount = completedData?.count ?? 0;
 
-  // City selector state
-  const [selectedCityName, setSelectedCityName] = useState<string | null>(null);
-  const [showCityDropdown, setShowCityDropdown] = useState(false);
-
   // Load regions for selected city
-  const { data: regions } = useRegions(selectedCityName || undefined);
-
-  // Load persisted city
-  useEffect(() => {
-    const stored = localStorage.getItem(CITY_STORAGE_KEY);
-    if (stored) {
-      setSelectedCityName(stored);
-    }
-  }, []);
+  const { data: regions } = useRegions(selectedCity || undefined);
 
   const selectCity = (cityName: string | null) => {
-    setSelectedCityName(cityName);
-    if (cityName) {
-      localStorage.setItem(CITY_STORAGE_KEY, cityName);
-    } else {
-      localStorage.removeItem(CITY_STORAGE_KEY);
-    }
+    setCity(cityName);
     setShowCityDropdown(false);
   };
 
@@ -73,7 +58,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2 min-w-0">
                   <MapPin className="h-4 w-4 text-primary shrink-0" />
                   <span className="text-sm font-bold text-foreground truncate">
-                    {selectedCityName || "Selecionar cidade..."}
+                    {selectedCity || "Selecionar cidade..."}
                   </span>
                 </div>
                 <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showCityDropdown ? "rotate-180" : ""}`} />
