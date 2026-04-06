@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Package, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading, hasRole } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (hasRole("admin")) navigate("/admin");
+      else if (hasRole("company")) navigate("/business");
+      else if (hasRole("driver")) navigate("/driver");
+      else navigate("/admin");
+    }
+  }, [user, authLoading, hasRole, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,71 +29,11 @@ export default function LoginPage() {
     
     try {
       console.log("Iniciando tentativa de login para:", email);
-      const { error, data: signInData } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        console.error("Erro detetado no Supabase Auth:");
-        console.error("- Mensagem:", error.message);
-        console.error("- Status:", (error as any).status);
-        
-        if (error.message === "Failed to fetch") {
-          toast({ 
-            title: "Erro de Conexão", 
-            description: "O navegador não conseguiu alcançar o servidor. Verifique se o seu Adblock ou Firewall está bloqueando o domínio do Supabase.", 
-            variant: "destructive" 
-          });
-        } else {
-          toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
-        }
-        setLoading(false);
-        return;
-      }
-
-      if (!signInData.user) {
-        throw new Error("Dados do usuário não retornados após o login.");
-      }
-
-      console.log("Usuário autenticado:", signInData.user.id);
-
-      // Check profile
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("status")
-        .eq("user_id", signInData.user.id)
-        .single();
-
-      if (profileError) {
-        console.warn("Aviso ao buscar perfil:", profileError.message);
-      }
-      
-      if (profile?.status === "pending") {
-        await supabase.auth.signOut();
-        toast({ title: "Aguardando aprovação", description: "Seu cadastro está pendente de aprovação.", variant: "destructive" });
-        setLoading(false);
-        return;
-      }
-
-      // Check roles
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", signInData.user.id);
-      
-      if (rolesError) {
-        console.error("Erro ao buscar papéis (roles):", rolesError);
-      }
-
-      const userRoles = roles?.map(r => r.role) || [];
-      console.log("Papéis encontrados:", userRoles);
-      
-      if (userRoles.includes("admin")) {
-        navigate("/admin");
-      } else if (userRoles.includes("company")) {
-        navigate("/business");
-      } else if (userRoles.includes("driver")) {
-        navigate("/driver");
-      } else {
-        navigate("/admin");
+        console.error("Erro detetado no Supabase Auth:", error.message);
+        toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
       }
     } catch (err: any) {
       console.error("ERRO CRÍTICO NO LOGIN:", err);
