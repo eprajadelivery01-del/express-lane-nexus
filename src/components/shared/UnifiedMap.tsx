@@ -3,6 +3,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useOnlineDrivers } from "@/services/drivers";
 import { useDeliveries } from "@/services/deliveries";
+import { useCity } from "@/contexts/CityContext";
 import type { RegionRow } from "@/services/regions";
 
 interface UnifiedMapProps {
@@ -11,15 +12,18 @@ interface UnifiedMapProps {
   interactive?: boolean;
 }
 
-export function UnifiedMap({ regions, centerCity, interactive = false }: UnifiedMapProps) {
+export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = false }: UnifiedMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const regionsRenderedRef = useRef<string[]>([]);
+  const mapLoaded = useRef(false);
+
+  const { selectedCityCoords } = useCity();
+  const centerCity = propCenterCity || selectedCityCoords;
 
   const { data: drivers } = useOnlineDrivers();
   const { data: deliveriesData } = useDeliveries({ status: "in_route" });
-  const mapLoaded = useRef(false);
 
   const calculateCentroid = (regs: RegionRow[]) => {
     if (!regs.length) return null;
@@ -55,7 +59,6 @@ export function UnifiedMap({ regions, centerCity, interactive = false }: Unified
 
     map.current.on("load", () => {
       mapLoaded.current = true;
-      // Try geolocation if no city is selected
       if (!centerCity && !regions.length && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
@@ -76,7 +79,7 @@ export function UnifiedMap({ regions, centerCity, interactive = false }: Unified
     };
   }, []);
 
-  // Centering on regions or city
+  // Centering logic
   useEffect(() => {
     if (!map.current) return;
 
@@ -124,7 +127,6 @@ export function UnifiedMap({ regions, centerCity, interactive = false }: Unified
           },
         });
 
-        // Fill layer
         m.addLayer({
           id: `rfill-${region.id}`,
           type: "fill",
@@ -132,7 +134,6 @@ export function UnifiedMap({ regions, centerCity, interactive = false }: Unified
           paint: { "fill-color": region.color, "fill-opacity": 0.15 },
         });
 
-        // Line layer
         m.addLayer({
           id: `rline-${region.id}`,
           type: "line",
@@ -140,7 +141,6 @@ export function UnifiedMap({ regions, centerCity, interactive = false }: Unified
           paint: { "line-color": region.color, "line-width": 2, "line-opacity": 0.6 },
         });
 
-        // Label layer (Text in center)
         m.addLayer({
           id: `rlabel-${region.id}`,
           type: "symbol",
@@ -208,18 +208,48 @@ export function UnifiedMap({ regions, centerCity, interactive = false }: Unified
           cursor: pointer;
           transition: transform 0.2s;
         " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-          🏍️
+          Status
+        </div>
+      `;
+
+      const popupContent = `
+        <div style="padding: 10px; font-family: sans-serif; min-width: 160px; text-align: left;">
+          <div style="font-weight: bold; color: #1a1a1a; margin-bottom: 2px;">${driver.profiles?.full_name || "Entregador"}</div>
+          <div style="font-size: 11px; color: #22c55e; margin-bottom: 10px; display: flex; align-items: center; gap: 5px;">
+            <div style="width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite;"></div>
+            Disponível
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 6px;">
+            <button onclick="window.location.href='/admin/chat?recipient=${driver.user_id}'" style="
+              cursor: pointer;
+              background: #3b82f6;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              padding: 7px;
+              font-size: 11px;
+              font-weight: 600;
+              transition: opacity 0.2s;
+            ">💬 Iniciar Chat</button>
+            <button onclick="window.open('https://wa.me/${driver.profiles?.phone?.replace(/\D/g, "")}', '_blank')" style="
+              cursor: pointer;
+              background: #22c55e;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              padding: 7px;
+              font-size: 11px;
+              font-weight: 600;
+              transition: opacity 0.2s;
+            ">🟢 WhatsApp</button>
+          </div>
+          <style>@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }</style>
         </div>
       `;
 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([driver.longitude, driver.latitude])
-        .setPopup(new maplibregl.Popup({ offset: 15, closeButton: false }).setHTML(`
-          <div style="padding: 4px; font-family: sans-serif;">
-            <div style="font-weight: bold; color: #1a1a1a;">${driver.profiles?.full_name || "Entregador"}</div>
-            <div style="font-size: 11px; color: #666; margin-top: 2px;">Disponível</div>
-          </div>
-        `))
+        .setPopup(new maplibregl.Popup({ offset: 15, closeButton: false }).setHTML(popupContent))
         .addTo(m);
 
       markersRef.current.push(marker);

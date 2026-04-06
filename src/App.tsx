@@ -4,35 +4,28 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { CityProvider } from "@/contexts/CityContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
-// Pages
-import LoginPage from "./pages/cliente/LoginPage";
-import InvitePage from "./pages/cliente/InvitePage";
-import ProfilePage from "./pages/painel/ProfilePage";
-import DashboardPage from "./pages/painel/DashboardPage";
-import DeliveriesPage from "./pages/painel/DeliveriesPage";
-import MapPage from "./pages/painel/MapPage";
-import UsersPage from "./pages/painel/UsersPage";
-import CompaniesPage from "./pages/painel/CompaniesPage";
-import DriversPage from "./pages/painel/DriversPage";
-import RegionsPage from "./pages/painel/RegionsPage";
-import OccurrencesPage from "./pages/painel/OccurrencesPage";
-import ReviewsPage from "./pages/painel/ReviewsPage";
-import ReportsPage from "./pages/painel/ReportsPage";
-import SettingsPage from "./pages/painel/SettingsPage";
+import LoginPage from "./pages/LoginPage";
+import InvitePage from "./pages/InvitePage";
+import ProfilePage from "./pages/ProfilePage";
+import DashboardPage from "./pages/DashboardPage";
+import DeliveriesPage from "./pages/DeliveriesPage";
+import MapPage from "./pages/MapPage";
+import UsersPage from "./pages/UsersPage";
+import CompaniesPage from "./pages/CompaniesPage";
+import DriversPage from "./pages/DriversPage";
+import RegionsPage from "./pages/RegionsPage";
+import OccurrencesPage from "./pages/OccurrencesPage";
+import ReviewsPage from "./pages/ReviewsPage";
+import ReportsPage from "./pages/ReportsPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
+import DriverHomePage from "./pages/driver/DriverHomePage";
+import BusinessHomePage from "./pages/business/BusinessHomePage";
 
-// Driver & Business
-import DriverHomePage from "./pages/entregador/DriverHomePage";
-import BusinessHomePage from "./pages/lojista/BusinessHomePage";
-import BusinessMapPage from "./pages/lojista/BusinessMapPage";
-import BusinessCustomersPage from "./pages/lojista/BusinessCustomersPage";
-import BusinessFinancePage from "./pages/lojista/BusinessFinancePage";
-import BusinessHistoryPage from "./pages/lojista/BusinessHistoryPage";
-import BusinessProfilePage from "./pages/lojista/BusinessProfilePage";
-
-import { CityProvider } from "@/contexts/CityContext";
+import ChatPage from "./pages/ChatPage";
 
 const queryClient = new QueryClient();
 
@@ -42,17 +35,16 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthProvider>
-          <CityProvider>
+        <CityProvider>
+          <AuthProvider>
             <Routes>
-              {/* Public */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/invite/:token" element={<InvitePage />} />
               <Route path="/" element={<Navigate to="/admin" replace />} />
 
-              {/* Admin */}
               <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
               <Route path="/admin/deliveries" element={<ProtectedRoute requiredRole="admin"><DeliveriesPage /></ProtectedRoute>} />
+              <Route path="/admin/chat" element={<ProtectedRoute requiredRole="admin"><ChatPage /></ProtectedRoute>} />
               <Route path="/admin/map" element={<ProtectedRoute requiredRole="admin"><MapPage /></ProtectedRoute>} />
               <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UsersPage /></ProtectedRoute>} />
               <Route path="/admin/companies" element={<ProtectedRoute requiredRole="admin"><CompaniesPage /></ProtectedRoute>} />
@@ -64,25 +56,16 @@ const App = () => (
               <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><SettingsPage /></ProtectedRoute>} />
               <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><ProfilePage /></ProtectedRoute>} />
 
-              {/* Driver */}
               <Route path="/driver" element={<ProtectedRoute requiredRole="driver"><DriverHomePage /></ProtectedRoute>} />
-
-              {/* Business */}
               <Route path="/business" element={<ProtectedRoute requiredRole="company"><BusinessHomePage /></ProtectedRoute>} />
-              <Route path="/business/map" element={<ProtectedRoute requiredRole="company"><BusinessMapPage /></ProtectedRoute>} />
-              <Route path="/business/customers" element={<ProtectedRoute requiredRole="company"><BusinessCustomersPage /></ProtectedRoute>} />
-              <Route path="/business/finance" element={<ProtectedRoute requiredRole="company"><BusinessFinancePage /></ProtectedRoute>} />
-              <Route path="/business/history" element={<ProtectedRoute requiredRole="company"><BusinessHistoryPage /></ProtectedRoute>} />
-              <Route path="/business/profile" element={<ProtectedRoute requiredRole="company"><BusinessProfilePage /></ProtectedRoute>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </CityProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </CityProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
 );
-
 
 export default App;
