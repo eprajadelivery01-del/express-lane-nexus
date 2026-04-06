@@ -49,7 +49,7 @@ export default function BusinessMapPage() {
     setSendingRequest(false);
   };
 
-  const activeRegions = regions?.filter((r) => r.is_active) ?? [];
+  const activeRegions = regions?.filter((r: any) => r.active || r.is_active) ?? [];
 
 
   return (
@@ -136,7 +136,7 @@ export default function BusinessMapPage() {
           </div>
 
           <div className="w-full" style={{ height: "calc(100% - 53px)" }}>
-            <UnifiedMap regions={activeRegions} centerCity={null} />
+            <UnifiedMap regions={activeRegions} centerCity={null} darkTheme={true} />
           </div>
         </div>
 
@@ -165,14 +165,14 @@ export default function BusinessMapPage() {
                 >
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: `${region.color}22` }}
+                    style={{ backgroundColor: `${(region as any).color || "#F59E0B"}22` }}
                   >
-                    <MapPin className="h-4.5 w-4.5" style={{ color: region.color }} />
+                    <MapPin className="h-4.5 w-4.5" style={{ color: (region as any).color || "#F59E0B" }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-foreground">{region.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: region.color }} />
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: (region as any).color || "#F59E0B" }} />
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         {selectedCityName || "Global"}
                       </span>
@@ -181,7 +181,7 @@ export default function BusinessMapPage() {
                   <div className="flex items-center gap-1 bg-green-500/10 px-3 py-1.5 rounded-xl">
                     <DollarSign className="h-3.5 w-3.5 text-green-500" />
                     <span className="text-sm font-bold text-green-500">
-                      R$ {Number(region.price).toFixed(2)}
+                      R$ {Number((region as any).delivery_price ?? region.price ?? 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
