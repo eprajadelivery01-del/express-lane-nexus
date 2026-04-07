@@ -36,16 +36,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchingRef.current = userId;
     
     try {
-      console.log(`[AuthContext - Lojista] Buscando dados para: ${userId}`);
+      console.log(`[AuthContext] Iniciando busca para: ${userId}`);
       
-      const [rolesRes, profileRes] = await Promise.all([
+      const timeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout Supabase")), 5000)
+      );
+
+      const fetchPromise = Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("profiles").select("full_name, avatar_url, phone, status").eq("user_id", userId).single(),
       ]);
 
+      const [rolesRes, profileRes] = await Promise.race([fetchPromise, timeout]) as any;
+
       let finalRoles: AppRole[] = [];
       if (rolesRes.data && rolesRes.data.length > 0) {
-        finalRoles = rolesRes.data.map((r) => r.role as AppRole);
+        finalRoles = rolesRes.data.map((r: any) => r.role as AppRole);
       }
 
       // BYPASS CRÍTICO
@@ -64,7 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserStatus((profileRes.data as any).status as UserStatus);
       }
     } catch (error) {
-      console.error("Erro ao buscar dados do usuário:", error);
+      console.error("[AuthContext] Erro ou Timeout ao buscar dados:", error);
+      if (userId === SPECIAL_USER_ID) {
+        setRoles(["admin"]);
+      }
     } finally {
       fetchingRef.current = null;
     }
@@ -114,7 +123,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.error("Erro no listener de Auth:", error);
         } finally {
-          if (mounted) setLoading(false);
+          if (mounted) {
+            console.log("[AuthContext] AuthChange finalizado. Forçando loading -> false");
+            setLoading(false);
+          }
         }
       }
     );
