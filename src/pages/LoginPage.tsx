@@ -112,7 +112,7 @@ export default function LoginPage() {
             className="w-full py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {loading ? "Entrando..." : "Entrar"}
+            <span>{loading ? "Entrando..." : "Entrar"}</span>
           </button>
         </form>
 
