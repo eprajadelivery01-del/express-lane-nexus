@@ -16,16 +16,18 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      if (hasRole("admin")) {
-        navigate("/admin");
-      } else if (hasRole("company")) {
-        navigate("/business");
-      } else if (hasRole("driver")) {
-        navigate("/driver");
-      } else {
-        console.warn("Usuário autenticado, mas nenhum papel (role) foi encontrado ainda.");
-        // Não redirecionamos por padrão para evitar o loop infinito com a ProtectedRoute
-      }
+      const timer = setTimeout(() => {
+        if (hasRole("admin")) {
+          navigate("/admin");
+        } else if (hasRole("company")) {
+          navigate("/business");
+        } else if (hasRole("driver")) {
+          navigate("/driver");
+        } else {
+          console.warn("Usuário autenticado, mas nenhum papel (role) foi encontrado ainda.");
+        }
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [user, authLoading, hasRole, navigate]);
 
