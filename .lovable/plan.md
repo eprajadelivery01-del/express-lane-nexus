@@ -1,5 +1,3 @@
-
-
 # Plano: Melhorias de Arquitetura, Integração e UX
 
 Este plano cobre 5 blocos de trabalho, priorizados por impacto.
@@ -11,6 +9,7 @@ Este plano cobre 5 blocos de trabalho, priorizados por impacto.
 Criar `src/services/` com módulos que encapsulam todas as queries Supabase, eliminando chamadas diretas espalhadas pelos componentes.
 
 **Arquivos a criar:**
+
 - `src/services/deliveries.ts` — CRUD de entregas, filtros, realtime subscription
 - `src/services/users.ts` — profiles, roles, convites
 - `src/services/regions.ts` — CRUD de regiões com GeoJSON
@@ -27,18 +26,23 @@ Criar `src/services/` com módulos que encapsulam todas as queries Supabase, eli
 ## Bloco 2: Sistema de Convites e Cadastro
 
 ### Rota `/invite/:token`
+
 Nova página pública de onboarding onde o convidado completa o cadastro:
+
 - Valida token contra tabela `invitations`
 - Formulário: nome, telefone, documento, senha, upload de avatar
 - Cria conta via `supabase.auth.signUp`, insere role e profile
 - Marca convite como `accepted`
 
 ### Admin: Tela de Convites
+
 Em `/admin/users`, adicionar botão "Convidar Usuário" que abre modal:
+
 - Email, role (empresa/entregador)
 - Gera token e mostra link copiável
 
 ### Tela de Perfil `/profile`
+
 - Foto, nome, telefone, documento
 - Upload de avatar para bucket `avatars`
 - Acessível por todos os roles
@@ -48,27 +52,33 @@ Em `/admin/users`, adicionar botão "Convidar Usuário" que abre modal:
 ## Bloco 3: Sistema de Regiões com Polígonos no Mapa
 
 ### Refatorar `/admin/regions`
+
 Substituir a listagem atual por uma tela split: **mapa à esquerda + painel à direita**.
 
 **Mapa MapLibre:**
+
 - Renderizar regiões existentes como `fill` + `line` layers usando GeoJSON da coluna `geometry`
 - Cada região com sua cor (`color`) e transparência
 - Popup ao clicar: nome, preço
 
 **Editor de polígonos:**
+
 - Usar `@mapbox/mapbox-gl-draw` (compatível com MapLibre) para desenhar/editar polígonos
 - Ao salvar: converter coordenadas para GeoJSON e gravar na tabela `regions`
 - Botões: Criar Região, Editar, Excluir
 
 **Painel lateral:**
+
 - Lista de regiões com cor, nome, preço
 - Form para editar nome/cor/preço da região selecionada
 
-**Associação automática de endereço → região:**
+**Associação automática de endereço para região**
+
 - Criar função SQL `find_region_for_point(lat, lng)` que faz point-in-polygon usando os GeoJSON armazenados
 - Chamar ao criar/editar endereço
 
-### Migração SQL necessária:
+### Migração SQL necessária
+
 - Função `find_region_for_point` que itera `regions` e verifica se o ponto está dentro do polígono
 
 ---
@@ -83,6 +93,7 @@ Refatorar `DashboardPage.tsx` para usar os services ao invés de mockData:
 - Realtime: subscrever `deliveries` e `delivery_drivers` para atualizar automaticamente
 
 **MapView melhorado:**
+
 - Mostrar entregadores com posição real (lat/lng da tabela `delivery_drivers`)
 - Mostrar corridas ativas com markers
 - Mostrar regiões como polígonos coloridos (reusar layer do Bloco 3)
@@ -92,6 +103,7 @@ Refatorar `DashboardPage.tsx` para usar os services ao invés de mockData:
 ## Bloco 5: Tabela de Entregas Melhorada
 
 Refatorar `DeliveriesPage.tsx`:
+
 - Buscar dados reais via `useDeliveries()` com filtros server-side
 - Adicionar filtros: por empresa (select), por entregador (select), por data (date range)
 - Ações rápidas em cada linha: Editar, Cancelar, Reatribuir (dropdowns/modals)
@@ -105,6 +117,7 @@ Refatorar `DeliveriesPage.tsx`:
 **Dependências a adicionar:** `@mapbox/mapbox-gl-draw` para editor de polígonos
 
 **Estrutura de pastas final:**
+
 ```text
 src/
   services/        ← NOVO: camada de dados
@@ -123,9 +136,9 @@ src/
 ```
 
 **Ordem de implementação:**
+
 1. Camada de serviços (base para tudo)
 2. Sistema de convites + perfil
 3. Regiões com polígonos no mapa
 4. Dashboard com dados reais
 5. Tabela de entregas melhorada
-
