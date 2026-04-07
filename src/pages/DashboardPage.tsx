@@ -7,9 +7,8 @@ import { useOnlineDrivers } from "@/services/drivers";
 import { useCompanies } from "@/services/companies";
 import { useRegions, useCitiesWithRegions } from "@/services/regions";
 import { useAllRealtime } from "@/services/realtime";
-import { UnifiedMap } from "@/components/shared/UnifiedMap";
-import { useState } from "react";
 import { useCity } from "@/contexts/CityContext";
+import { HeroMapSection } from "@/components/shared/HeroMapSection";
 import {
   Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, ChevronDown, MapPin, Loader2
 } from "lucide-react";
@@ -39,8 +38,12 @@ export default function DashboardPage() {
   };
 
   return (
-    <AdminLayout title="Dashboard" subtitle="Visão geral da operação">
-      <div className="flex flex-col lg:flex-row gap-0 -m-4 md:-m-6 h-[calc(100vh-73px)]">
+    <AdminLayout title="Dashboard">
+      <HeroMapSection 
+        title="Painel de Monitoramento" 
+        subtitle="Gerencie suas entregas e acompanhe os motoboys em tempo real." 
+      />
+      <div className="flex flex-col lg:flex-row gap-0 p-4 md:p-6 min-h-[calc(100vh-400px)]">
         {/* Left Panel - Motoboys */}
         <div className="hidden xl:block w-64 shrink-0">
           <MotoboysSidebar />
@@ -133,10 +136,7 @@ export default function DashboardPage() {
             <MiniStat icon={<TrendingUp className="h-3.5 w-3.5 text-primary" />} label="Total Geral" value={stats?.total ?? 0} />
           </div>
 
-          {/* Map */}
-          <div className="flex-1 px-4 pb-4 min-h-[300px]">
-            <UnifiedMap regions={regions ?? []} />
-          </div>
+          {/* Map moved to Hero */}
         </div>
 
         {/* Right Panel - Notifications */}
