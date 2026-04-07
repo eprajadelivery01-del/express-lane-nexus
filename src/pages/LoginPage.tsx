@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading: authLoading, hasRole } = useAuth();
+  const { user, loading: authLoading, hasRole, roles } = useAuth();
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -105,6 +105,14 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+
+          {user && !authLoading && roles.length === 0 && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+              <p className="text-[11px] text-destructive text-center font-bold uppercase leading-tight">
+                Acesso Negado: Seu perfil não possui permissões. Contate o administrador.
+              </p>
+            </div>
+          )}
 
           <button
             type="submit"

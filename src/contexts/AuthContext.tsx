@@ -148,6 +148,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => { await supabase.auth.signOut(); };
 
+  useEffect(() => {
+    if (!loading) {
+      const splash = document.getElementById("splash-screen");
+      if (splash) {
+        splash.style.opacity = "0";
+        setTimeout(() => splash.remove(), 500);
+      }
+    }
+  }, [loading]);
+
   return (
     <AuthContext.Provider value={{ 
       user, 
