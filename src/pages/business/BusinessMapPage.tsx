@@ -53,7 +53,7 @@ export default function BusinessMapPage() {
 
 
   return (
-    <BusinessLayout title="Mapa de Regiões">
+    <BusinessLayout title="Mapa de Regiões e Valores (v1.1 - Sincronizado)">
       <div className="max-w-3xl mx-auto space-y-5">
         {/* Integration request banner */}
         <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-5">
@@ -142,9 +142,12 @@ export default function BusinessMapPage() {
 
         {/* Regions list */}
         <div>
-          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
-            Tabela de preços por região
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">
+            Mapa de regiões e valores
           </h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Leitura em tempo real das regiões configuradas pelo admin para cálculo da entrega.
+          </p>
 
           {loading ? (
             <div className="space-y-2">
@@ -181,7 +184,7 @@ export default function BusinessMapPage() {
                   <div className="flex items-center gap-1 bg-green-500/10 px-3 py-1.5 rounded-xl">
                     <DollarSign className="h-3.5 w-3.5 text-green-500" />
                     <span className="text-sm font-bold text-green-500">
-                      R$ {Number((region as any).delivery_price ?? region.price ?? 0).toFixed(2)}
+                      R$ {Number(region.price ?? 0).toFixed(2)}
                     </span>
                   </div>
                 </div>
