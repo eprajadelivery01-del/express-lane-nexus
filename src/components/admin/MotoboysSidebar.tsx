@@ -96,12 +96,12 @@ export function MotoboysSidebar() {
         </div>
 
         <div className="flex-1 overflow-y-auto max-h-[300px]">
-          {companies?.length === 0 ? (
+          {companies?.filter(c => c.is_active).length === 0 ? (
             <div className="p-8 text-center">
-              <p className="text-xs text-muted-foreground">Nenhum local ativo</p>
+              <p className="text-xs text-muted-foreground">Nenhum local ativo no momento</p>
             </div>
           ) : (
-            (companies ?? []).map((company) => (
+            (companies ?? []).filter(c => c.is_active && filterBySearch(c.name)).map((company) => (
               <div key={company.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 border-b border-border/50 last:border-0">
                 <div className="h-9 w-9 rounded-xl bg-accent/10 flex items-center justify-center text-lg">
                   🏪
