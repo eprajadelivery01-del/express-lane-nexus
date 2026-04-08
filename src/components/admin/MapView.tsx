@@ -241,14 +241,16 @@ export function MapView({ centerCity }: MapViewProps) {
       if (!company.latitude || !company.longitude) return;
 
       const el = document.createElement("div");
+      const statusColor = company.is_active ? "#22c55e" : "#ef4444";
       el.innerHTML = `
         <div style="
           width: 36px; height: 36px; border-radius: 10px;
-          background: #3b82f6;
+          background: ${statusColor};
           border: 3px solid white;
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.3);
           font-size: 16px;
+          transition: all 0.2s;
         ">🏪</div>
       `;
 
