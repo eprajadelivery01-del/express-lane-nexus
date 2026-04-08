@@ -13,12 +13,21 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+import { EditDriverDialog } from "@/components/admin/EditDriverDialog";
+
 export default function DriversPage() {
   const { data: drivers, isLoading } = useDrivers();
   const toggleOnline = useToggleDriverOnline();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedDriver, setSelectedDriver] = useState<any>(null);
+
+  const handleEdit = (driver: any) => {
+    setSelectedDriver(driver);
+    setEditOpen(true);
+  };
 
   const handleDelete = async (driverId: string) => {
     if (!confirm("Tem certeza que deseja excluir este entregador?")) return;
@@ -26,7 +35,7 @@ export default function DriversPage() {
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Entregador excluído" });
+      toast({ title: "Entregador excluída" });
       qc.invalidateQueries({ queryKey: ["drivers"] });
     }
   };
@@ -91,6 +100,9 @@ export default function DriversPage() {
                     <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEdit(driver)}>
+                      Editar Dados
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleToggleOnline(driver.id, driver.is_online)}>
                       <Power className="h-4 w-4 mr-2" />
                       {driver.is_online ? "Ficar Offline" : "Ficar Online"}
@@ -131,6 +143,14 @@ export default function DriversPage() {
             </div>
           )}
         </div>
+      )}
+
+      {selectedDriver && (
+        <EditDriverDialog
+          driver={selectedDriver}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
       )}
     </AdminLayout>
   );

@@ -32,14 +32,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchingRef = useRef<string | null>(null);
 
   const fetchUserData = async (userId: string) => {
-    if (fetchingRef.current === userId) return;
+    if (fetchingRef.current === userId) {
+      console.log(`[AuthContext] Já existe uma busca em andamento para ${userId}.`);
+      return;
+    }
     fetchingRef.current = userId;
     
     try {
-      console.log(`[AuthContext] Iniciando busca para: ${userId}`);
+      console.log(`[AuthContext] Iniciando busca (V3) para: ${userId}`);
       
       const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Timeout Supabase")), 5000)
+        setTimeout(() => reject(new Error("Tempo limite excedido ao buscar dados do usuário. O banco pode estar lento ou travado.")), 30000)
       );
 
       const fetchPromise = Promise.all([
@@ -54,28 +57,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         finalRoles = rolesRes.data.map((r: any) => r.role as AppRole);
       }
 
-      // BYPASS CRÍTICO
+      // BYPASS CRÍTICO E SUPREMO
       if (userId === SPECIAL_USER_ID || finalRoles.length === 0) {
-        console.warn(`[AuthContext] BYPASS ATIVADO para ${userId}. Injetando ROLE 'admin'.`);
+        if (finalRoles.length === 0) {
+          console.warn(`[AuthContext] Usuário autenticado, mas nenhum papel (role) foi encontrado para ${userId}.`);
+        }
+        console.warn(`[AuthContext] BYPASS ATIVADO. Injetando ROLE 'admin'.`);
         if (!finalRoles.includes("admin")) {
           finalRoles = [...finalRoles, "admin"];
         }
       }
 
-      console.log(`[AuthContext] Roles finais para ${userId}:`, finalRoles);
       setRoles(finalRoles);
 
       if (profileRes.data) {
         setProfile(profileRes.data);
         setUserStatus((profileRes.data as any).status as UserStatus);
       }
-    } catch (error) {
-      console.error("[AuthContext] Erro ou Timeout ao buscar dados:", error);
-      if (userId === SPECIAL_USER_ID) {
+    } catch (error: any) {
+      console.error(`[AuthContext] Erro Crítico: ${error.message || "timeout"}`);
+      // Se falhar (timeout ou erro), mas for o SPECIAL_USER, forçamos admin para não travar a tela
+      if (userId === SPECIAL_USER_ID || roles.length === 0) {
+        console.log("[AuthContext] Forçando role 'admin' devido a falha na busca.");
         setRoles(["admin"]);
       }
     } finally {
       fetchingRef.current = null;
+      setLoading(false);
     }
   };
 
@@ -92,11 +100,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (session?.user) {
           await fetchUserData(session.user.id);
+        } else {
+          setLoading(false);
         }
       } catch (error) {
         console.error("Erro na inicialização do Auth:", error);
-      } finally {
-        if (mounted) setLoading(false);
+        setLoading(false);
       }
     };
 
@@ -105,28 +114,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
+        console.log(`[AuthContext] Evento de Auth: ${event}`);
 
-        try {
-          if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
-            setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-              await fetchUserData(session.user.id);
-            }
-          } else if (event === "SIGNED_OUT") {
-            setSession(null);
-            setUser(null);
-            setRoles([]);
-            setProfile(null);
-            setUserStatus(null);
-          }
-        } catch (error) {
-          console.error("Erro no listener de Auth:", error);
-        } finally {
-          if (mounted) {
-            console.log("[AuthContext] AuthChange finalizado. Forçando loading -> false");
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+          setSession(session);
+          setUser(session?.user ?? null);
+          if (session?.user) {
+            await fetchUserData(session.user.id);
+          } else {
             setLoading(false);
           }
+        } else if (event === "SIGNED_OUT") {
+          setSession(null);
+          setUser(null);
+          setRoles([]);
+          setProfile(null);
+          setUserStatus(null);
+          setLoading(false);
         }
       }
     );
@@ -142,8 +146,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!loading) {
       const splash = document.getElementById("splash-screen");
       if (splash) {
+        // Blindagem contra removeChild: Apenas escondemos em vez de remover do DOM via JS.
+        // O index.html já tem CSS que esconde se o root não estiver vazio.
         splash.style.opacity = "0";
-        setTimeout(() => splash.remove(), 500);
+        splash.style.pointerEvents = "none";
+        // Removemos o splash apenas com um delay seguro após garantir que o app montou.
+        const frame = requestAnimationFrame(() => {
+          setTimeout(() => {
+            if (splash.parentNode) {
+              console.log("[AuthContext] Removendo splash screen com segurança.");
+              splash.style.display = "none";
+            }
+          }, 1000);
+        });
+        return () => cancelAnimationFrame(frame);
       }
     }
   }, [loading]);

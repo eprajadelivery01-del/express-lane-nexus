@@ -13,9 +13,9 @@ import { useQueryClient } from "@tanstack/react-query";
 type Delivery = {
   id: string;
   customer_name: string;
-  dropoff_address: string;
+  address: string;
   status: string;
-  price: number;
+  value: number;
   created_at: string;
 };
 
@@ -65,8 +65,12 @@ export default function BusinessOrdersPage() {
         setLoadingDeliveries(false);
       });
 
+    const uuid = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2, 11);
+
     const channel = supabase
-      .channel(`deliveries-business-${companyId}`)
+      .channel(`deliveries-business-${companyId}-${uuid}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "deliveries", filter: `company_id=eq.${companyId}` },
@@ -213,7 +217,7 @@ function NewDeliveryForm({
   const [geocoding, setGeocoding] = useState(false);
 
   // Region detection
-  const [regionInfo, setRegionInfo] = useState<{ name: string; price: number; color: string } | null>(null);
+  const [regionInfo, setRegionInfo] = useState<{ id: string; name: string; price: number; color: string } | null>(null);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>();

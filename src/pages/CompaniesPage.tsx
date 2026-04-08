@@ -13,20 +13,29 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
+import { EditCompanyDialog } from "@/components/admin/EditCompanyDialog";
+
 export default function CompaniesPage() {
   const { data: companies, isLoading } = useCompanies();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<any>(null);
 
   const handleToggleActive = async (companyId: string, isActive: boolean) => {
-    const { error } = await supabase.from("companies").update({ active: !isActive }).eq("id", companyId);
+    const { error } = await supabase.from("companies").update({ is_active: !isActive }).eq("id", companyId);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
       toast({ title: isActive ? "Empresa desativada" : "Empresa ativada" });
       qc.invalidateQueries({ queryKey: ["companies"] });
     }
+  };
+
+  const handleEdit = (company: any) => {
+    setSelectedCompany(company);
+    setEditOpen(true);
   };
 
   const handleDelete = async (companyId: string) => {
@@ -78,8 +87,8 @@ export default function CompaniesPage() {
                   </div>
                   <div>
                     <p className="font-bold text-foreground">{company.name}</p>
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${company.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
-                      {company.active ? "Ativo" : "Inativo"}
+                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${company.is_active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                      {company.is_active ? "Ativo" : "Inativo"}
                     </span>
                   </div>
                 </div>
@@ -88,9 +97,12 @@ export default function CompaniesPage() {
                     <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleToggleActive(company.id, !!company.active)}>
+                    <DropdownMenuItem onClick={() => handleEdit(company)}>
+                      Editar Dados
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleToggleActive(company.id, !!company.is_active)}>
                       <Power className="h-4 w-4 mr-2" />
-                      {company.active ? "Desativar" : "Ativar"}
+                      {company.is_active ? "Desativar" : "Ativar"}
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="text-destructive" onClick={() => handleDelete(company.id)}>
@@ -120,6 +132,14 @@ export default function CompaniesPage() {
             </div>
           )}
         </div>
+      )}
+
+      {selectedCompany && (
+        <EditCompanyDialog
+          company={selectedCompany}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
       )}
     </AdminLayout>
   );

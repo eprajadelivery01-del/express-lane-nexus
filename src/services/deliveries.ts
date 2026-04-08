@@ -7,25 +7,9 @@ export interface DeliveryWithRelations {
   company_id: string | null;
   driver_id: string | null;
   customer_name: string | null;
-  customer_phone: string | null;
-  pickup_address: string;
-  dropoff_address: string;
-  pickup_latitude: number | null;
-  pickup_longitude: number | null;
-  dropoff_latitude: number | null;
-  dropoff_longitude: number | null;
-  price: number | null;
-  distance_km: number | null;
-  estimated_time_minutes: number | null;
+  address: string;
+  value: number | null;
   status: DeliveryStatus;
-  notes: string | null;
-  proof_photo_url: string | null;
-  signature_url: string | null;
-  accepted_at: string | null;
-  collected_at: string | null;
-  delivered_at: string | null;
-  cancelled_at: string | null;
-  cancellation_reason: string | null;
   created_at: string;
   updated_at: string;
   companies?: { name: string; phone: string | null } | null;
@@ -80,7 +64,7 @@ export function useDeliveryStats() {
       today.setHours(0, 0, 0, 0);
 
       const [todayRes, totalRes] = await Promise.all([
-        supabase.from("deliveries").select("status, price").gte("created_at", today.toISOString()),
+        supabase.from("deliveries").select("status, value").gte("created_at", today.toISOString()),
         supabase.from("deliveries").select("id", { count: "exact", head: true }),
       ]);
 
@@ -91,10 +75,10 @@ export function useDeliveryStats() {
         today: data.length,
         total: totalRes.count ?? 0,
         pending: data.filter((d) => d.status === "pending").length,
-        inTransit: data.filter((d) => d.status === "in_transit").length,
-        delivered: data.filter((d) => d.status === "delivered").length,
+        inTransit: data.filter((d) => d.status === "in_route").length,
+        delivered: data.filter((d) => d.status === "completed").length,
         cancelled: data.filter((d) => d.status === "cancelled").length,
-        todayRevenue: data.filter((d) => d.status === "delivered").reduce((sum, d) => sum + Number(d.price ?? 0), 0),
+        todayRevenue: data.filter((d) => d.status === "completed").reduce((sum, d) => sum + Number((d as any).value ?? 0), 0),
       };
     },
     refetchInterval: 30000,
@@ -106,10 +90,6 @@ export function useUpdateDeliveryStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: DeliveryStatus }) => {
       const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
-      if (status === "accepted") updates.accepted_at = new Date().toISOString();
-      if (status === "collecting") updates.collected_at = new Date().toISOString();
-      if (status === "delivered") updates.delivered_at = new Date().toISOString();
-      if (status === "cancelled") updates.cancelled_at = new Date().toISOString();
       const { error } = await supabase.from("deliveries").update(updates).eq("id", id);
       if (error) throw error;
     },
@@ -209,8 +189,12 @@ export function useDeliveryTracking(orderId?: string | null) {
 
   useEffect(() => {
     if (!deliveryId) return;
+    const uuid = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2, 11);
+
     const channel = supabase
-      .channel(`delivery-tracker-${deliveryId}`)
+      .channel(`delivery-tracker-${deliveryId}-${uuid}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "deliveries", filter: `id=eq.${deliveryId}` },
