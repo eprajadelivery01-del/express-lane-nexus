@@ -16,10 +16,12 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ID Especial para o Desenvolvedor (Bypass Supremo)
 const SPECIAL_USER_ID = "1044ade5-6510-4aa5-96e6-6c5fb3aaa8b3";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -32,48 +34,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchingRef = useRef<string | null>(null);
 
   const fetchUserData = async (userId: string) => {
-    if (fetchingRef.current === userId) {
-      console.log(`[AuthContext] Já existe uma busca em andamento para ${userId}.`);
-      return;
-    }
+    if (fetchingRef.current === userId) return;
     fetchingRef.current = userId;
     
     try {
-      console.log(`[AuthContext] Iniciando busca (V4 - Estabilidade Máxima) para: ${userId}`);
+      console.log(`[AuthContext] Iniciando busca (HARDENED V4) para: ${userId}`);
       
+      // TIMEOUT DE EMERGÊNCIA: 10 segundos apenas
       const timeout = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Tempo limite excedido ao buscar dados do usuário. O banco pode estar lento ou travado.")), 30000)
+        setTimeout(() => reject(new Error("Timeout de 10s atingido. Banco lento.")), 10000)
       );
 
-      // Warning timer: Avisa no console se passar de 10s
-      const slowDbWarning = setTimeout(() => {
-        if (fetchingRef.current === userId) {
-          console.warn("[AuthContext] ATENÇÃO: O banco de dados está demorando mais de 10s para responder. Possível lentidão global.");
-        }
-      }, 10000);
-
       const fetchPromise = Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", userId).throwOnError(),
+        supabase.from("user_roles").select("role").eq("user_id", userId),
         supabase.from("profiles").select("full_name, avatar_url, phone, status").eq("user_id", userId).single(),
       ]);
 
       const [rolesRes, profileRes] = await Promise.race([fetchPromise, timeout]) as any;
-      clearTimeout(slowDbWarning);
 
       let finalRoles: AppRole[] = [];
       if (rolesRes.data && rolesRes.data.length > 0) {
         finalRoles = rolesRes.data.map((r: any) => r.role as AppRole);
-        console.log(`[AuthContext] Papéis encontrados: ${finalRoles.join(", ")}`);
       }
 
-      // BYPASS CRÍTICO E SUPREMO PARA O ADMIN
+      // BYPASS SUPREMO: Se você é o admin, libera entrada mesmo sem role no banco
       if (userId === SPECIAL_USER_ID) {
-        console.warn(`[AuthContext] USUÁRIO ESPECIAL DETECTADO. Garantindo acesso pleno.`);
+        console.warn(`[AuthContext] BYPASS ATIVADO para ${userId}.`);
         if (!finalRoles.includes("admin")) {
           finalRoles = [...finalRoles, "admin"];
         }
-      } else if (finalRoles.length === 0) {
-         console.warn(`[AuthContext] Nenhum papel encontrado para o usuário ${userId}. Verifique se as permissões foram atribuídas.`);
       }
 
       setRoles(finalRoles);
@@ -81,22 +70,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profileRes.data) {
         setProfile(profileRes.data);
         setUserStatus((profileRes.data as any).status as UserStatus);
-        console.log(`[AuthContext] Perfil carregado com sucesso.`);
-      } else {
-        console.warn(`[AuthContext] Perfil não encontrado ou erro na busca do perfil.`);
       }
     } catch (error: any) {
-      console.error(`[AuthContext] Erro Crítico na busca de dados: ${error.message || "timeout"}`);
+      console.error("[AuthContext] ERRO DE CARREGAMENTO:", error.message);
       
-      // Fallback supremo para o admin mestre se o banco travar de vez
+      // AUTO-DESTRAVAMENTO: Se travou e você é o admin especial, libera a entrada!
       if (userId === SPECIAL_USER_ID) {
-        console.log("[AuthContext] Banco de dados travado, mas você é o admin. Liberando entrada de emergência.");
+        console.log("[AuthContext] ATENÇÃO: Travamento detectado. Acionando entrada de emergência (Admin Force).");
         setRoles(["admin"]);
-        setLoading(false); // Forçamos o fim do carregamento
+        setProfile({ full_name: "Admin (Modo Emergência)", avatar_url: null, phone: null });
+        setUserStatus("active");
       }
     } finally {
       fetchingRef.current = null;
-      setLoading(false);
+      setLoading(false); // FORÇA o sumiço do splash screen
     }
   };
 
@@ -127,7 +114,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        console.log(`[AuthContext] Evento de Auth: ${event}`);
 
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
           setSession(session);
@@ -155,14 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Auth V4: Simplificação do Splash Screen
-  // O index.html já tem CSS (#root:not(:empty) + #splash-screen) que esconde o splash 
-  // automaticamente e sem conflitos de DOM quando o React começa a renderizar.
-  // Remover qualquer manipulação manual via JS para evitar erros de 'insertBefore' ou 'removeChild'.
-
-
   const hasRole = (role: AppRole) => {
-    if (user?.id === SPECIAL_USER_ID) return true; // Bypass supremo
+    if (user?.id === SPECIAL_USER_ID) return true; 
     return roles.includes(role);
   };
   
@@ -182,18 +162,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => { await supabase.auth.signOut(); };
 
+  const deleteAccount = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: "rejected" })
+        .eq("user_id", user.id);
+      
+      if (error) throw error;
+      await signOut();
+    } catch (error) {
+      console.error("Erro ao deletar conta:", error);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      loading, 
-      roles, 
-      userStatus, 
-      profile, 
-      hasRole, 
-      signIn,
-      signUp,
-      signOut 
+      user, session, loading, roles, userStatus, profile, hasRole, signIn, signUp, signOut, deleteAccount 
     }}>
       {children}
     </AuthContext.Provider>

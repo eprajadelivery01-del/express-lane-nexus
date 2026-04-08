@@ -1,4 +1,4 @@
-import { useAllRealtime } from "@/services/realtime";
+import { useAdminRealtime } from "@/services/realtime";
 import { ReactNode, useState, useEffect } from "react";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -11,7 +11,7 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
   // Activate global realtime listeners (Deliveries and Drivers)
-  useAllRealtime();
+  useAdminRealtime();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {

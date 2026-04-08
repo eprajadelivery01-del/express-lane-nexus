@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 
 export default function DashboardPage() {
-  useAllRealtime();
 
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();

@@ -96,3 +96,64 @@ export function useAllRealtime() {
   useDriversRealtime();
   useOrdersRealtime();
 }
+
+/**
+ * useAdminRealtime
+ * Centralized hook for Admin Panel to monitor everything.
+ * Ensures one single channel per table with proper cleanup.
+ */
+export function useAdminRealtime() {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    console.log("[Realtime] Iniciando canais administrativos...");
+
+    // Unique ID for this session to identify channels in Supabase logs
+    const sessionId = Math.random().toString(36).substring(2, 8);
+
+    const deliverablesChannel = supabase
+      .channel(`admin-deliveries-${sessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "deliveries" },
+        (payload) => {
+          console.log("[Realtime] Mudança em deliveries:", payload.eventType);
+          qc.invalidateQueries({ queryKey: ["deliveries"] });
+          qc.invalidateQueries({ queryKey: ["delivery-stats"] });
+        }
+      )
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") console.log("[Realtime] Monitorando entregas...");
+      });
+
+    const driversChannel = supabase
+      .channel(`admin-drivers-${sessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "delivery_drivers" },
+        () => {
+          console.log("[Realtime] Mudança em motoristas detectada.");
+          qc.invalidateQueries({ queryKey: ["drivers"] });
+        }
+      )
+      .subscribe();
+
+    const notificationsChannel = supabase
+      .channel(`admin-notifications-${sessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "system_logs" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["system-stats"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log("[Realtime] Encerrando canais administrativos...");
+      supabase.removeChannel(deliverablesChannel);
+      supabase.removeChannel(driversChannel);
+      supabase.removeChannel(notificationsChannel);
+    };
+  }, [qc]);
+}

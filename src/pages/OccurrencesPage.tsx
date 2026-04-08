@@ -22,7 +22,7 @@ function useOccurrences() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("delivery_occurrences")
-        .select("*, delivery_drivers!delivery_occurrences_driver_id_fkey(id, user_id)")
+        .select("*, delivery_drivers!delivery_occurrences_driver_id_fkey(id, profiles:user_id(full_name))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -114,7 +114,7 @@ export default function OccurrencesPage() {
       ) : (
         <div className="space-y-3">
           {(occurrences ?? []).map((occ) => {
-            const driverName = (occ as any).delivery_drivers?.full_name || "—";
+            const driverName = (occ as any).delivery_drivers?.profiles?.full_name || "—";
             return (
               <div key={occ.id} className="bg-card rounded-xl p-5 shadow-card border border-border">
                 <div className="flex items-start justify-between">
