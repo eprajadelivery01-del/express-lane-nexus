@@ -155,6 +155,7 @@ function CreateCompanyForm({ onSuccess }: { onSuccess: () => void }) {
   const [form, setForm] = useState({
     companyName: "", responsibleName: "", email: "", password: "",
     phone: "", document: "", address: "", regionId: "",
+    latitude: "", longitude: "",
   });
 
   const set = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
@@ -173,6 +174,8 @@ function CreateCompanyForm({ onSuccess }: { onSuccess: () => void }) {
           email: form.email, password: form.password, fullName: form.responsibleName,
           phone: form.phone, document: form.document, role: "company",
           companyName: form.companyName, address: form.address, regionId: form.regionId || null,
+          latitude: form.latitude ? parseFloat(form.latitude) : null,
+          longitude: form.longitude ? parseFloat(form.longitude) : null,
         },
       });
       if (res.error) throw new Error(res.error.message);
@@ -230,6 +233,10 @@ function CreateCompanyForm({ onSuccess }: { onSuccess: () => void }) {
                 <option key={r.id} value={r.id}>{r.name} — R$ {Number(r.price).toFixed(2)}</option>
               ))}
             </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <FieldInput label="Latitude" value={form.latitude} onChange={(v) => set("latitude", v)} placeholder="-15.5989" />
+            <FieldInput label="Longitude" value={form.longitude} onChange={(v) => set("longitude", v)} placeholder="-56.0974" />
           </div>
         </div>
       )}

@@ -23,6 +23,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     document: company?.document || "",
     address: company?.address || "",
     email: company?.email || "",
+    latitude: company?.latitude?.toString() || "",
+    longitude: company?.longitude?.toString() || "",
   });
 
   const set = (key: string, val: string) => setForm(p => ({ ...p, [key]: val }));
@@ -42,6 +44,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           name: form.name,
           phone: form.phone,
           address: form.address,
+          latitude: form.latitude ? parseFloat(form.latitude) : null,
+          longitude: form.longitude ? parseFloat(form.longitude) : null,
         })
         .eq("id", company.id);
 
@@ -83,6 +87,16 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
             <div>
               <Label>Endereço Completo</Label>
               <Input value={form.address} onChange={e => set("address", e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Latitude</Label>
+                <Input value={form.latitude} onChange={e => set("latitude", e.target.value)} placeholder="-15.5989" />
+              </div>
+              <div>
+                <Label>Longitude</Label>
+                <Input value={form.longitude} onChange={e => set("longitude", e.target.value)} placeholder="-56.0974" />
+              </div>
             </div>
           </div>
         </div>

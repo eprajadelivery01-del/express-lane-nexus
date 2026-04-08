@@ -4,6 +4,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useOnlineDrivers } from "@/services/drivers";
 import { useRegions } from "@/services/regions";
 import { useDeliveries } from "@/services/deliveries";
+import { useCompanies } from "@/services/companies";
 
 interface MapViewProps {
   centerCity?: { name: string; lat: number; lng: number } | null;
@@ -18,6 +19,7 @@ export function MapView({ centerCity }: MapViewProps) {
   const { data: drivers } = useOnlineDrivers();
   const { data: regions } = useRegions();
   const { data: deliveriesData } = useDeliveries({ status: "in_route" });
+  const { data: companies } = useCompanies();
 
   // Default center (Cuiabá-MT) or persisted city
   const defaultCenter: [number, number] = centerCity
@@ -177,7 +179,43 @@ export function MapView({ centerCity }: MapViewProps) {
 
       markersRef.current.push(marker);
     });
-  }, [drivers]);
+
+    // Render company markers
+    (companies ?? []).forEach((company) => {
+      if (!company.latitude || !company.longitude) return;
+
+      const el = document.createElement("div");
+      el.innerHTML = `
+        <div style="
+          width: 36px; height: 36px; border-radius: 10px;
+          background: #3b82f6;
+          border: 3px solid white;
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+          font-size: 16px;
+        ">🏪</div>
+      `;
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([company.longitude, company.latitude])
+        .setPopup(
+          new maplibregl.Popup({ offset: 20 }).setHTML(`
+            <div style="font-family: sans-serif; padding: 4px; min-width: 120px;">
+              <strong style="font-size: 14px;">${company.name}</strong><br/>
+              <div style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px;">
+                <small style="color: #666;">${company.address || "Sem endereço"}</small><br/>
+                <span style="display: inline-block; margin-top: 4px; color: ${company.is_active ? "#22c55e" : "#ef4444"}; font-weight: 600; font-size: 11px;">
+                  ● ${company.is_active ? "Aberta" : "Fechada"}
+                </span>
+              </div>
+            </div>
+          `)
+        )
+        .addTo(m);
+
+      markersRef.current.push(marker);
+    });
+  }, [drivers, companies]);
 
   return (
     <div ref={mapContainer} className="w-full h-full rounded-xl overflow-hidden" />
