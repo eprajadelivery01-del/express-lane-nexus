@@ -4,6 +4,7 @@ import { useRegions, useCreateRegion, useUpdateRegion, useDeleteRegion } from "@
 import type { RegionRow } from "@/services/regions";
 import { MapPin, Plus, Trash2, Save, Pencil, Loader2, DollarSign, Search, X, MousePointer, PenTool } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { CityServiceList } from "@/components/admin/CityServiceList";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 
@@ -562,7 +563,15 @@ export default function RegionsPage() {
             </div>
           )}
 
-          <div className="p-4">
+          <div className="p-4 space-y-6">
+            <CityServiceList 
+              onSelect={(cityName, coords) => {
+                mapRef.current?.flyTo({ center: coords, zoom: 12, duration: 1500 });
+              }}
+            />
+
+            <hr className="border-border" />
+
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
               Regiões ({regions?.length ?? 0})
             </h3>
