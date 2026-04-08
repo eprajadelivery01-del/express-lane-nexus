@@ -2,6 +2,7 @@ import { MapPin, Search, Navigation, Maximize2 } from "lucide-react";
 import { useRegions } from "@/services/regions";
 import { useCity } from "@/contexts/CityContext";
 import { useNavigate } from "react-router-dom";
+import { UnifiedMap } from "./UnifiedMap";
 
 interface HeroMapSectionProps {
   title?: string;
