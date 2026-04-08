@@ -19,7 +19,7 @@ export function HeroMapSection({
 
   return (
     <section 
-      className="relative w-full h-[500px] md:h-[600px] lg:h-[700px] overflow-hidden bg-background border-b border-border transition-all"
+      className="relative w-full h-[350px] md:h-[450px] lg:h-[500px] overflow-hidden bg-background border-b border-border transition-all"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -33,7 +33,7 @@ export function HeroMapSection({
       <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-r from-background via-background/20 to-transparent" />
 
       {/* Content Overlay */}
-      <div className="relative z-20 h-full max-w-7xl mx-auto px-6 flex flex-col justify-center items-start">
+      <div className="relative z-20 h-full w-full px-6 flex flex-col justify-center items-start">
         <div className="max-w-2xl animate-in fade-in slide-in-from-left-8 duration-700">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6 backdrop-blur-md">
             <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
