@@ -38,6 +38,7 @@ export default function RegionsPage() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
+  const renderedRegionIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -57,13 +58,14 @@ export default function RegionsPage() {
     const m = mapRef.current;
     if (!m || !regions) return;
     const handleLoad = () => {
-      // Clean old layers
-      regions.forEach((r) => {
-        [`region-fill-${r.id}`, `region-line-${r.id}`, `region-highlight-${r.id}`].forEach((l) => {
+      // Clean old layers (using tracking ref to catch deletions)
+      renderedRegionIdsRef.current.forEach((id) => {
+        [`region-fill-${id}`, `region-line-${id}`, `region-highlight-${id}`].forEach((l) => {
           if (m.getLayer(l)) m.removeLayer(l);
         });
-        if (m.getSource(`region-${r.id}`)) m.removeSource(`region-${r.id}`);
+        if (m.getSource(`region-${id}`)) m.removeSource(`region-${id}`);
       });
+      renderedRegionIdsRef.current = [];
 
       regions.forEach((region) => {
         if (!region.geometry) return;
@@ -119,6 +121,8 @@ export default function RegionsPage() {
           setDrawMode("none");
           setDrawnPoints([]);
         });
+
+        renderedRegionIdsRef.current.push(region.id);
       });
 
       // Clean drawing layers
