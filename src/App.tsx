@@ -22,6 +22,7 @@ import OccurrencesPage from "./pages/OccurrencesPage";
 import ReviewsPage from "./pages/ReviewsPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
+import SystemLogsPage from "./pages/SystemLogsPage";
 import NotFound from "./pages/NotFound";
 import DriverHomePage from "./pages/driver/DriverHomePage";
 import BusinessHomePage from "./pages/business/BusinessHomePage";
@@ -62,6 +63,7 @@ const App = () => (
                 <Route path="/admin/reviews" element={<ProtectedRoute requiredRole="admin"><ReviewsPage /></ProtectedRoute>} />
                 <Route path="/admin/reports" element={<ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute>} />
                 <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><SettingsPage /></ProtectedRoute>} />
+                <Route path="/admin/logs" element={<ProtectedRoute requiredRole="admin"><SystemLogsPage /></ProtectedRoute>} />
                 <Route path="/admin/profile" element={<ProtectedRoute requiredRole="admin"><ProfilePage /></ProtectedRoute>} />
 
                 <Route path="/driver" element={<ProtectedRoute requiredRole="driver"><DriverHomePage /></ProtectedRoute>} />

@@ -19,8 +19,8 @@ export default function DashboardPage() {
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
   const { data: companies } = useCompanies();
-  const { data: inTransitData } = useDeliveries({ status: "in_transit" });
-  const { data: deliveredData } = useDeliveries({ status: "delivered" });
+  const { data: inTransitData } = useDeliveries({ status: "in_route" });
+  const { data: deliveredData } = useDeliveries({ status: "completed" });
 
   const { selectedCity, setCity } = useCity();
   const { data: regions } = useRegions(selectedCity || undefined);

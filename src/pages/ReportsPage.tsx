@@ -27,9 +27,9 @@ export default function ReportsPage() {
   });
 
   const deliveries = data?.data ?? [];
-  const totalValue = deliveries.reduce((s, d) => s + Number(d.price ?? 0), 0);
-  const totalCommission = 0;
-  const completedCount = deliveries.filter((d) => d.status === "delivered").length;
+  const totalValue = deliveries.reduce((s, d) => s + Number(d.value ?? 0), 0);
+  const totalCommission = deliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
+  const completedCount = deliveries.filter((d) => d.status === "completed").length;
 
   const handleExport = () => {
     if (deliveries.length === 0) {
@@ -41,10 +41,10 @@ export default function ReportsPage() {
       format(new Date(d.created_at), "dd/MM/yyyy HH:mm"),
       d.customer_name,
       (d as any).companies?.name || "",
-      d.dropoff_address,
+      d.address,
       d.status,
-      Number(d.price ?? 0).toFixed(2),
-      "0.00",
+      Number(d.value ?? 0).toFixed(2),
+      Number((d as any).commission ?? 0).toFixed(2),
     ]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
@@ -147,10 +147,10 @@ export default function ReportsPage() {
                   <tr key={d.id} className="hover:bg-muted/30">
                     <td className="p-3 text-xs text-muted-foreground">{format(new Date(d.created_at), "dd/MM HH:mm")}</td>
                     <td className="p-3 text-sm text-foreground">{d.customer_name}</td>
-                    <td className="p-3 text-sm text-muted-foreground hidden md:table-cell">{(d as any).companies?.name || "—"}</td>
+                    <td className="p-3">{(d as any).companies?.name || "—"}</td>
                     <td className="p-3"><StatusDot status={d.status} /></td>
-                    <td className="p-3 text-sm text-foreground text-right font-semibold">R$ {Number(d.price ?? 0).toFixed(2)}</td>
-                    <td className="p-3 text-sm text-muted-foreground text-right">—</td>
+                    <td className="p-3 text-sm text-foreground text-right font-semibold">R$ {Number(d.value ?? 0).toFixed(2)}</td>
+                    <td className="p-3 text-sm text-muted-foreground text-right">R$ {Number((d as any).commission ?? 0).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
