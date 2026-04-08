@@ -39,33 +39,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     fetchingRef.current = userId;
     
     try {
-      console.log(`[AuthContext] Iniciando busca (V3) para: ${userId}`);
+      console.log(`[AuthContext] Iniciando busca (V4 - Estabilidade Máxima) para: ${userId}`);
       
       const timeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Tempo limite excedido ao buscar dados do usuário. O banco pode estar lento ou travado.")), 30000)
       );
 
+      // Warning timer: Avisa no console se passar de 10s
+      const slowDbWarning = setTimeout(() => {
+        if (fetchingRef.current === userId) {
+          console.warn("[AuthContext] ATENÇÃO: O banco de dados está demorando mais de 10s para responder. Possível lentidão global.");
+        }
+      }, 10000);
+
       const fetchPromise = Promise.all([
-        supabase.from("user_roles").select("role").eq("user_id", userId),
+        supabase.from("user_roles").select("role").eq("user_id", userId).throwOnError(),
         supabase.from("profiles").select("full_name, avatar_url, phone, status").eq("user_id", userId).single(),
       ]);
 
       const [rolesRes, profileRes] = await Promise.race([fetchPromise, timeout]) as any;
+      clearTimeout(slowDbWarning);
 
       let finalRoles: AppRole[] = [];
       if (rolesRes.data && rolesRes.data.length > 0) {
         finalRoles = rolesRes.data.map((r: any) => r.role as AppRole);
+        console.log(`[AuthContext] Papéis encontrados: ${finalRoles.join(", ")}`);
       }
 
-      // BYPASS CRÍTICO E SUPREMO
-      if (userId === SPECIAL_USER_ID || finalRoles.length === 0) {
-        if (finalRoles.length === 0) {
-          console.warn(`[AuthContext] Usuário autenticado, mas nenhum papel (role) foi encontrado para ${userId}.`);
-        }
-        console.warn(`[AuthContext] BYPASS ATIVADO. Injetando ROLE 'admin'.`);
+      // BYPASS CRÍTICO E SUPREMO PARA O ADMIN
+      if (userId === SPECIAL_USER_ID) {
+        console.warn(`[AuthContext] USUÁRIO ESPECIAL DETECTADO. Garantindo acesso pleno.`);
         if (!finalRoles.includes("admin")) {
           finalRoles = [...finalRoles, "admin"];
         }
+      } else if (finalRoles.length === 0) {
+         console.warn(`[AuthContext] Nenhum papel encontrado para o usuário ${userId}. Verifique se as permissões foram atribuídas.`);
       }
 
       setRoles(finalRoles);
@@ -73,13 +81,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (profileRes.data) {
         setProfile(profileRes.data);
         setUserStatus((profileRes.data as any).status as UserStatus);
+        console.log(`[AuthContext] Perfil carregado com sucesso.`);
+      } else {
+        console.warn(`[AuthContext] Perfil não encontrado ou erro na busca do perfil.`);
       }
     } catch (error: any) {
-      console.error(`[AuthContext] Erro Crítico: ${error.message || "timeout"}`);
-      // Se falhar (timeout ou erro), mas for o SPECIAL_USER, forçamos admin para não travar a tela
-      if (userId === SPECIAL_USER_ID || roles.length === 0) {
-        console.log("[AuthContext] Forçando role 'admin' devido a falha na busca.");
+      console.error(`[AuthContext] Erro Crítico na busca de dados: ${error.message || "timeout"}`);
+      
+      // Fallback supremo para o admin mestre se o banco travar de vez
+      if (userId === SPECIAL_USER_ID) {
+        console.log("[AuthContext] Banco de dados travado, mas você é o admin. Liberando entrada de emergência.");
         setRoles(["admin"]);
+        setLoading(false); // Forçamos o fim do carregamento
       }
     } finally {
       fetchingRef.current = null;
@@ -142,27 +155,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  useEffect(() => {
-    if (!loading) {
-      const splash = document.getElementById("splash-screen");
-      if (splash) {
-        // Blindagem contra removeChild: Apenas escondemos em vez de remover do DOM via JS.
-        // O index.html já tem CSS que esconde se o root não estiver vazio.
-        splash.style.opacity = "0";
-        splash.style.pointerEvents = "none";
-        // Removemos o splash apenas com um delay seguro após garantir que o app montou.
-        const frame = requestAnimationFrame(() => {
-          setTimeout(() => {
-            if (splash.parentNode) {
-              console.log("[AuthContext] Removendo splash screen com segurança.");
-              splash.style.display = "none";
-            }
-          }, 1000);
-        });
-        return () => cancelAnimationFrame(frame);
-      }
-    }
-  }, [loading]);
+  // Auth V4: Simplificação do Splash Screen
+  // O index.html já tem CSS (#root:not(:empty) + #splash-screen) que esconde o splash 
+  // automaticamente e sem conflitos de DOM quando o React começa a renderizar.
+  // Remover qualquer manipulação manual via JS para evitar erros de 'insertBefore' ou 'removeChild'.
+
 
   const hasRole = (role: AppRole) => {
     if (user?.id === SPECIAL_USER_ID) return true; // Bypass supremo
