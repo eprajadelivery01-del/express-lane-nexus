@@ -164,7 +164,10 @@ export default function OccurrencesPage() {
 
       {/* Create occurrence dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent 
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="max-w-md"
+        >
           <DialogHeader>
             <DialogTitle>Registrar Ocorrência</DialogTitle>
           </DialogHeader>

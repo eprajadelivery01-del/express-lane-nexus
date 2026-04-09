@@ -59,7 +59,10 @@ export default function DriversPage() {
               <Plus className="h-4 w-4" /> Cadastrar Entregador
             </button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogContent 
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+          >
             <DialogHeader>
               <DialogTitle>Cadastrar Entregador</DialogTitle>
             </DialogHeader>
