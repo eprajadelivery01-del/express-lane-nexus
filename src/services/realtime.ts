@@ -119,12 +119,24 @@ export function useAdminRealtime() {
         (payload) => {
           console.log("[Realtime] Mudança em deliveries:", payload.eventType);
           qc.invalidateQueries({ queryKey: ["deliveries"] });
+          qc.invalidateQueries({ queryKey: ["orders"] });
           qc.invalidateQueries({ queryKey: ["delivery-stats"] });
         }
       )
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") console.log("[Realtime] Monitorando entregas...");
-      });
+      .subscribe();
+
+    const ordersChannel = supabase
+      .channel(`admin-orders-${sessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        () => {
+          console.log("[Realtime] Mudança em orders detectada.");
+          qc.invalidateQueries({ queryKey: ["orders"] });
+          qc.invalidateQueries({ queryKey: ["deliveries"] });
+        }
+      )
+      .subscribe();
 
     const driversChannel = supabase
       .channel(`admin-drivers-${sessionId}`)
@@ -152,6 +164,7 @@ export function useAdminRealtime() {
     return () => {
       console.log("[Realtime] Encerrando canais administrativos...");
       supabase.removeChannel(deliverablesChannel);
+      supabase.removeChannel(ordersChannel);
       supabase.removeChannel(driversChannel);
       supabase.removeChannel(notificationsChannel);
     };
