@@ -35,6 +35,8 @@ import BusinessProfilePage from "./pages/business/BusinessProfilePage";
 import ChatPage from "./pages/ChatPage";
 
 
+import ScrollToTop from "@/components/shared/ScrollToTop";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -44,6 +46,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollToTop />
           <CityProvider>
             <AuthProvider>
               <Routes>
