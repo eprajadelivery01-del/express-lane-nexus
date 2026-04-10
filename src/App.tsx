@@ -26,13 +26,8 @@ import SettingsPage from "./pages/SettingsPage";
 import SystemLogsPage from "./pages/SystemLogsPage";
 import PendingApprovalPage from "./pages/PendingApprovalPage";
 import NotFound from "./pages/NotFound";
-import DriverHomePage from "./pages/driver/DriverHomePage";
+import BusinessLoginPage from "./pages/BusinessLoginPage";
 import BusinessHomePage from "./pages/business/BusinessHomePage";
-import BusinessMapPage from "./pages/business/BusinessMapPage";
-import BusinessCustomersPage from "./pages/business/BusinessCustomersPage";
-import BusinessFinancePage from "./pages/business/BusinessFinancePage";
-import BusinessHistoryPage from "./pages/business/BusinessHistoryPage";
-import BusinessProfilePage from "./pages/business/BusinessProfilePage";
 
 import ChatPage from "./pages/ChatPage";
 
@@ -53,8 +48,10 @@ const App = () => (
             <AuthProvider>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/login/business" element={<BusinessLoginPage />} />
                 <Route path="/invite/:token" element={<InvitePage />} />
                 <Route path="/pending-approval" element={<PendingApprovalPage />} />
+                <Route path="/business" element={<ProtectedRoute requiredRole="company"><BusinessHomePage /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/admin" replace />} />
 
                 <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />
