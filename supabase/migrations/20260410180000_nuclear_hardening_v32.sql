@@ -47,6 +47,7 @@ CREATE POLICY "Users can view own transactions" ON public.financial_transactions
 DO $$ 
 BEGIN 
   IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='payments') THEN
+    EXECUTE 'DROP POLICY IF EXISTS "Users can only insert payments for their own orders" ON public.payments';
     EXECUTE 'CREATE POLICY "Users can only insert payments for their own orders" ON public.payments
       FOR INSERT WITH CHECK (
         EXISTS (
