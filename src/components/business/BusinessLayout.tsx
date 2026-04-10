@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   ShoppingBag,
@@ -13,8 +13,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAllRealtime } from "@/services/realtime";
-import { useState } from "react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const tabs = [
   { label: "Pedidos", icon: ShoppingBag, href: "/business" },
@@ -129,7 +127,6 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
           </div>
 
           <div className="flex items-center gap-3">
-             <ThemeToggle />
              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
                 <span className="text-xs font-black text-primary uppercase">
                    {profile?.full_name?.charAt(0) || "L"}

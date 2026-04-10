@@ -1,16 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Clock, Phone, ShieldCheck, LogOut, MessageCircle } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function PendingApprovalPage() {
   const { profile, signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="fixed top-4 right-4">
-        <ThemeToggle />
-      </div>
 
       <div className="w-full max-w-md text-center space-y-8 animate-in fade-in zoom-in duration-500">
         {/* Header Icons */}

@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, Eye, EyeOff, Loader2, Building2, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default function BusinessLoginPage() {
   const [email, setEmail] = useState("");
@@ -50,10 +49,6 @@ export default function BusinessLoginPage() {
       <div className="absolute top-0 left-0 w-full h-full pointer-events-none opacity-20">
          <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] bg-primary/30 rounded-full blur-[120px]" />
          <div className="absolute top-[40%] -right-[15%] w-[50%] h-[50%] bg-accent/20 rounded-full blur-[100px]" />
-      </div>
-
-      <div className="fixed top-6 right-6">
-        <ThemeToggle />
       </div>
 
       <div className="w-full max-w-md relative z-10 space-y-8 animate-in fade-in zoom-in duration-700">
