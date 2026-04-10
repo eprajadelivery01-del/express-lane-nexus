@@ -19,7 +19,9 @@ export default function LoginPage() {
       console.log(`[LoginPage - 9c1a49c1] Verificando acesso para user.id: ${user.id}`);
       // Redirecionamento quase imediato para sessões ativas
       const timer = setTimeout(() => {
-        if (hasRole("admin")) {
+        if (userStatus === "pending") {
+          navigate("/pending-approval", { replace: true });
+        } else if (hasRole("admin")) {
           navigate("/admin", { replace: true });
         } else if (hasRole("company")) {
           navigate("/business", { replace: true });
@@ -29,7 +31,7 @@ export default function LoginPage() {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [user, hasRole, navigate]);
+  }, [user, userStatus, hasRole, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

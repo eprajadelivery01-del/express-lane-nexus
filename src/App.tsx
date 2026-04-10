@@ -24,6 +24,7 @@ import ReviewsPage from "./pages/ReviewsPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import SystemLogsPage from "./pages/SystemLogsPage";
+import PendingApprovalPage from "./pages/PendingApprovalPage";
 import NotFound from "./pages/NotFound";
 import DriverHomePage from "./pages/driver/DriverHomePage";
 import BusinessHomePage from "./pages/business/BusinessHomePage";
@@ -53,6 +54,7 @@ const App = () => (
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/invite/:token" element={<InvitePage />} />
+                <Route path="/pending-approval" element={<PendingApprovalPage />} />
                 <Route path="/" element={<Navigate to="/admin" replace />} />
 
                 <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />

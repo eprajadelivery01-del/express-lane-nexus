@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const rolesFetch = supabase.from("user_roles").select("role").eq("user_id", userId);
       const profileFetch = supabase
         .from("profiles")
-        .select("id, full_name, avatar_url") 
+        .select("id, full_name, avatar_url, status, phone") 
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -90,9 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile({
           full_name: profileRes.data.full_name,
           avatar_url: profileRes.data.avatar_url,
-          phone: null
+          phone: profileRes.data.phone
         });
-        setUserStatus("active");
+        setUserStatus(profileRes.data.status);
       } else if (isEmergency || userId === SPECIAL_USER_ID) {
         setProfile({ 
           full_name: isEmergency ? "Lojista (Emergência)" : "Admin (Emergência)", 
