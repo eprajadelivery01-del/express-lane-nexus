@@ -29,13 +29,12 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase.from("invitations").insert({
+      const { error } = await (supabase as any).from("invitations").insert({
         token,
         role: fixedRole || role,
         email: `pending_${token.slice(0, 8)}@nexus.pro`,
         invited_by: user.id,
         expires_at: expiresAt.toISOString(),
-        status: "pending"
       });
 
       if (error) throw error;
