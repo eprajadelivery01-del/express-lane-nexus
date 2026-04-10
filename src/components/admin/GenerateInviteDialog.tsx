@@ -73,7 +73,7 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
           <UserPlus className="h-4 w-4" />{triggerLabel || "Gerar Link de Convite"}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl w-[95vw]">
         <DialogHeader>
           <DialogTitle>Gerar Link de Convite</DialogTitle>
         </DialogHeader>
@@ -105,16 +105,20 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
             </Button>
           </div>
         ) : (
-          <div className="space-y-4 py-4">
-            <div className="p-4 bg-muted rounded-xl border border-border break-all text-sm font-mono flex items-center justify-between gap-3">
-              <span className="truncate flex-1">{inviteLink}</span>
-              <Button size="icon" variant="ghost" onClick={copyToClipboard} className="shrink-0">
-                {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-              </Button>
+          <div className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Link de convite gerado com sucesso:</Label>
+              <div className="p-4 bg-muted rounded-xl border border-border">
+                <p className="text-sm font-mono break-all select-all text-foreground mb-3">{inviteLink}</p>
+                <Button variant="outline" size="sm" onClick={copyToClipboard} className="w-full gap-2">
+                  {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
+                  {copied ? "Link copiado!" : "Copiar link"}
+                </Button>
+              </div>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1" onClick={reset}>Gerar outro</Button>
-              <Button className="flex-1 gap-2" onClick={() => setOpen(false)}>Concluído</Button>
+              <Button className="flex-1" onClick={() => setOpen(false)}>Concluído</Button>
             </div>
           </div>
         )}
