@@ -7,10 +7,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { UserPlus, Copy, Check, Link as LinkIcon } from "lucide-react";
 
-export function GenerateInviteDialog() {
+interface GenerateInviteDialogProps {
+  fixedRole?: "driver" | "company";
+  triggerLabel?: string;
+}
+
+export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInviteDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [role, setRole] = useState<"driver" | "company">("driver");
+  const [role, setRole] = useState<"driver" | "company">(fixedRole || "driver");
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -19,15 +24,15 @@ export function GenerateInviteDialog() {
     try {
       const token = crypto.randomUUID();
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiration
+      expiresAt.setDate(expiresAt.getDate() + 7);
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
       const { error } = await supabase.from("invitations").insert({
         token,
-        role,
-        email: `pending_${token.slice(0, 8)}@nexus.pro`, // Placeholder as email is required in some schemas
+        role: fixedRole || role,
+        email: `pending_${token.slice(0, 8)}@nexus.pro`,
         invited_by: user.id,
         expires_at: expiresAt.toISOString(),
         status: "pending"
@@ -60,11 +65,13 @@ export function GenerateInviteDialog() {
     setCopied(false);
   };
 
+  const roleLabel = (fixedRole || role) === "driver" ? "Entregador" : "Empresa (Lojista)";
+
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2 border-primary text-primary hover:bg-primary/5">
-          <UserPlus className="h-4 w-4" />Convidar Parceiro
+          <UserPlus className="h-4 w-4" />{triggerLabel || "Gerar Link de Convite"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
@@ -74,16 +81,23 @@ export function GenerateInviteDialog() {
 
         {!inviteLink ? (
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Tipo de parceiro</Label>
-              <Select value={role} onValueChange={(v: any) => setRole(v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="driver">🏍️ Entregador</SelectItem>
-                  <SelectItem value="company">🏪 Empresa (Lojista)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {!fixedRole && (
+              <div className="space-y-2">
+                <Label>Tipo de parceiro</Label>
+                <Select value={role} onValueChange={(v: any) => setRole(v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="driver">🏍️ Entregador</SelectItem>
+                    <SelectItem value="company">🏪 Empresa (Lojista)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {fixedRole && (
+              <div className="p-3 bg-muted rounded-xl text-sm text-foreground">
+                Convite para: <strong>{roleLabel}</strong>
+              </div>
+            )}
             <p className="text-xs text-muted-foreground">
               O link gerado será válido por 7 dias e permitirá que o parceiro realize o próprio cadastro no sistema.
             </p>

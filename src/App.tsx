@@ -15,6 +15,7 @@ import DashboardPage from "./pages/DashboardPage";
 import DeliveriesPage from "./pages/DeliveriesPage";
 import MapPage from "./pages/MapPage";
 import UsersPage from "./pages/UsersPage";
+import CustomersPage from "./pages/CustomersPage";
 import CompaniesPage from "./pages/CompaniesPage";
 import DriversPage from "./pages/DriversPage";
 import RegionsPage from "./pages/RegionsPage";
@@ -59,6 +60,7 @@ const App = () => (
                 <Route path="/admin/chat" element={<ProtectedRoute requiredRole="admin"><ChatPage /></ProtectedRoute>} />
                 <Route path="/admin/map" element={<ProtectedRoute requiredRole="admin"><MapPage /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><UsersPage /></ProtectedRoute>} />
+                <Route path="/admin/customers" element={<ProtectedRoute requiredRole="admin"><CustomersPage /></ProtectedRoute>} />
                 <Route path="/admin/companies" element={<ProtectedRoute requiredRole="admin"><CompaniesPage /></ProtectedRoute>} />
                 <Route path="/admin/drivers" element={<ProtectedRoute requiredRole="admin"><DriversPage /></ProtectedRoute>} />
                 <Route path="/admin/regions" element={<ProtectedRoute requiredRole="admin"><RegionsPage /></ProtectedRoute>} />

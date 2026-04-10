@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { EditCompanyDialog } from "@/components/admin/EditCompanyDialog";
+import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
+
 
 export default function CompaniesPage() {
   const { data: companies, isLoading } = useCompanies();
@@ -53,7 +55,10 @@ export default function CompaniesPage() {
     <AdminLayout title="Empresas" subtitle="Gestão de lojas e estabelecimentos">
       <div className="flex items-center justify-between mb-6">
         <div />
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <div className="flex items-center gap-2">
+          <GenerateInviteDialog fixedRole="company" triggerLabel="Convidar Lojista" />
+          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+
           <DialogTrigger asChild>
             <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
               <Plus className="h-4 w-4" /> Cadastrar Empresa
@@ -68,8 +73,10 @@ export default function CompaniesPage() {
             </DialogHeader>
             <CreateCompanyForm onSuccess={() => setCreateOpen(false)} />
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </div>
+
 
       {isLoading ? (
         <div className="flex items-center justify-center p-12">
