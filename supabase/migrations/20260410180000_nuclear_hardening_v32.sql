@@ -64,7 +64,7 @@ DROP POLICY IF EXISTS "RLS for Realtime" ON realtime.messages;
 CREATE POLICY "RLS for Realtime" ON realtime.messages FOR SELECT USING (true); 
 
 -- 8. [PROTEÇÃO DE FUNÇÕES] CONTRA EXPLOITS DE PATH
-ALTER FUNCTION IF EXISTS public.has_role(uuid, public.app_role) SET search_path TO public;
-ALTER FUNCTION IF EXISTS public.handle_new_user() SET search_path TO public;
+ALTER FUNCTION public.has_role(uuid, public.app_role) SET search_path TO public;
+ALTER FUNCTION public.handle_new_user() SET search_path TO public;
 
 COMMIT;
