@@ -22,6 +22,19 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   if (!user) return <Navigate to="/login" replace />;
 
+  // Se o usuário está logado mas as roles ainda não foram carregadas (V14 background fetch)
+  // Nós esperamos um pouco em vez de expulsar o usuário imediatamente
+  if (roles.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Verificando permissões...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Block pending/rejected users
   if (userStatus === "pending") {
     return (
