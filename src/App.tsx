@@ -28,6 +28,8 @@ import PendingApprovalPage from "./pages/PendingApprovalPage";
 import NotFound from "./pages/NotFound";
 import BusinessLoginPage from "./pages/BusinessLoginPage";
 import BusinessHomePage from "./pages/business/BusinessHomePage";
+import BusinessProductsPage from "./pages/business/BusinessProductsPage";
+import BusinessProfilePage from "./pages/business/BusinessProfilePage";
 
 import ChatPage from "./pages/ChatPage";
 
@@ -52,6 +54,8 @@ const App = () => (
                 <Route path="/invite/:token" element={<InvitePage />} />
                 <Route path="/pending-approval" element={<PendingApprovalPage />} />
                 <Route path="/business" element={<ProtectedRoute requiredRole="company"><BusinessHomePage /></ProtectedRoute>} />
+                <Route path="/business/products" element={<ProtectedRoute requiredRole="company"><BusinessProductsPage /></ProtectedRoute>} />
+                <Route path="/business/profile" element={<ProtectedRoute requiredRole="company"><BusinessProfilePage /></ProtectedRoute>} />
                 <Route path="/" element={<Navigate to="/admin" replace />} />
 
                 <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute>} />

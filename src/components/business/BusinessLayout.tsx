@@ -9,6 +9,7 @@ import {
   User,
   LogOut,
   Menu,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,6 +17,7 @@ import { useAllRealtime } from "@/services/realtime";
 
 const tabs = [
   { label: "Pedidos", icon: ShoppingBag, href: "/business" },
+  { label: "Produtos", icon: Package, href: "/business/products" },
   { label: "Mapa", icon: Map, href: "/business/map" },
   { label: "Clientes", icon: Users, href: "/business/customers" },
   { label: "Financeiro", icon: DollarSign, href: "/business/finance" },
