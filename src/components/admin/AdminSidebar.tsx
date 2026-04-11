@@ -72,8 +72,8 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
             <img src="/logo.png" alt="É Pra Já" className="h-10 w-auto rounded-lg" />
             {!collapsed && (
               <div className="animate-in fade-in slide-in-from-left-2 duration-300">
-                <span className="text-base font-bold text-sidebar-foreground whitespace-nowrap">É Pra Já</span>
-                <span className="block text-xs text-sidebar-accent-foreground">Delivery</span>
+                <span className="text-base font-bold text-sidebar-foreground whitespace-nowrap">Central de Comando</span>
+                <span className="block text-xs text-sidebar-accent-foreground">Operacional</span>
               </div>
             )}
           </div>

@@ -1,10 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useOnlineDrivers } from "@/services/drivers";
 import { useDeliveries } from "@/services/deliveries";
 import { useCity } from "@/contexts/CityContext";
 import type { RegionRow } from "@/services/regions";
+import { Search, Loader2, X, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface UnifiedMapProps {
   regions: RegionRow[];
@@ -20,11 +22,42 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
   const regionsRenderedRef = useRef<string[]>([]);
   const mapLoaded = useRef(false);
 
+  // Geocoding state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+
   const { selectedCityCoords } = useCity();
   const centerCity = propCenterCity || selectedCityCoords;
 
   const { data: drivers } = useOnlineDrivers();
-  const { data: deliveriesData } = useDeliveries({ status: "in_route" });
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery || searchQuery.length < 3) return;
+    
+    setIsSearching(true);
+    try {
+      const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`);
+      const data = await resp.json();
+      setSearchResults(data);
+    } catch (err) {
+      console.error("Geocoding error:", err);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const goToLocation = (lat: string, lon: string) => {
+    if (!map.current) return;
+    map.current.flyTo({
+      center: [parseFloat(lon), parseFloat(lat)],
+      zoom: 16,
+      duration: 2500
+    });
+    setSearchResults([]);
+    setSearchQuery("");
+  };
 
   const calculateCentroid = (regs: RegionRow[]) => {
     if (!regs.length) return null;
@@ -49,11 +82,33 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
+    // Use a Satellite/Hybrid style
+    // For "Real Colors" without Mapbox key, we use a custom Carto or Maptiler style that looks real,
+    // or we can use the default MapLibre style with a satellite raster source.
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: darkTheme 
-        ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
-        : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      style: {
+        version: 8,
+        sources: {
+          "satellite": {
+            type: "raster",
+            tiles: [
+              "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            ],
+            tileSize: 256,
+            attribution: "Esri, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community"
+          }
+        },
+        layers: [
+          {
+            id: "satellite",
+            type: "raster",
+            source: "satellite",
+            minzoom: 0,
+            maxzoom: 20
+          }
+        ]
+      },
       center: centerCity ? [centerCity.lng, centerCity.lat] : [-56.0974, -15.5989],
       zoom: 12,
     });
@@ -62,18 +117,6 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
 
     map.current.on("load", () => {
       mapLoaded.current = true;
-      if (!centerCity && !regions.length && navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            map.current?.flyTo({
-              center: [pos.coords.longitude, pos.coords.latitude],
-              zoom: 13,
-              duration: 2000
-            });
-          },
-          (err) => console.log("Geolocation error:", err)
-        );
-      }
     });
 
     return () => {
@@ -96,13 +139,12 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
     }
   }, [centerCity?.lat, centerCity?.lng, regions]);
 
-  // Render Regions and Labels
+  // Render Regions
   useEffect(() => {
     const m = map.current;
     if (!m || !regions) return;
 
-    const render = () => {
-      // Clear old regions
+    const renderRegions = () => {
       regionsRenderedRef.current.forEach((id) => {
         [`rfill-${id}`, `rline-${id}`, `rlabel-${id}`].forEach(l => {
           if (m.getLayer(l)) m.removeLayer(l);
@@ -134,14 +176,14 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
           id: `rfill-${region.id}`,
           type: "fill",
           source: srcId,
-          paint: { "fill-color": (region as any).color || "#F59E0B", "fill-opacity": 0.25 },
+          paint: { "fill-color": (region as any).color || "#F59E0B", "fill-opacity": 0.35 },
         });
 
         m.addLayer({
           id: `rline-${region.id}`,
           type: "line",
           source: srcId,
-          paint: { "line-color": (region as any).color || "#F59E0B", "line-width": 2, "line-opacity": 0.8 },
+          paint: { "line-color": "#ffffff", "line-width": 2.5, "line-opacity": 0.9 },
         });
 
         m.addLayer({
@@ -151,37 +193,26 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
           layout: {
             "text-field": ["concat", ["get", "name"], "\n", ["get", "price"]],
             "text-font": ["Open Sans Regular", "Arial Unicode MS Regular"],
-            "text-size": 11,
+            "text-size": 12,
             "text-anchor": "center",
             "text-allow-overlap": false,
             "text-offset": [0, 0],
             "text-line-height": 1.2,
           },
           paint: {
-            "text-color": "#1a1a1a",
-            "text-halo-color": "#ffffff",
+            "text-color": "#ffffff",
+            "text-halo-color": "#000000",
             "text-halo-width": 2,
           }
         });
-
-        if (interactive) {
-          m.on("mouseenter", `rfill-${region.id}`, () => {
-            m.getCanvas().style.cursor = "pointer";
-            m.setPaintProperty(`rfill-${region.id}`, "fill-opacity", 0.3);
-          });
-          m.on("mouseleave", `rfill-${region.id}`, () => {
-            m.getCanvas().style.cursor = "";
-            m.setPaintProperty(`rfill-${region.id}`, "fill-opacity", 0.15);
-          });
-        }
 
         regionsRenderedRef.current.push(region.id);
       });
     };
 
-    if (m.isStyleLoaded()) render();
-    else m.once("load", render);
-  }, [regions, interactive]);
+    if (m.isStyleLoaded()) renderRegions();
+    else m.once("load", renderRegions);
+  }, [regions]);
 
   // Realtime Drivers
   useEffect(() => {
@@ -198,66 +229,73 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
       el.className = "driver-marker";
       el.innerHTML = `
         <div style="
-          width: 38px; 
-          height: 38px; 
-          border-radius: 12px; 
+          width: 42px; 
+          height: 42px; 
+          border-radius: 50%; 
           background: #22c55e; 
-          border: 2px solid white; 
+          border: 3px solid white; 
           display: flex; 
           align-items: center; 
           justify-content: center; 
-          box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4); 
-          font-size: 18px;
+          box-shadow: 0 8px 16px rgba(0,0,0,0.3); 
           cursor: pointer;
-          transition: transform 0.2s;
-        " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-          Status
-        </div>
-      `;
-
-      const popupContent = `
-        <div style="padding: 10px; font-family: sans-serif; min-width: 160px; text-align: left;">
-          <div style="font-weight: bold; color: #1a1a1a; margin-bottom: 2px;">${driver.profiles?.full_name || "Entregador"}</div>
-          <div style="font-size: 11px; color: #22c55e; margin-bottom: 10px; display: flex; align-items: center; gap: 5px;">
-            <div style="width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 2s infinite;"></div>
-            Disponível
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <button onclick="window.location.href='/admin/chat?recipient=${driver.user_id}'" style="
-              cursor: pointer;
-              background: #3b82f6;
-              color: white;
-              border: none;
-              border-radius: 8px;
-              padding: 7px;
-              font-size: 11px;
-              font-weight: 600;
-              transition: opacity 0.2s;
-            ">💬 Iniciar Chat</button>
-            <button onclick="window.open('https://wa.me/${driver.profiles?.phone?.replace(/\D/g, "")}', '_blank')" style="
-              cursor: pointer;
-              background: #22c55e;
-              color: white;
-              border: none;
-              border-radius: 8px;
-              padding: 7px;
-              font-size: 11px;
-              font-weight: 600;
-              transition: opacity 0.2s;
-            ">🟢 WhatsApp</button>
-          </div>
-          <style>@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }</style>
+        ">
+          <img src="/logo.png" style="width: 24px; height: 24px; object-contain: fit;" />
         </div>
       `;
 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([driver.longitude, driver.latitude])
-        .setPopup(new maplibregl.Popup({ offset: 15, closeButton: false }).setHTML(popupContent))
         .addTo(m);
 
       markersRef.current.push(marker);
     });
   }, [drivers]);
 
-  return <div ref={mapContainer} className="w-full h-full rounded-xl overflow-hidden shadow-inner bg-muted/20" />;
+  return (
+    <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted/20 border border-border shadow-2xl">
+      {/* Search Overlay */}
+      <div className="absolute top-4 left-4 z-10 w-full max-w-sm pointer-events-auto">
+        <form onSubmit={handleSearch} className="relative group">
+          <div className="absolute inset-0 bg-background/60 backdrop-blur-xl rounded-2xl shadow-2xl ring-1 ring-black/10 group-focus-within:ring-primary/50 transition-all" />
+          <div className="relative flex items-center px-4 py-3 gap-3">
+             {isSearching ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Search className="h-5 w-5 text-muted-foreground" />}
+             <input 
+               value={searchQuery}
+               onChange={(e) => setSearchQuery(e.target.value)}
+               placeholder="Buscar endereço no mapa..."
+               className="flex-1 bg-transparent border-none outline-none text-sm font-bold text-foreground placeholder:text-muted-foreground/60"
+             />
+             {searchQuery && (
+               <button onClick={() => setSearchQuery("")} type="button" className="p-1 hover:bg-muted rounded-full">
+                  <X className="h-4 w-4" />
+               </button>
+             )}
+          </div>
+        </form>
+
+        {/* Results Dropdown */}
+        {searchResults.length > 0 && (
+          <div className="mt-3 bg-background/90 backdrop-blur-2xl border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+             {searchResults.map((res, i) => (
+                <button 
+                  key={i}
+                  onClick={() => goToLocation(res.lat, res.lon)}
+                  className="w-full flex items-start gap-3 p-4 text-left hover:bg-primary/10 border-b border-border/50 last:border-none transition-colors"
+                >
+                   <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                   <div>
+                      <p className="text-sm font-black text-foreground line-clamp-1">{res.display_name.split(",")[0]}</p>
+                      <p className="text-[10px] text-muted-foreground line-clamp-1">{res.display_name}</p>
+                   </div>
+                </button>
+             ))}
+          </div>
+        )}
+      </div>
+
+      <div ref={mapContainer} className="w-full h-full" />
+    </div>
+  );
 }
+
