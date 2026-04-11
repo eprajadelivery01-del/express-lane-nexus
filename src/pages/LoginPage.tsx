@@ -12,11 +12,11 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading: authLoading, hasRole, roles } = useAuth();
+  const { user, loading: authLoading, hasRole, roles, userStatus } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      console.log(`[LoginPage - 9c1a49c1] Verificando acesso para user.id: ${user.id}`);
+    if (user && !authLoading) {
+      console.log(`[LoginPage - 9c1a49c1] Verificando acesso para user.id: ${user.id}, status: ${userStatus}`);
       // Redirecionamento quase imediato para sessões ativas
       const timer = setTimeout(() => {
         if (userStatus === "pending") {
@@ -31,7 +31,7 @@ export default function LoginPage() {
       }, 100);
       return () => clearTimeout(timer);
     }
-  }, [user, userStatus, hasRole, navigate]);
+  }, [user, authLoading, userStatus, hasRole, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
