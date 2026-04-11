@@ -10,8 +10,8 @@ interface HeroMapSectionProps {
 }
 
 export function HeroMapSection({ 
-  title = "Sua entrega no radar, em tempo real", 
-  subtitle = "Acompanhe entregadores e regiões atendidas com transparência total."
+  title, 
+  subtitle 
 }: HeroMapSectionProps) {
   const { selectedCity } = useCity();
   const { data: regions } = useRegions(selectedCity || undefined);
@@ -19,51 +19,11 @@ export function HeroMapSection({
 
   return (
     <section 
-      className="relative w-full h-[350px] md:h-[450px] lg:h-[500px] overflow-hidden bg-background border-b border-border transition-all"
+      className="relative w-full h-[400px] md:h-[500px] lg:h-[600px] overflow-hidden bg-background border-b border-border transition-all"
     >
       {/* Background Interactive Map */}
-      <div className="absolute inset-0 z-0 opacity-40 dark:opacity-30 grayscale-[0.2] contrast-[1.1]">
+      <div className="absolute inset-0 z-0">
         <UnifiedMap regions={regions ?? []} interactive={true} />
-      </div>
-
-      {/* Glassmorphism Overlays */}
-      <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-b from-background/40 via-transparent to-background" />
-      <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-r from-background via-background/20 to-transparent" />
-
-      {/* Content Overlay */}
-      <div className="relative z-20 h-full w-full px-6 flex flex-col justify-center items-start">
-        <div className="max-w-2xl animate-in fade-in slide-in-from-left-8 duration-700">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-6 backdrop-blur-md">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Serviço Ativo e Sincronizado</span>
-          </div>
-          
-          <h1 className="text-4xl md:text-6xl font-display font-black text-foreground leading-[1.1] mb-6 tracking-tight">
-            {title}
-          </h1>
-          
-          <p className="text-lg md:text-xl text-muted-foreground/80 font-medium mb-10 max-w-lg leading-relaxed">
-            {subtitle}
-          </p>
-
-          <div className="flex flex-wrap gap-4 pointer-events-auto">
-            <button 
-              onClick={() => navigate("/admin/map")}
-              className="px-8 py-4 rounded-2xl bg-primary text-primary-foreground font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3 group"
-            >
-              <Search className="h-5 w-5 group-hover:rotate-12 transition-transform" />
-              Explorar Estabelecimentos
-            </button>
-            
-            <button 
-              onClick={() => navigate("/admin/map")}
-              className="px-8 py-4 rounded-2xl bg-card border border-border text-foreground font-bold shadow-lg hover:bg-muted/50 transition-all flex items-center gap-3"
-            >
-              <Navigation className="h-5 w-5" />
-              Ver Raio de Entrega
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Floating Controls */}
@@ -87,23 +47,24 @@ export function HeroMapSection({
         </div>
       </div>
 
-      {/* Footer Indicators */}
-      <div className="absolute bottom-8 left-8 right-8 z-30 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center gap-6">
+      {/* Footer Indicators - Small & Discrete */}
+      <div className="absolute bottom-6 left-6 right-6 z-30 flex items-center justify-between pointer-events-none">
+        <div className="flex items-center gap-6 bg-background/60 backdrop-blur-md px-4 py-2 rounded-full border border-border shadow-lg">
           <div className="flex items-center gap-2">
              <div className="w-2.5 h-2.5 rounded-full bg-success shadow-[0_0_8px_hsl(var(--success))]" />
-             <span className="text-xs font-bold text-foreground">Entregadores Online</span>
+             <span className="text-[10px] font-bold text-foreground">DRIVERS ONLINE</span>
           </div>
           <div className="flex items-center gap-2 opacity-60">
              <div className="w-2.5 h-2.5 rounded-full bg-primary/40 border border-primary" />
-             <span className="text-xs font-bold text-foreground">Áreas de Atendimento</span>
+             <span className="text-[10px] font-bold text-foreground">REGIONS ACTIVE</span>
           </div>
         </div>
         
-        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] animate-pulse">
-          Arraste para explorar o mapa
+        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] animate-pulse bg-background/40 backdrop-blur-sm px-4 py-2 rounded-full border border-border/50">
+          Arraste e aproxime para explorar
         </div>
       </div>
     </section>
   );
 }
+
