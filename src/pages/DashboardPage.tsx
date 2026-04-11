@@ -5,13 +5,13 @@ import { useDeliveryStats, useDeliveries } from "@/services/deliveries";
 import { useOnlineDrivers } from "@/services/drivers";
 import { useCompanies } from "@/services/companies";
 import { useAllRealtime } from "@/services/realtime";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useCity } from "@/contexts/CityContext";
 import { useRegions } from "@/services/regions";
 import { UnifiedMap } from "@/components/shared/UnifiedMap";
 import { HeroMapSection } from "@/components/shared/HeroMapSection";
 import {
-  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, Search, MapPin, Loader2
+  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, Search, MapPin, Loader2, Navigation, ChevronRight
 } from "lucide-react";
 
 export default function DashboardPage() {
