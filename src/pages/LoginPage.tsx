@@ -23,10 +23,10 @@ export default function LoginPage() {
           navigate("/pending-approval", { replace: true });
         } else if (hasRole("admin")) {
           navigate("/admin", { replace: true });
-        } else if (hasRole("company")) {
-          navigate("/business", { replace: true });
-        } else if (hasRole("driver")) {
-          navigate("/driver", { replace: true });
+        } else {
+          // Non-admin user on Admin panel
+          console.warn("[Admin - 9c1a49c1] Acesso negado: Perfil não administrativo.");
+          toast({ title: "Acesso Negado", description: "Este portal é exclusivo para administradores.", variant: "destructive" });
         }
       }, 100);
       return () => clearTimeout(timer);
@@ -63,7 +63,7 @@ export default function LoginPage() {
           <p className="text-sm text-muted-foreground mt-1 font-medium">Delivery • Painel de Gestão</p>
           <div className="mt-4 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
             <p className="text-[10px] font-bold text-primary uppercase tracking-widest leading-tight text-center">
-              Repositório Lojista (9c1a49c1)<br />BUILD: V14-NUCLEAR-SYNC
+              Painel de Controle Admin (9c1a49c1)<br />BUILD: V16-NUCLEAR-CLEANUP
             </p>
           </div>
         </div>
