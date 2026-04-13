@@ -464,9 +464,10 @@ const STATUS_COLORS = {
   broadcasted: "hsl(var(--info))",
   accepted: "hsl(var(--info))",
   collecting: "hsl(var(--accent))",
-  in_route: "hsl(var(--primary))",
-  completed: "#22c55e",
+  in_transit: "hsl(var(--primary))",
+  delivered: "#22c55e",
   cancelled: "#ef4444",
+  returned: "#6b7280",
 };
 
 const STATUS_LABELS = {
@@ -474,9 +475,10 @@ const STATUS_LABELS = {
   broadcasted: "Enviada",
   accepted: "Aceita",
   collecting: "Coletando",
-  in_route: "Em Rota",
-  completed: "Finalizada",
+  in_transit: "Em Trânsito",
+  delivered: "Finalizada",
   cancelled: "Cancelada",
+  returned: "Devolvida",
 };
 
 function SummaryCard({ label, value, icon, subValue, trend }: { 
