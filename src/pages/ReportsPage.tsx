@@ -184,10 +184,10 @@ export default function ReportsPage() {
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl border border-border bg-background/50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-inner appearance-none">
               <option value="all">Todos os Status</option>
-              <option value="completed">Finalizadas</option>
+              <option value="delivered">Finalizadas</option>
               <option value="cancelled">Canceladas</option>
               <option value="pending">Pendentes</option>
-              <option value="in_route">Em Rota</option>
+              <option value="in_transit">Em Trânsito</option>
             </select>
           </div>
         </div>
