@@ -35,15 +35,12 @@ export function useNotifications() {
   useEffect(() => {
     if (!user?.id) return;
 
-    // Escuta por eventos de notificação (pode ser expandido conforme sua tabela de notificações)
     const channel = supabase
       .channel("system-notifications")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "deliveries", filter: `driver_id=eq.${user.id}` },
-        () => {
-           // Lógica para disparar um alerta visual
-        }
+        () => {}
       )
       .subscribe();
 
@@ -55,7 +52,6 @@ export function useNotifications() {
   return { 
     sendNotification: async (userId: string, type: string, payload: any) => {
       console.log(`Notificação enviada para ${userId}: ${type}`, payload);
-      // Aqui integraria com OneSignal/Firebase se necessário
     }
   };
 }
@@ -70,7 +66,7 @@ export function useAddresses() {
   const query = useQuery({
     queryKey: ["addresses", user?.id],
     queryFn: async () => {
-       const { data, error } = await supabase.from("addresses").select("*").eq("customer_id", user?.id);
+       const { data, error } = await supabase.from("addresses").select("*").eq("user_id", user?.id ?? "");
        if (error) throw error;
        return data;
     },
@@ -79,7 +75,7 @@ export function useAddresses() {
 
   const createAddress = useMutation({
     mutationFn: async (data: any) => {
-      const { error } = await supabase.from("addresses").insert({ ...data, customer_id: user?.id });
+      const { error } = await supabase.from("addresses").insert({ ...data, user_id: user?.id });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["addresses"] }),

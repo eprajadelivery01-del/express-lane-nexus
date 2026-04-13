@@ -4,16 +4,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 export type DriverWithProfile = {
   id: string;
   user_id: string;
-  vehicle?: string;
-  vehicle_type?: string;
-  vehicle_plate?: string;
-  online?: boolean;
-  is_online?: boolean;
+  vehicle_type?: string | null;
+  vehicle_plate?: string | null;
+  online?: boolean | null;
+  is_online?: boolean | null;
   rating: number;
   latitude: number | null;
   longitude: number | null;
-  license_plate?: string | null;
-  commission_rate?: number;
   created_at?: string;
   profiles?: { full_name: string; phone: string | null; avatar_url: string | null } | null;
 };
@@ -64,6 +61,8 @@ export function useOnlineDrivers() {
       if (!drivers) return [];
 
       const userIds = drivers.map(d => d.user_id);
+      if (userIds.length === 0) return [];
+      
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("user_id, full_name, phone, avatar_url")
@@ -88,7 +87,7 @@ export function useToggleDriverOnline() {
     mutationFn: async ({ driverId, isOnline }: { driverId: string; isOnline: boolean }) => {
       const { error } = await supabase
         .from("delivery_drivers")
-        .update({ online: isOnline, is_online: isOnline } as any)
+        .update({ is_online: isOnline } as any)
         .eq("id", driverId);
       if (error) throw error;
     },
@@ -98,19 +97,16 @@ export function useToggleDriverOnline() {
   });
 }
 
-export function useAvailableDeliveries(regionId?: string) {
+export function useAvailableDeliveries() {
   return useQuery({
-    queryKey: ["deliveries", "available", regionId],
+    queryKey: ["deliveries", "available"],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("deliveries")
         .select("*, companies(name)")
         .eq("status", "pending")
         .is("driver_id", null);
-      
-      if (regionId) query = query.eq("region_id", regionId);
 
-      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -125,8 +121,8 @@ export function useAcceptDelivery() {
         .from("deliveries")
         .update({ 
           driver_id: driverId, 
-          status: "accepted",
-          accepted_at: new Date().toISOString() as any
+          status: "accepted" as any,
+          accepted_at: new Date().toISOString()
         })
         .eq("id", deliveryId)
         .select()

@@ -8,54 +8,24 @@ import { useAllRealtime } from "@/services/realtime";
 import React, { useState } from "react";
 import { useCity } from "@/contexts/CityContext";
 import { useRegions } from "@/services/regions";
-import { UnifiedMap } from "@/components/shared/UnifiedMap";
 import { HeroMapSection } from "@/components/shared/HeroMapSection";
+import { cn } from "@/lib/utils";
 import {
-  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, Search, MapPin, Loader2, Navigation, ChevronRight
+  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, MapPin, Navigation, ChevronRight
 } from "lucide-react";
 
 export default function DashboardPage() {
-
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
   const { data: companies } = useCompanies();
-  const { data: inTransitData } = useDeliveries({ status: "in_route" });
-  const { data: deliveredData } = useDeliveries({ status: "completed" });
+  const { data: inTransitData } = useDeliveries({ status: "in_transit" });
+  const { data: deliveredData } = useDeliveries({ status: "delivered" });
 
   const { selectedCity, setCity } = useCity();
   const { data: regions } = useRegions(selectedCity || undefined);
 
   const inTransitCount = inTransitData?.count ?? 0;
   const deliveredCount = deliveredData?.count ?? 0;
-
-  const [cityQuery, setCityQuery] = useState("");
-  const [citySuggestions, setCitySuggestions] = useState<Array<{ name: string; lat: number; lng: number }>>([]);
-  const [searchingCity, setSearchingCity] = useState(false);
-
-  const searchCity = async () => {
-    if (cityQuery.length < 2) return;
-    setSearchingCity(true);
-    try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityQuery)}&limit=5&addressdetails=1`
-      );
-      const data = await res.json();
-      setCitySuggestions(
-        data.map((r: any) => ({
-          name: r.display_name.split(",")[0],
-          lat: parseFloat(r.lat),
-          lng: parseFloat(r.lon),
-        }))
-      );
-    } catch {}
-    setSearchingCity(false);
-  };
-
-  const selectCity = (city: { name: string; lat: number; lng: number }) => {
-    setCity(city.name);
-    setCitySuggestions([]);
-    setCityQuery("");
-  };
 
   return (
     <AdminLayout title="Dashboard">
@@ -70,7 +40,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
-          {/* Main Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard icon={<Package className="h-5 w-5" />} label="Corridas Hoje" value={stats?.today ?? 0} iconBg="bg-warning/10" iconColor="text-warning" />
             <StatCard icon={<Clock className="h-5 w-5" />} label="Em Trânsito" value={inTransitCount} iconBg="bg-primary/10" iconColor="text-primary" pulse />
@@ -84,7 +53,6 @@ export default function DashboardPage() {
             <MiniStat icon={<TrendingUp className="h-3.5 w-3.5 text-accent" />} label="Total Geral" value={stats?.total ?? 0} />
           </div>
 
-          {/* Cities List Section (New) */}
           <div className="bg-card border border-border rounded-3xl p-6 shadow-card">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-black text-foreground flex items-center gap-2">

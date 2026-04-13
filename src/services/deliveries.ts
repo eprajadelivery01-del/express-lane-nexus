@@ -7,11 +7,31 @@ export interface DeliveryWithRelations {
   company_id: string | null;
   driver_id: string | null;
   customer_name: string | null;
-  address: string;
-  value: number | null;
+  customer_phone: string | null;
+  address: string | null;
+  pickup_address: string | null;
+  pickup_latitude: number | null;
+  pickup_longitude: number | null;
+  dropoff_address: string | null;
+  dropoff_latitude: number | null;
+  dropoff_longitude: number | null;
+  delivery_address: string | null;
+  delivery_latitude: number | null;
+  delivery_longitude: number | null;
+  value: number;
+  price: number | null;
+  commission: number;
   status: DeliveryStatus;
+  notes: string | null;
   created_at: string;
-  updated_at: string;
+  updated_at: string | null;
+  accepted_at: string | null;
+  collected_at: string | null;
+  delivered_at: string | null;
+  cancelled_at: string | null;
+  picked_up_at: string | null;
+  distance_km: number | null;
+  estimated_time_minutes: number | null;
   companies?: { name: string; phone: string | null } | null;
 }
 
@@ -38,7 +58,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
         .order("created_at", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (status && status !== "all") query = query.eq("status", status as DeliveryStatus);
+      if (status && status !== "all") query = query.eq("status", status as any);
       if (search) query = query.ilike("customer_name", `%${search}%`);
       if (companyId) query = query.eq("company_id", companyId);
       if (driverId) query = query.eq("driver_id", driverId);
@@ -51,7 +71,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { data: (data ?? []) as DeliveryWithRelations[], count: count || 0 };
+      return { data: (data ?? []) as unknown as DeliveryWithRelations[], count: count || 0 };
     },
   });
 }
@@ -75,10 +95,10 @@ export function useDeliveryStats() {
         today: data.length,
         total: totalRes.count ?? 0,
         pending: data.filter((d) => d.status === "pending").length,
-        inTransit: data.filter((d) => d.status === "in_route").length,
-        delivered: data.filter((d) => d.status === "completed").length,
+        inTransit: data.filter((d) => d.status === "in_transit").length,
+        delivered: data.filter((d) => d.status === "delivered").length,
         cancelled: data.filter((d) => d.status === "cancelled").length,
-        todayRevenue: data.filter((d) => d.status === "completed").reduce((sum, d) => sum + Number((d as any).value ?? 0), 0),
+        todayRevenue: data.filter((d) => d.status === "delivered").reduce((sum, d) => sum + Number(d.value ?? 0), 0),
       };
     },
     refetchInterval: 30000,
@@ -90,7 +110,7 @@ export function useUpdateDeliveryStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: DeliveryStatus }) => {
       const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
-      const { error } = await supabase.from("deliveries").update(updates).eq("id", id);
+      const { error } = await supabase.from("deliveries").update(updates as any).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -112,50 +132,40 @@ export function useReassignDelivery() {
 }
 
 /**
- * INTEGRAÇÕES COM PAINEL LOJISTA (iFood Style)
+ * INTEGRAÇÕES COM PAINEL LOJISTA
  */
 export async function createDeliveryRequest(orderId: string) {
-  // 1. Puxa os dados do pedido (orders)
   const { data: order, error: orderError } = await supabase
     .from("orders")
-    .select("*, customers(*), order_items(*)")
+    .select("*, order_items(*)")
     .eq("id", orderId)
     .single();
 
   if (orderError) throw orderError;
   if (!order) throw new Error("Pedido não encontrado");
 
-  // O "customer" no iFood tem nome e endereço
-  // Como as orders apontam pra customers, puxamos o endereço real do customer
-  const { data: address, error: addressError } = await supabase
+  const { data: address } = await supabase
     .from("addresses")
     .select("*")
-    .eq("customer_id", order.customer_id)
-    .single();
+    .eq("user_id", order.customer_id)
+    .limit(1)
+    .maybeSingle();
 
   const dropoff = address ? `${address.street}, ${address.number} - ${address.neighborhood}` : "Endereço não cadastrado";
 
-  // 2. Insere na tabela de deliveries
   const { data: delivery, error: deliveryError } = await supabase
     .from("deliveries")
     .insert({
       company_id: order.company_id,
-      customer_name: order.customers ? (order.customers as any).name : "Cliente Avulso",
-      address: dropoff, // IMPORTANTE: no types.ts a coluna chama 'address'
-      value: order.total || 0, // No types.ts a coluna chama 'value'
+      customer_name: "Cliente",
+      address: dropoff,
+      value: order.total || 0,
       status: "pending",
-      region_id: address?.region_id || null
     })
     .select()
     .single();
 
   if (deliveryError) throw deliveryError;
-
-  // 3. Associa a delivery_id ao pedido
-  await supabase
-    .from("orders")
-    .update({ delivery_id: delivery.id })
-    .eq("id", orderId);
 
   return delivery;
 }

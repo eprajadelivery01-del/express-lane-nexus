@@ -1,47 +1,31 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-/**
- * FUNÇÕES
- */
 export async function calculateDeliveryFee(lat: number, lng: number) {
-  // Chama a função RPC do Postgres que criamos (find_region_for_point)
-  const { data: regionId, error: regionError } = await supabase.rpc("find_region_for_point", {
+  const { data, error: regionError } = await supabase.rpc("find_region_for_point", {
     _lat: lat,
     _lng: lng,
   });
 
   if (regionError) throw regionError;
-  if (!regionId) return { fee: 0, regionId: null, message: "Fora da área de cobertura" };
+  if (!data || data.length === 0) return { fee: 0, regionId: null, message: "Fora da área de cobertura" };
 
-  const { data: region, error: regError } = await supabase
-    .from("regions")
-    .select("price, delivery_price")
-    .eq("id", regionId)
-    .single();
-
-  if (regError) throw regError;
-
-  const validFee = (region as any).delivery_price ?? region.price ?? 0;
-
-  return { fee: validFee, regionId: regionId };
+  const region = data[0];
+  return { fee: region.region_price ?? 0, regionId: region.region_id };
 }
 
 export async function createOrder(orderData: {
   company_id: string;
   customer_id: string;
-  address_id?: string;
   delivery_fee?: number;
   items: { product_id: string; quantity: number; price: number }[];
   total: number;
 }) {
-  // 1. Criar o pedido (Order)
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
       company_id: orderData.company_id,
       customer_id: orderData.customer_id,
-      address_id: orderData.address_id,
       delivery_fee: orderData.delivery_fee,
       total: orderData.total,
       status: "pending",
@@ -51,7 +35,6 @@ export async function createOrder(orderData: {
 
   if (orderError) throw orderError;
 
-  // 2. Criar os itens do pedido (Order Items)
   const orderItems = orderData.items.map((item) => ({
     order_id: order.id,
     product_id: item.product_id,
@@ -68,7 +51,7 @@ export async function createOrder(orderData: {
 export async function getCompanyOrders(companyId: string) {
   const { data, error } = await supabase
     .from("orders")
-    .select("*, order_items(*), customers(*), deliveries(*)")
+    .select("*, order_items(*)")
     .eq("company_id", companyId)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -86,9 +69,6 @@ export async function updateOrderStatus(orderId: string, status: "pending" | "pr
   return data;
 }
 
-/**
- * HOOKS
- */
 export function useCalculateDeliveryFee() {
   return useMutation({
     mutationFn: ({ lat, lng }: { lat: number; lng: number }) => calculateDeliveryFee(lat, lng),
@@ -137,7 +117,6 @@ export function useUpdateOrderStatus() {
   });
 }
 
-// Opcional para componentizar escuta Realtime:
 import { useEffect } from "react";
 export function useRealtimeOrders(companyId?: string | null) {
   const qc = useQueryClient();

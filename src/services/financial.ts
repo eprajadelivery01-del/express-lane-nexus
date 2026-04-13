@@ -2,9 +2,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 
-/**
- * FUNÇÕES
- */
 export async function getWallet(userId: string) {
   const { data, error } = await supabase
     .from("wallets")
@@ -12,7 +9,7 @@ export async function getWallet(userId: string) {
     .eq("user_id", userId)
     .single();
 
-  if (error && error.code !== "PGRST116") throw error; // Se não houver carteira ainda, criamos uma?
+  if (error && error.code !== "PGRST116") throw error;
   
   if (!data) {
      const { data: newWallet, error: createError } = await supabase
@@ -27,19 +24,17 @@ export async function getWallet(userId: string) {
   return data;
 }
 
-export async function getTransactions(walletId: string) {
+export async function getTransactions(userId: string) {
   const { data, error } = await supabase
     .from("financial_transactions")
     .select("*")
-    .eq("wallet_id", walletId)
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data;
 }
 
 export async function requestWithdrawal(amount: number, userId: string) {
-  // Aqui você integraria com um serviço de PIX/Bank ou criaria uma tabela de 'withdrawals'
-  // Por enquanto, apenas registramos uma saída na carteira
   const wallet = await getWallet(userId);
   if (wallet.balance < amount) throw new Error("Saldo insuficiente");
 
@@ -52,20 +47,17 @@ export async function requestWithdrawal(amount: number, userId: string) {
 
   const { error: transError } = await supabase
     .from("financial_transactions")
-    .insert({
-      wallet_id: wallet.id,
+    .insert([{
+      user_id: userId,
       amount: -amount,
-      type: "debit",
+      type: "withdrawal" as const,
       description: "Saque solicitado",
-    });
+    }]);
 
   if (transError) throw transError;
   return { success: true };
 }
 
-/**
- * HOOKS
- */
 export function useWallet() {
   const { user } = useAuth();
   return useQuery({
@@ -76,11 +68,11 @@ export function useWallet() {
 }
 
 export function useTransactions() {
-  const { data: wallet } = useWallet();
+  const { user } = useAuth();
   return useQuery({
-    queryKey: ["transactions", wallet?.id],
-    queryFn: () => (wallet?.id ? getTransactions(wallet.id) : null),
-    enabled: !!wallet?.id,
+    queryKey: ["transactions", user?.id],
+    queryFn: () => (user?.id ? getTransactions(user.id) : null),
+    enabled: !!user?.id,
   });
 }
 
@@ -93,7 +85,7 @@ export function useWithdrawals() {
       return requestWithdrawal(amount, user.id);
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["wallet", user?.id] });
+      qc.invalidateQueries({ queryKey: ["wallet"] });
       qc.invalidateQueries({ queryKey: ["transactions"] });
     },
   });

@@ -1,4 +1,4 @@
-import { Bell, ChevronDown } from "lucide-react";
+import { Bell } from "lucide-react";
 import { useDeliveries } from "@/services/deliveries";
 import { format } from "date-fns";
 
@@ -14,8 +14,8 @@ export function NotificationsPanel() {
       case "broadcasted": return "📡";
       case "accepted": return "✅";
       case "collecting": return "🏪";
-      case "in_route": return "🏍️";
-      case "completed": return "🎉";
+      case "in_transit": return "🏍️";
+      case "delivered": return "🎉";
       case "cancelled": return "❌";
       default: return "📦";
     }
@@ -27,8 +27,8 @@ export function NotificationsPanel() {
       case "pending": return `Novo pedido de ${name}`;
       case "broadcasted": return `Pedido enviado para motoboys`;
       case "accepted": return `Pedido aceito`;
-      case "in_route": return `Entrega em rota`;
-      case "completed": return `Entrega finalizada`;
+      case "in_transit": return `Entrega em rota`;
+      case "delivered": return `Entrega finalizada`;
       case "cancelled": return `Entrega cancelada`;
       default: return `Atualização: ${d.status}`;
     }
@@ -58,10 +58,10 @@ export function NotificationsPanel() {
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-foreground">{getTitle(d)}</p>
                 <p className="text-[11px] text-muted-foreground truncate">
-                  {d.customer_name} — R$ {Number(d.price ?? 0).toFixed(2)}
+                  {d.customer_name} — R$ {Number(d.value ?? 0).toFixed(2)}
                 </p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {format(new Date(d.updated_at), "dd/MM HH:mm")}
+                  {d.updated_at ? format(new Date(d.updated_at), "dd/MM HH:mm") : "—"}
                 </p>
               </div>
             </div>

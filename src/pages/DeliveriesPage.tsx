@@ -24,8 +24,8 @@ const statusFilters = [
   { label: "Enviadas", value: "broadcasted" },
   { label: "Aceitas", value: "accepted" },
   { label: "Em Coleta", value: "collecting" },
-  { label: "Em Rota", value: "in_route" },
-  { label: "Finalizadas", value: "completed" },
+  { label: "Em Rota", value: "in_transit" },
+  { label: "Finalizadas", value: "delivered" },
   { label: "Canceladas", value: "cancelled" },
 ];
 
@@ -73,23 +73,22 @@ export default function DeliveriesPage() {
 
   const onlineDrivers = (drivers ?? []).filter((d) => d.is_online);
 
-  // Sort drivers by proximity to delivery
   const getDriversSortedByProximity = (delivery: DeliveryWithRelations) => {
     if (!delivery.pickup_latitude || !delivery.pickup_longitude) return onlineDrivers;
     return [...onlineDrivers].sort((a, b) => {
-      const distA = a.current_latitude && a.current_longitude
-        ? haversineDistance(delivery.pickup_latitude!, delivery.pickup_longitude!, a.current_latitude, a.current_longitude)
+      const distA = a.latitude && a.longitude
+        ? haversineDistance(delivery.pickup_latitude!, delivery.pickup_longitude!, a.latitude, a.longitude)
         : Infinity;
-      const distB = b.current_latitude && b.current_longitude
-        ? haversineDistance(delivery.pickup_latitude!, delivery.pickup_longitude!, b.current_latitude, b.current_longitude)
+      const distB = b.latitude && b.longitude
+        ? haversineDistance(delivery.pickup_latitude!, delivery.pickup_longitude!, b.latitude, b.longitude)
         : Infinity;
       return distA - distB;
     });
   };
 
   const getDriverDistance = (driver: any, delivery: DeliveryWithRelations) => {
-    if (!delivery.pickup_latitude || !delivery.pickup_longitude || !driver.current_latitude || !driver.current_longitude) return null;
-    return haversineDistance(delivery.pickup_latitude, delivery.pickup_longitude, driver.current_latitude, driver.current_longitude);
+    if (!delivery.pickup_latitude || !delivery.pickup_longitude || !driver.latitude || !driver.longitude) return null;
+    return haversineDistance(delivery.pickup_latitude, delivery.pickup_longitude, driver.latitude, driver.longitude);
   };
 
   const handleReassign = async () => {
@@ -104,7 +103,6 @@ export default function DeliveriesPage() {
     }
   };
 
-  // Broadcast to all online drivers
   const handleBroadcast = async (delivery: DeliveryWithRelations) => {
     try {
       await updateStatus.mutateAsync({ id: delivery.id, status: "broadcasted" });
@@ -114,7 +112,6 @@ export default function DeliveriesPage() {
     }
   };
 
-  // Dispatch to specific driver
   const handleDispatch = async () => {
     if (!dispatchDelivery || !selectedDriverId) return;
     try {
@@ -149,13 +146,13 @@ export default function DeliveriesPage() {
         <div class="label">Cliente</div>
         <div class="value">${delivery.customer_name}</div>
         <div class="label">Endereço</div>
-        <div class="value">${delivery.dropoff_address}</div>
+        <div class="value">${delivery.dropoff_address || delivery.address || "—"}</div>
         <div class="label">Empresa</div>
-        <div class="value">${(delivery as any).companies?.name || "—"}</div>
+        <div class="value">${delivery.companies?.name || "—"}</div>
         <div class="label">Status</div>
         <div class="value">${delivery.status}</div>
         <div class="label">Valor</div>
-        <div class="value">R$ ${Number(delivery.price ?? 0).toFixed(2)}</div>
+        <div class="value">R$ ${Number(delivery.value ?? 0).toFixed(2)}</div>
         <div class="label">Data</div>
         <div class="value">${format(new Date(delivery.created_at), "dd/MM/yyyy HH:mm")}</div>
         ${delivery.notes ? `<div class="label">Observações</div><div class="value">${delivery.notes}</div>` : ""}
@@ -253,16 +250,16 @@ export default function DeliveriesPage() {
                         <p className="text-sm font-medium text-foreground">{delivery.customer_name}</p>
                       </td>
                       <td className="p-4 hidden md:table-cell">
-                        <p className="text-sm text-foreground">{(delivery as any).companies?.name || "—"}</p>
+                        <p className="text-sm text-foreground">{delivery.companies?.name || "—"}</p>
                       </td>
                       <td className="p-4 hidden lg:table-cell">
-                        <p className="text-sm text-muted-foreground truncate max-w-[200px]">{delivery.dropoff_address}</p>
+                        <p className="text-sm text-muted-foreground truncate max-w-[200px]">{delivery.dropoff_address || delivery.address}</p>
                       </td>
                       <td className="p-4">
                         <DeliveryStatusBadge status={delivery.status as DeliveryStatus} />
                       </td>
                       <td className="p-4 hidden sm:table-cell">
-                        <span className="text-sm font-semibold text-foreground">R$ {Number(delivery.price ?? 0).toFixed(2)}</span>
+                        <span className="text-sm font-semibold text-foreground">R$ {Number(delivery.value ?? 0).toFixed(2)}</span>
                       </td>
                       <td className="p-4 hidden lg:table-cell">
                         <span className="text-xs text-muted-foreground">
@@ -271,7 +268,6 @@ export default function DeliveriesPage() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-1">
-                          {/* Broadcast button for pending deliveries */}
                           {delivery.status === "pending" && (
                             <button
                               onClick={() => handleBroadcast(delivery)}
@@ -281,7 +277,6 @@ export default function DeliveriesPage() {
                               <Radio className="h-4 w-4 text-primary" />
                             </button>
                           )}
-                          {/* Dispatch button for pending deliveries */}
                           {delivery.status === "pending" && (
                             <button
                               onClick={() => { setDispatchDelivery(delivery); setSelectedDriverId(""); }}
@@ -337,12 +332,12 @@ export default function DeliveriesPage() {
                                 </DropdownMenuItem>
                               )}
                               {delivery.status === "collecting" && (
-                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "in_transit" })}>
+                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "in_transit" as DeliveryStatus })}>
                                   Em Rota
                                 </DropdownMenuItem>
                               )}
                               {delivery.status === "in_transit" && (
-                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "delivered" })}>
+                                <DropdownMenuItem onClick={() => updateStatus.mutate({ id: delivery.id, status: "delivered" as DeliveryStatus })}>
                                   Finalizar
                                 </DropdownMenuItem>
                               )}
@@ -433,13 +428,13 @@ export default function DeliveriesPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <DetailField label="Cliente" value={detailDelivery.customer_name} />
-                <DetailField label="Empresa" value={(detailDelivery as any).companies?.name || "—"} />
-                <DetailField label="Valor" value={`R$ ${Number(detailDelivery.price ?? 0).toFixed(2)}`} />
+                <DetailField label="Cliente" value={detailDelivery.customer_name || "—"} />
+                <DetailField label="Empresa" value={detailDelivery.companies?.name || "—"} />
+                <DetailField label="Valor" value={`R$ ${Number(detailDelivery.value ?? 0).toFixed(2)}`} />
                 <DetailField label="Criado em" value={format(new Date(detailDelivery.created_at), "dd/MM/yyyy HH:mm")} />
               </div>
 
-              <DetailField label="Endereço" value={detailDelivery.dropoff_address} />
+              <DetailField label="Endereço" value={detailDelivery.dropoff_address || detailDelivery.address || "—"} />
               
               {detailDelivery.notes && (
                 <DetailField label="Observações" value={detailDelivery.notes} />
@@ -512,7 +507,7 @@ export default function DeliveriesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Dispatch Modal - Send to specific driver */}
+      {/* Dispatch Modal */}
       <Dialog open={!!dispatchDelivery} onOpenChange={(open) => !open && setDispatchDelivery(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -528,7 +523,7 @@ export default function DeliveriesPage() {
                 <p className="text-sm font-medium text-foreground">
                   #{dispatchDelivery.id.slice(0, 8).toUpperCase()} — {dispatchDelivery.customer_name}
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">{dispatchDelivery.dropoff_address}</p>
+                <p className="text-xs text-muted-foreground mt-1">{dispatchDelivery.dropoff_address || dispatchDelivery.address}</p>
               </div>
 
               <div>

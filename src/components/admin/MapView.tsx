@@ -16,13 +16,13 @@ export function MapView({ centerCity }: MapViewProps) {
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
   const labelsRef = useRef<maplibregl.Marker[]>([]);
-  const regionsRenderedRef = useRef<string[]>([]); // track which regions are on map
+  const regionsRenderedRef = useRef<string[]>([]);
   const { toast } = useToast();
   const updateRegion = useUpdateRegion();
 
   const { data: drivers } = useOnlineDrivers();
   const { data: regions } = useRegions();
-  const { data: deliveriesData } = useDeliveries({ status: "in_route" });
+  const { data: deliveriesData } = useDeliveries({ status: "in_transit" });
   const { data: companies } = useCompanies();
 
   const getCentroid = (coords: [number, number][]) => {
@@ -31,12 +31,10 @@ export function MapView({ centerCity }: MapViewProps) {
     return [x / coords.length, y / coords.length] as [number, number];
   };
 
-  // Default center (Cuiabá-MT) or persisted city
   const defaultCenter: [number, number] = centerCity
     ? [centerCity.lng, centerCity.lat]
     : [-56.0974, -15.5989];
 
-  // Init map ONCE — never destroy on city change
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
@@ -55,28 +53,24 @@ export function MapView({ centerCity }: MapViewProps) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fly to city when it changes (without recreating the map)
   useEffect(() => {
     if (!map.current || !centerCity) return;
     map.current.flyTo({ center: [centerCity.lng, centerCity.lat], zoom: 13, duration: 1500 });
   }, [centerCity?.lat, centerCity?.lng]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Render region polygons whenever regions change
+  // Render region polygons
   useEffect(() => {
     const m = map.current;
     if (!m || !regions) return;
 
     const render = () => {
-      // Clear old labels
       labelsRef.current.forEach(mk => mk.remove());
       labelsRef.current = [];
 
-      // Remove previously rendered regions that are no longer in the list
       regionsRenderedRef.current.forEach((id) => {
         if (m.getLayer(`region-fill-${id}`)) m.removeLayer(`region-fill-${id}`);
         if (m.getLayer(`region-line-${id}`)) m.removeLayer(`region-line-${id}`);
         if (m.getSource(`region-src-${id}`)) m.removeSource(`region-src-${id}`);
-        m.off("click", `region-fill-${id}`, () => {});
       });
       regionsRenderedRef.current = [];
 
@@ -89,7 +83,6 @@ export function MapView({ centerCity }: MapViewProps) {
         const fillId = `region-fill-${region.id}`;
         const lineId = `region-line-${region.id}`;
 
-        // If source already exists (e.g. second render), update data
         if (m.getSource(srcId)) {
           (m.getSource(srcId) as maplibregl.GeoJSONSource).setData({
             type: "Feature",
@@ -129,7 +122,6 @@ export function MapView({ centerCity }: MapViewProps) {
           m.setPaintProperty(lineId, "line-color", region.color);
         }
 
-        // SINGLE CENTRAL LABEL
         const geoJSON = region.geometry as any;
         if (geoJSON.coordinates?.[0]) {
           const centroid = getCentroid(geoJSON.coordinates[0]);
@@ -154,7 +146,6 @@ export function MapView({ centerCity }: MapViewProps) {
           labelsRef.current.push(labelMarker);
         }
 
-        // CLICK TO EDIT PRICE
         m.on("click", fillId, (e) => {
           const popup = new maplibregl.Popup({ closeButton: true, closeOnClick: false })
             .setLngLat(e.lngLat)
@@ -197,7 +188,7 @@ export function MapView({ centerCity }: MapViewProps) {
     else m.once("load", render);
   }, [regions]);
 
-  // Render driver markers (realtime)
+  // Render driver + company markers
   useEffect(() => {
     const m = map.current;
     if (!m) return;
@@ -206,7 +197,9 @@ export function MapView({ centerCity }: MapViewProps) {
     markersRef.current = [];
 
     (drivers ?? []).forEach((driver) => {
-      if (!driver.current_latitude || !driver.current_longitude) return;
+      const lat = driver.latitude;
+      const lng = driver.longitude;
+      if (!lat || !lng) return;
 
       const el = document.createElement("div");
       el.innerHTML = `
@@ -221,13 +214,13 @@ export function MapView({ centerCity }: MapViewProps) {
       `;
 
       const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([driver.current_longitude, driver.current_latitude])
+        .setLngLat([lng, lat])
         .setPopup(
           new maplibregl.Popup({ offset: 20 }).setHTML(`
             <div style="font-family: sans-serif; padding: 4px;">
               <strong>${driver.profiles?.full_name || "Entregador"}</strong><br/>
               <span style="color: #22c55e">● Online</span><br/>
-              <small>${driver.vehicle_type} • ⭐ ${Number(driver.rating).toFixed(1)}</small>
+              <small>${driver.vehicle_type || "Moto"} • ⭐ ${Number(driver.rating).toFixed(1)}</small>
             </div>
           `)
         )
@@ -236,7 +229,6 @@ export function MapView({ centerCity }: MapViewProps) {
       markersRef.current.push(marker);
     });
 
-    // Render company markers
     (companies ?? []).forEach((company) => {
       if (!company.latitude || !company.longitude) return;
 
@@ -250,7 +242,6 @@ export function MapView({ centerCity }: MapViewProps) {
           display: flex; align-items: center; justify-content: center;
           box-shadow: 0 4px 12px rgba(0,0,0,0.3);
           font-size: 16px;
-          transition: all 0.2s;
         ">🏪</div>
       `;
 

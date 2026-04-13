@@ -1,6 +1,6 @@
-export type DeliveryStatus = "pending" | "broadcasted" | "accepted" | "collecting" | "in_route" | "completed" | "cancelled";
+export type DeliveryStatus = "pending" | "broadcasted" | "accepted" | "collecting" | "in_transit" | "delivered" | "cancelled" | "returned";
 
-export type OccurrenceType = "motorcycle_issue" | "accident" | "robbery";
+export type OccurrenceType = "delay" | "damage" | "absence" | "other";
 
 export type UserRole = "admin" | "company" | "driver" | "customer";
 
@@ -16,7 +16,6 @@ export interface Company {
   name: string;
   phone: string;
   address: string;
-  region_id: string;
   latitude?: number | null;
   longitude?: number | null;
 }
@@ -45,8 +44,6 @@ export interface Delivery {
   driver_name: string | null;
   customer_name: string;
   address: string;
-  region_id: string;
-  region_name: string;
   status: DeliveryStatus;
   value: number;
   commission: number;
@@ -60,7 +57,6 @@ export interface Order {
   company_id: string;
   items: OrderItem[];
   total: number;
-  delivery_id?: string;
   status: "pending" | "preparing" | "ready" | "delivered" | "cancelled";
   created_at: string;
 }
