@@ -63,10 +63,13 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
 
   // Render region polygons
   useEffect(() => {
-    const m = map.current;
-    if (!m || !regions) return;
+    const currentMap = map.current;
+    if (!currentMap || !regions) return;
 
     const render = () => {
+      const m = map.current;
+      if (!m) return;
+
       labelsRef.current.forEach(mk => mk.remove());
       labelsRef.current = [];
 
@@ -187,14 +190,14 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
       });
     };
 
-    if (m.isStyleLoaded()) render();
-    else m.once("load", render);
+    if (currentMap.isStyleLoaded()) render();
+    else currentMap.once("load", render);
   }, [regions]);
 
   // Render driver + company markers
   useEffect(() => {
-    const m = map.current;
-    if (!m) return;
+    const currentMap = map.current;
+    if (!currentMap) return;
 
     markersRef.current.forEach((mk) => mk.remove());
     markersRef.current = [];
@@ -333,7 +336,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([lng, lat])
         .setPopup(new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupContent))
-        .addTo(m);
+        .addTo(currentMap);
 
       markersRef.current.push(marker);
     });
@@ -369,7 +372,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
             </div>
           `)
         )
-        .addTo(m);
+        .addTo(currentMap);
 
       markersRef.current.push(marker);
     });

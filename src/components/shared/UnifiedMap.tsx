@@ -122,10 +122,13 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
 
   // Render Regions
   useEffect(() => {
-    const m = map.current;
-    if (!m || !regions) return;
+    const currentMap = map.current;
+    if (!currentMap || !regions) return;
 
     const renderRegions = () => {
+      const m = map.current;
+      if (!m) return;
+
       regionsRenderedRef.current.forEach((id) => {
         [`rfill-${id}`, `rline-${id}`, `rlabel-${id}`].forEach(l => {
           if (m.getLayer(l)) m.removeLayer(l);
@@ -191,14 +194,14 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
       });
     };
 
-    if (m.isStyleLoaded()) renderRegions();
-    else m.once("load", renderRegions);
+    if (currentMap.isStyleLoaded()) renderRegions();
+    else currentMap.once("load", renderRegions);
   }, [regions]);
 
   // Realtime Drivers
   useEffect(() => {
-    const m = map.current;
-    if (!m) return;
+    const currentMap = map.current;
+    if (!currentMap) return;
 
     markersRef.current.forEach(mk => mk.remove());
     markersRef.current = [];
@@ -335,7 +338,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([driver.longitude, driver.latitude])
         .setPopup(new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupContent))
-        .addTo(m);
+        .addTo(currentMap);
 
       markersRef.current.push(marker);
     });
