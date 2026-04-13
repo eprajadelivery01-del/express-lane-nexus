@@ -84,11 +84,12 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
           <button 
             onClick={toggleSidebar}
             className={cn(
-              "hidden lg:flex absolute -right-3.5 top-16 w-7 h-7 rounded-full bg-primary border-4 border-background items-center justify-center text-primary-foreground shadow-xl transition-all hover:scale-110 z-[60]",
-              collapsed && "rotate-180"
+              "hidden lg:flex absolute -right-4 top-20 w-8 h-8 rounded-full bg-card border border-border items-center justify-center text-muted-foreground shadow-card hover:text-primary hover:border-primary transition-all z-[60]",
+              collapsed ? "rotate-0 shadow-primary/20 bg-primary text-primary-foreground border-primary" : "rotate-180"
             )}
+            title={collapsed ? "Expandir Menu" : "Recolher Menu"}
           >
-            <ChevronRight className="h-3.5 w-3.5" />
+            <ChevronRight className="h-4 w-4" />
           </button>
         </div>
 

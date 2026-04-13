@@ -1,5 +1,6 @@
 import { Bell, Search } from "lucide-react";
 import { NotificationsPopover } from "./NotificationsPopover";
+import { GlobalSearch } from "./GlobalSearch";
 
 interface AdminHeaderProps {
   title: string;
@@ -15,13 +16,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
         </div>
         <div className="flex items-center gap-3">
-          <div className="hidden md:flex items-center gap-2 bg-muted rounded-xl px-3 py-2 border border-transparent focus-within:border-primary/20 transition-all">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              placeholder="Buscar..."
-              className="bg-transparent text-sm outline-none w-40 placeholder:text-muted-foreground"
-            />
-          </div>
+          <GlobalSearch />
           <NotificationsPopover />
         </div>
       </div>
