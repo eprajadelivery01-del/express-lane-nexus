@@ -281,7 +281,88 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Main Table */}
+      {/* Breakdown by Company */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <div className="bg-card rounded-3xl p-6 border border-border shadow-xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Breakdown por Empresa</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Receita e volume por empresa</p>
+            </div>
+          </div>
+          {companyBreakdown.length > 0 ? (
+            <div className="space-y-3 max-h-[360px] overflow-y-auto scrollbar-thin">
+              {companyBreakdown.map((c, i) => {
+                const maxRev = companyBreakdown[0].revenue;
+                const pct = maxRev > 0 ? (c.revenue / maxRev) * 100 : 0;
+                return (
+                  <div key={c.companyId || i} className="group">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black shrink-0">{i + 1}</span>
+                        <span className="text-sm font-bold text-foreground truncate">{c.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4 shrink-0 ml-2">
+                        <span className="text-xs text-muted-foreground font-semibold">{c.count} entregas</span>
+                        <span className="text-sm font-black text-foreground">R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary/70 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
+          )}
+        </div>
+
+        {/* Breakdown by Driver */}
+        <div className="bg-card rounded-3xl p-6 border border-border shadow-xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-success/10 flex items-center justify-center text-success">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Breakdown por Motorista</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Entregas e ganhos por entregador</p>
+            </div>
+          </div>
+          {driverBreakdown.length > 0 ? (
+            <div className="space-y-3 max-h-[360px] overflow-y-auto scrollbar-thin">
+              {driverBreakdown.map((d, i) => {
+                const maxCount = driverBreakdown[0].count;
+                const pct = maxCount > 0 ? (d.count / maxCount) * 100 : 0;
+                return (
+                  <div key={d.driverId || i} className="group">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${i < 3 ? "bg-warning/20 text-warning" : "bg-muted/50 text-muted-foreground"}`}>{i + 1}</span>
+                        <span className="text-sm font-bold text-foreground truncate">{d.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4 shrink-0 ml-2">
+                        <span className="text-xs text-muted-foreground font-semibold">{d.count} entregas</span>
+                        <span className="text-sm font-black text-foreground">R$ {d.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
+                      <div className="h-full bg-success/60 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
+          )}
+        </div>
+      </div>
+
       <div className="bg-card/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden mb-12">
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-4">
