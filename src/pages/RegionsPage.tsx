@@ -40,6 +40,7 @@ export default function RegionsPage() {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const popupRef = useRef<maplibregl.Popup | null>(null);
   const renderedRegionIdsRef = useRef<string[]>([]);
+  const deletingIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -69,7 +70,7 @@ export default function RegionsPage() {
       renderedRegionIdsRef.current = [];
 
       regions.forEach((region) => {
-        if (!region.geometry) return;
+        if (!region.geometry || deletingIdsRef.current.has(region.id)) return;
         const geojson = region.geometry as any;
         if (geojson.type !== "Polygon") return;
 
@@ -359,6 +360,8 @@ export default function RegionsPage() {
   const handleDelete = async (id: string) => {
     try {
       // 1. Immediate local map cleanup for instant feedback
+      deletingIdsRef.current.add(id);
+      
       const m = mapRef.current;
       if (m) {
         // Remove layers
@@ -381,6 +384,9 @@ export default function RegionsPage() {
 
       // 2. Perform actual deletion
       await deleteRegion.mutateAsync(id);
+      
+      // Cleanup the negative cache once server confirms
+      deletingIdsRef.current.delete(id);
       
       toast({ title: "Região excluída" });
       setSelectedRegion(null);
