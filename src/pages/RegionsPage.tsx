@@ -55,84 +55,116 @@ export default function RegionsPage() {
     return () => { m.remove(); mapRef.current = null; };
   }, []);
 
-  // Render regions on map
+  // Render regions on map - Surgical updates to prevent flickering
   useEffect(() => {
     const m = mapRef.current;
     if (!m || !regions) return;
-    const handleLoad = () => {
-      // Clean old layers (using tracking ref to catch deletions)
-      renderedRegionIdsRef.current.forEach((id) => {
-        [`region-fill-${id}`, `region-line-${id}`, `region-highlight-${id}`].forEach((l) => {
-          if (m.getLayer(l)) m.removeLayer(l);
-        });
-        if (m.getSource(`region-${id}`)) m.removeSource(`region-${id}`);
-      });
-      renderedRegionIdsRef.current = [];
 
+    const handleUpdate = () => {
+      const currentIds = new Set(regions.map(r => r.id));
+      const renderedIds = new Set(renderedRegionIdsRef.current);
+
+      // 1. Remove regions that are no longer present or are marked for deletion
+      renderedRegionIdsRef.current.forEach((id) => {
+        if (!currentIds.has(id) || deletingIdsRef.current.has(id)) {
+          [`region-fill-${id}`, `region-line-${id}`, `region-highlight-${id}`].forEach((l) => {
+            if (m.getLayer(l)) m.removeLayer(l);
+          });
+          if (m.getSource(`region-${id}`)) m.removeSource(`region-${id}`);
+          renderedRegionIdsRef.current = renderedRegionIdsRef.current.filter(rid => rid !== id);
+        }
+      });
+
+      // 2. Add or Update remaining regions
       regions.forEach((region) => {
         if (!region.geometry || deletingIdsRef.current.has(region.id)) return;
-        const geojson = region.geometry as any;
-        if (geojson.type !== "Polygon") return;
+        
+        const sourceId = `region-${region.id}`;
+        const fillLayerId = `region-fill-${region.id}`;
+        const lineLayerId = `region-line-${region.id}`;
 
-        m.addSource(`region-${region.id}`, {
-          type: "geojson",
-          data: { type: "Feature", properties: { name: region.name, price: region.price }, geometry: geojson },
-        });
+        if (!renderedIds.has(region.id)) {
+          // ADD NEW
+          const geojson = region.geometry as any;
+          if (geojson.type !== "Polygon") return;
 
-        m.addLayer({
-          id: `region-fill-${region.id}`,
-          type: "fill",
-          source: `region-${region.id}`,
-          paint: { "fill-color": region.color, "fill-opacity": 0.25 },
-        });
+          m.addSource(sourceId, {
+            type: "geojson",
+            data: { type: "Feature", properties: { name: region.name, price: region.price }, geometry: geojson },
+          });
 
-        m.addLayer({
-          id: `region-line-${region.id}`,
-          type: "line",
-          source: `region-${region.id}`,
-          paint: { "line-color": region.color, "line-width": 2.5 },
-        });
+          m.addLayer({
+            id: fillLayerId,
+            type: "fill",
+            source: sourceId,
+            paint: { "fill-color": region.color, "fill-opacity": 0.25 },
+          });
 
-        // Hover highlight
-        m.on("mouseenter", `region-fill-${region.id}`, (e) => {
-          if (drawMode !== "none") return;
-          m.getCanvas().style.cursor = "pointer";
-          m.setPaintProperty(`region-fill-${region.id}`, "fill-opacity", 0.45);
-          // Show popup
-          if (popupRef.current) popupRef.current.remove();
-          const popup = new maplibregl.Popup({ closeButton: false, offset: 10 })
-            .setLngLat(e.lngLat)
-            .setHTML(`<div style="font-family:sans-serif;padding:4px 0"><strong>${region.name}</strong><br/><span style="color:#888">R$ ${Number(region.price).toFixed(2)}</span></div>`)
-            .addTo(m);
-          popupRef.current = popup;
-        });
+          m.addLayer({
+            id: lineLayerId,
+            type: "line",
+            source: sourceId,
+            paint: { "line-color": region.color, "line-width": 2.5 },
+          });
 
-        m.on("mouseleave", `region-fill-${region.id}`, () => {
-          if (drawMode !== "none") return;
-          m.getCanvas().style.cursor = "";
-          m.setPaintProperty(`region-fill-${region.id}`, "fill-opacity", 0.25);
-          if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
-        });
+          // Event listeners for NEW region
+          m.on("mouseenter", fillLayerId, (e) => {
+            if (drawMode !== "none") return;
+            m.getCanvas().style.cursor = "pointer";
+            m.setPaintProperty(fillLayerId, "fill-opacity", 0.45);
+            if (popupRef.current) popupRef.current.remove();
+            const popup = new maplibregl.Popup({ closeButton: false, offset: 10 })
+              .setLngLat(e.lngLat)
+              .setHTML(`<div style="font-family:sans-serif;padding:4px 0"><strong>${region.name}</strong><br/><span style="color:#888">R$ ${Number(region.price).toFixed(2)}</span></div>`)
+              .addTo(m);
+            popupRef.current = popup;
+          });
 
-        m.on("click", `region-fill-${region.id}`, () => {
-          if (drawMode !== "none") return;
-          setSelectedRegion(region);
-          setEditName(region.name);
-          setEditColor(region.color);
-          setEditPrice(String(region.price));
-          setDrawMode("none");
-          setDrawnPoints([]);
-        });
+          m.on("mouseleave", fillLayerId, () => {
+            if (drawMode !== "none") return;
+            m.getCanvas().style.cursor = "";
+            m.setPaintProperty(fillLayerId, "fill-opacity", 0.25);
+            if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
+          });
 
-        renderedRegionIdsRef.current.push(region.id);
+          m.on("click", fillLayerId, () => {
+            if (drawMode !== "none") return;
+            setSelectedRegion(region);
+            setEditName(region.name);
+            setEditColor(region.color);
+            setEditPrice(String(region.price));
+            setDrawMode("none");
+            setDrawnPoints([]);
+          });
+
+          renderedRegionIdsRef.current.push(region.id);
+        } else {
+          // UPDATE EXISTING properties if needed
+          if (m.getLayer(fillLayerId)) {
+            m.setPaintProperty(fillLayerId, "fill-color", region.color);
+          }
+          if (m.getLayer(lineLayerId)) {
+            m.setPaintProperty(lineLayerId, "line-color", region.color);
+          }
+          // Update data source if price/name might have changed (for popup)
+          const source = m.getSource(sourceId) as maplibregl.GeoJSONSource;
+          if (source) {
+            source.setData({ 
+              type: "Feature", 
+              properties: { name: region.name, price: region.price }, 
+              geometry: region.geometry as any 
+            });
+          }
+        }
       });
 
       // Clean drawing layers
       ["draw-fill", "draw-line", "draw-points"].forEach((l) => { if (m.getLayer(l)) m.removeLayer(l); });
       if (m.getSource("draw")) m.removeSource("draw");
     };
-    if (m.isStyleLoaded()) handleLoad();
-    else m.on("load", handleLoad);
+
+    if (m.isStyleLoaded()) handleUpdate();
+    else m.on("load", handleUpdate);
   }, [regions, drawMode]);
 
   // Points drawing mode - click to add vertices
@@ -364,33 +396,26 @@ export default function RegionsPage() {
       
       const m = mapRef.current;
       if (m) {
-        // Remove layers
         [`region-fill-${id}`, `region-line-${id}`, `region-highlight-${id}`].forEach((l) => {
           if (m.getLayer(l)) m.removeLayer(l);
         });
-        
-        // Remove source
         if (m.getSource(`region-${id}`)) m.removeSource(`region-${id}`);
-        
-        // Remove from tracking ref so it's not re-rendered during flight re-renders
         renderedRegionIdsRef.current = renderedRegionIdsRef.current.filter(rid => rid !== id);
-        
-        // Clear any orphaned popups
-        if (popupRef.current) {
-          popupRef.current.remove();
-          popupRef.current = null;
-        }
+        if (popupRef.current) { popupRef.current.remove(); popupRef.current = null; }
       }
 
       // 2. Perform actual deletion
       await deleteRegion.mutateAsync(id);
       
-      // Cleanup the negative cache once server confirms
-      deletingIdsRef.current.delete(id);
+      // Delay cleaning the negative cache to prevent re-appearing during sync
+      setTimeout(() => {
+        deletingIdsRef.current.delete(id);
+      }, 800);
       
       toast({ title: "Região excluída" });
       setSelectedRegion(null);
     } catch (err: any) {
+      deletingIdsRef.current.delete(id); // rollback on error
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
