@@ -97,7 +97,30 @@ export function useDeleteRegion() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteRegion,
-    onSuccess: () => {
+    onMutate: async (id) => {
+      // Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await qc.cancelQueries({ queryKey: ["regions"] });
+
+      // Snapshot the previous value
+      const previousRegions = qc.getQueryData(["regions"]);
+
+      // Optimistically update to the new value by removing the deleted id
+      qc.setQueriesData({ queryKey: ["regions"] }, (old: any) => {
+        if (!old) return old;
+        return Array.isArray(old) ? old.filter((r: any) => r.id !== id) : old;
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousRegions };
+    },
+    onError: (err, id, context: any) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousRegions) {
+        qc.setQueriesData({ queryKey: ["regions"] }, context.previousRegions);
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success to keep server sync
       qc.invalidateQueries({ queryKey: ["regions"] });
       qc.invalidateQueries({ queryKey: ["cities-with-regions"] });
     },
