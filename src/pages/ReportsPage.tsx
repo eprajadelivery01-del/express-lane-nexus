@@ -88,6 +88,7 @@ export default function ReportsPage() {
     return Object.values(map).sort((a, b) => b.count - a.count);
   }, [deliveries, drivers]);
 
+  const statusData = useMemo(() => {
     const stats: Record<string, number> = {};
     deliveries.forEach(d => {
       stats[d.status] = (stats[d.status] || 0) + 1;
