@@ -32,6 +32,7 @@ export default function DashboardPage() {
 
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
+  const { data: allDrivers } = useDrivers();
   const { data: companies } = useCompanies();
   const { data: allDeliveries } = useDeliveries({ dateFrom, pageSize: 500 });
   const { data: inTransitData } = useDeliveries({ status: "in_transit" });
