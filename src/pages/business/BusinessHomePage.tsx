@@ -4,15 +4,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Plus, Truck, Clock, CheckCircle, Loader2, ArrowLeft, MapPin, Package, Trash2, Pencil, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { CustomerSelector } from "@/components/business/CustomerSelector";
+import { useCity } from "@/contexts/CityContext";
 import { useDeliveries } from "@/services/deliveries";
+import { format } from "date-fns";
 import { DeliveryStatusBadge } from "@/components/admin/DeliveryStatusBadge";
 import type { DeliveryStatus } from "@/types/models";
-import { cn } from "@/lib/utils";
 
 export default function BusinessHomePage() {
   const { profile } = useAuth();
+  const { selectedCity } = useCity();
   const [showNewDelivery, setShowNewDelivery] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState<any>(null);
   const qc = useQueryClient();
@@ -101,7 +103,7 @@ export default function BusinessHomePage() {
 
             <button
               onClick={() => setShowNewDelivery(true)}
-              className="px-8 py-4 rounded-2xl gradient-primary text-primary-foreground text-lg font-black flex items-center justify-center gap-3 shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all"
+              className="px-8 py-4 rounded-2xl modal-gradient text-white text-lg font-black flex items-center justify-center gap-3 shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all"
             >
               <Plus className="h-6 w-6" />
               Nova Entrega
@@ -185,6 +187,8 @@ export default function BusinessHomePage() {
   );
 }
 
+import { cn } from "@/lib/utils";
+
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color: string }) {
   const colors: Record<string, string> = {
     primary: "text-primary bg-primary/10",
@@ -204,9 +208,11 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
 }
 
 function NewDeliveryForm({ onClose, initialData }: { onClose: () => void, initialData?: any }) {
+  const { selectedCity } = useCity();
   const qc = useQueryClient();
   const [customerName, setCustomerName] = useState(initialData?.customer_name || "");
   const [customerPhone, setCustomerPhone] = useState(initialData?.customer_phone || "");
+  const [customerCpf, setCustomerCpf] = useState(initialData?.customer_cpf || "");
   const [address, setAddress] = useState(initialData?.address || "");
   const [value, setValue] = useState(initialData?.value?.toString() || "");
   const [difficulty, setDifficulty] = useState(initialData?.difficulty || "Padrão");
@@ -240,10 +246,70 @@ function NewDeliveryForm({ onClose, initialData }: { onClose: () => void, initia
       const cId = companyId || (await fetchCompanyInfo())?.id;
       if (!cId) throw new Error("Empresa não encontrada.");
 
+      // For new deliveries, we handle customer profile
+      if (!initialData) {
+        // Search by CPF first if provided, then by Name
+        let existingCust = null;
+        
+        if (customerCpf) {
+          const { data } = await supabase
+            .from("customers")
+            .select("id, name, phone, cpf")
+            .eq("cpf", customerCpf)
+            .maybeSingle();
+          existingCust = data;
+        }
+
+        if (!existingCust && customerName) {
+          const { data } = await supabase
+            .from("customers")
+            .select("id, name, phone, cpf")
+            .ilike("name", customerName)
+            .maybeSingle();
+          existingCust = data;
+        }
+
+        let finalCustomerId = existingCust?.id;
+
+        if (!finalCustomerId) {
+          const { data: newCust, error: custError } = await supabase
+            .from("customers")
+            .insert([{ 
+              name: customerName,
+              cpf: customerCpf || null,
+              phone: customerPhone || null
+            }])
+            .select("id")
+            .single();
+          
+          if (custError) console.error("Error creating customer profile:", custError);
+          if (newCust) {
+            finalCustomerId = newCust.id;
+            await supabase.from("addresses").insert([{
+              customer_id: newCust.id,
+              street: address.split(",")[0] || address,
+              city: selectedCity || "Diamantino", 
+              state: "MT",
+              is_default: true
+            }]);
+          }
+        } else {
+          // Update existing customer info if missing
+          const updates: any = {};
+          if (!existingCust.cpf && customerCpf) updates.cpf = customerCpf;
+          if (!existingCust.phone && customerPhone) updates.phone = customerPhone;
+          
+          if (Object.keys(updates).length > 0) {
+            await supabase.from("customers").update(updates).eq("id", finalCustomerId);
+          }
+        }
+      }
+
       const payload = {
         company_id: cId,
         customer_name: customerName,
         customer_phone: customerPhone,
+        customer_cpf: customerCpf,
         address: address, 
         dropoff_address: address,
         pickup_address: companyAddress || "Retirada na Loja",
@@ -303,13 +369,27 @@ function NewDeliveryForm({ onClose, initialData }: { onClose: () => void, initia
               <CustomerSelector 
                 companyId={companyId} 
                 value={customerName}
-                onChange={(name, addr, phone) => {
+                onChange={(name, addr, phone, cpf) => {
                   setCustomerName(name);
                   if (addr) setAddress(addr);
                   if (phone) setCustomerPhone(phone);
+                  if (cpf) setCustomerCpf(cpf);
                 }}
               />
             )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2 block">CPF do Destinatário (Opcional)</label>
+            <div className="relative">
+              <Plus className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <input
+                value={customerCpf}
+                onChange={(e) => setCustomerCpf(e.target.value)}
+                placeholder="000.000.000-00"
+                className="w-full pl-12 pr-4 py-4 rounded-2xl border border-border bg-background/50 font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-base"
+              />
+            </div>
           </div>
 
           <div className="md:col-span-2">
@@ -391,3 +471,5 @@ function NewDeliveryForm({ onClose, initialData }: { onClose: () => void, initia
     </div>
   );
 }
+
+import { useQuery } from "@tanstack/react-query";
