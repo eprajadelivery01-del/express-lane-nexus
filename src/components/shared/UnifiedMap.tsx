@@ -195,6 +195,14 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
     else m.once("load", renderRegions);
   }, [regions]);
 
+  // Realtime Drivers
+  useEffect(() => {
+    const m = map.current;
+    if (!m) return;
+
+    markersRef.current.forEach(mk => mk.remove());
+    markersRef.current = [];
+
     (drivers ?? []).forEach((driver) => {
       if (!driver.latitude || !driver.longitude) return;
 
@@ -331,6 +339,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
 
       markersRef.current.push(marker);
     });
+  }, [drivers]);
 
   return (
     <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted/20 border border-border shadow-2xl">
