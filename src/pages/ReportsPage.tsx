@@ -63,7 +63,31 @@ export default function ReportsPage() {
     return Object.values(groups).sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime());
   }, [deliveries]);
 
-  const statusData = useMemo(() => {
+  const companyBreakdown = useMemo(() => {
+    const map: Record<string, { name: string; companyId: string; revenue: number; count: number }> = {};
+    deliveries.forEach(d => {
+      const cId = d.company_id || "unknown";
+      const cName = (d as any).companies?.name || "Sem empresa";
+      if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
+      map[cId].revenue += Number(d.value ?? 0);
+      map[cId].count += 1;
+    });
+    return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+  }, [deliveries]);
+
+  const driverBreakdown = useMemo(() => {
+    const map: Record<string, { name: string; driverId: string; revenue: number; count: number }> = {};
+    deliveries.forEach(d => {
+      if (!d.driver_id) return;
+      const driver = (drivers ?? []).find(dr => dr.id === d.driver_id);
+      const name = driver?.profiles?.full_name || `Motorista ${d.driver_id.slice(0, 6)}`;
+      if (!map[d.driver_id]) map[d.driver_id] = { name, driverId: d.driver_id, revenue: 0, count: 0 };
+      map[d.driver_id].revenue += Number(d.value ?? 0);
+      map[d.driver_id].count += 1;
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count);
+  }, [deliveries, drivers]);
+
     const stats: Record<string, number> = {};
     deliveries.forEach(d => {
       stats[d.status] = (stats[d.status] || 0) + 1;
