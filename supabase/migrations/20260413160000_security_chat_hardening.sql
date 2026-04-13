@@ -8,14 +8,17 @@ BEGIN;
 -- 1. [CHAT_MESSAGES] ENFORCEMENT & IDENTITY VALIDATION
 ALTER TABLE IF EXISTS public.chat_messages ENABLE ROW LEVEL SECURITY;
 
--- Remove older or permissive policies
+-- Remove older or permissive policies (including duplicates from partial runs)
 DROP POLICY IF EXISTS "Anyone can insert chat messages" ON public.chat_messages;
 DROP POLICY IF EXISTS "Authenticated can insert chat messages" ON public.chat_messages;
 DROP POLICY IF EXISTS "Users can only insert their own messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Strict identity validation for chat messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Validação de identidade rigorosa para mensagens de chat" ON public.chat_messages;
+DROP POLICY IF EXISTS "Participants can view chat messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Participantes podem visualizar mensagens de chat" ON public.chat_messages;
 
--- NEW POLICY: INSERT WITH IDENTITY VALIDATION
--- This prevents any user from claiming to be an 'admin' or 'driver' if they are not.
-CREATE POLICY "Strict identity validation for chat messages" ON public.chat_messages
+-- NEW POLICY: INSERT WITH IDENTITY VALIDATION (Validação de Cargo/Identidade)
+CREATE POLICY "Validação de identidade rigorosa para mensagens de chat" ON public.chat_messages
   FOR INSERT WITH CHECK (
     -- 1. Verification: Sender must be the authenticated user
     auth.uid() = sender_id
@@ -44,9 +47,8 @@ CREATE POLICY "Strict identity validation for chat messages" ON public.chat_mess
     )
   );
 
--- NEW POLICY: SELECT FOR PARTICIPANTS ONLY
-DROP POLICY IF EXISTS "Participants can view chat messages" ON public.chat_messages;
-CREATE POLICY "Participants can view chat messages" ON public.chat_messages
+-- NEW POLICY: SELECT FOR PARTICIPANTS ONLY (Acesso às Conversas)
+CREATE POLICY "Participantes podem visualizar mensagens de chat" ON public.chat_messages
   FOR SELECT USING (
     EXISTS (
       SELECT 1 FROM public.deliveries d
