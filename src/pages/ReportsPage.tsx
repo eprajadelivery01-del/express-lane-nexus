@@ -63,6 +63,31 @@ export default function ReportsPage() {
     return Object.values(groups).sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime());
   }, [deliveries]);
 
+  const companyBreakdown = useMemo(() => {
+    const map: Record<string, { name: string; companyId: string; revenue: number; count: number }> = {};
+    deliveries.forEach(d => {
+      const cId = d.company_id || "unknown";
+      const cName = (d as any).companies?.name || "Sem empresa";
+      if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
+      map[cId].revenue += Number(d.value ?? 0);
+      map[cId].count += 1;
+    });
+    return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+  }, [deliveries]);
+
+  const driverBreakdown = useMemo(() => {
+    const map: Record<string, { name: string; driverId: string; revenue: number; count: number }> = {};
+    deliveries.forEach(d => {
+      if (!d.driver_id) return;
+      const driver = (drivers ?? []).find(dr => dr.id === d.driver_id);
+      const name = driver?.profiles?.full_name || `Motorista ${d.driver_id.slice(0, 6)}`;
+      if (!map[d.driver_id]) map[d.driver_id] = { name, driverId: d.driver_id, revenue: 0, count: 0 };
+      map[d.driver_id].revenue += Number(d.value ?? 0);
+      map[d.driver_id].count += 1;
+    });
+    return Object.values(map).sort((a, b) => b.count - a.count);
+  }, [deliveries, drivers]);
+
   const statusData = useMemo(() => {
     const stats: Record<string, number> = {};
     deliveries.forEach(d => {
@@ -159,10 +184,10 @@ export default function ReportsPage() {
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}
               className="w-full px-4 py-3 rounded-2xl border border-border bg-background/50 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-inner appearance-none">
               <option value="all">Todos os Status</option>
-              <option value="completed">Finalizadas</option>
+              <option value="delivered">Finalizadas</option>
               <option value="cancelled">Canceladas</option>
               <option value="pending">Pendentes</option>
-              <option value="in_route">Em Rota</option>
+              <option value="in_transit">Em Trânsito</option>
             </select>
           </div>
         </div>
@@ -281,7 +306,88 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {/* Main Table */}
+      {/* Breakdown by Company */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+        <div className="bg-card rounded-3xl p-6 border border-border shadow-xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Breakdown por Empresa</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Receita e volume por empresa</p>
+            </div>
+          </div>
+          {companyBreakdown.length > 0 ? (
+            <div className="space-y-3 max-h-[360px] overflow-y-auto scrollbar-thin">
+              {companyBreakdown.map((c, i) => {
+                const maxRev = companyBreakdown[0].revenue;
+                const pct = maxRev > 0 ? (c.revenue / maxRev) * 100 : 0;
+                return (
+                  <div key={c.companyId || i} className="group">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px] font-black shrink-0">{i + 1}</span>
+                        <span className="text-sm font-bold text-foreground truncate">{c.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4 shrink-0 ml-2">
+                        <span className="text-xs text-muted-foreground font-semibold">{c.count} entregas</span>
+                        <span className="text-sm font-black text-foreground">R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary/70 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
+          )}
+        </div>
+
+        {/* Breakdown by Driver */}
+        <div className="bg-card rounded-3xl p-6 border border-border shadow-xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-2xl bg-success/10 flex items-center justify-center text-success">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Breakdown por Motorista</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Entregas e ganhos por entregador</p>
+            </div>
+          </div>
+          {driverBreakdown.length > 0 ? (
+            <div className="space-y-3 max-h-[360px] overflow-y-auto scrollbar-thin">
+              {driverBreakdown.map((d, i) => {
+                const maxCount = driverBreakdown[0].count;
+                const pct = maxCount > 0 ? (d.count / maxCount) * 100 : 0;
+                return (
+                  <div key={d.driverId || i} className="group">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-[10px] font-black shrink-0 ${i < 3 ? "bg-warning/20 text-warning" : "bg-muted/50 text-muted-foreground"}`}>{i + 1}</span>
+                        <span className="text-sm font-bold text-foreground truncate">{d.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4 shrink-0 ml-2">
+                        <span className="text-xs text-muted-foreground font-semibold">{d.count} entregas</span>
+                        <span className="text-sm font-black text-foreground">R$ {d.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
+                    <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
+                      <div className="h-full bg-success/60 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-8">Sem dados no período</p>
+          )}
+        </div>
+      </div>
+
       <div className="bg-card/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden mb-12">
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-4">
@@ -358,9 +464,10 @@ const STATUS_COLORS = {
   broadcasted: "hsl(var(--info))",
   accepted: "hsl(var(--info))",
   collecting: "hsl(var(--accent))",
-  in_route: "hsl(var(--primary))",
-  completed: "#22c55e",
+  in_transit: "hsl(var(--primary))",
+  delivered: "#22c55e",
   cancelled: "#ef4444",
+  returned: "#6b7280",
 };
 
 const STATUS_LABELS = {
@@ -368,9 +475,10 @@ const STATUS_LABELS = {
   broadcasted: "Enviada",
   accepted: "Aceita",
   collecting: "Coletando",
-  in_route: "Em Rota",
-  completed: "Finalizada",
+  in_transit: "Em Trânsito",
+  delivered: "Finalizada",
   cancelled: "Cancelada",
+  returned: "Devolvida",
 };
 
 function SummaryCard({ label, value, icon, subValue, trend }: { 
