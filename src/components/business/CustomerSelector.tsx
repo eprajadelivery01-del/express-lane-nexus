@@ -69,7 +69,7 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
     const { data: addresses } = await supabase
       .from("addresses")
       .select("street, number, neighborhood, complement")
-      .eq("customer_id", customer.id)
+      .eq("user_id", customer.id)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();

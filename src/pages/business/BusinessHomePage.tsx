@@ -19,13 +19,15 @@ export default function BusinessHomePage() {
   const [editingDelivery, setEditingDelivery] = useState<any>(null);
   const qc = useQueryClient();
   
+  const { user } = useAuth();
+  
   const { data: companyData } = useQuery({
-    queryKey: ["company-info", profile?.id],
+    queryKey: ["company-info", user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id").eq("user_id", profile?.id).maybeSingle();
+      const { data } = await supabase.from("companies").select("id").eq("user_id", user!.id).maybeSingle();
       return data;
     },
-    enabled: !!profile?.id
+    enabled: !!user?.id
   });
 
   const companyId = companyData?.id;
@@ -56,7 +58,7 @@ export default function BusinessHomePage() {
   const stats = {
     pending: deliveries.filter(d => ["pending", "broadcasted"].includes(d.status)).length,
     inRoute: deliveries.filter(d => ["accepted", "collecting", "in_route", "in_transit"].includes(d.status)).length,
-    completed: deliveries.filter(d => d.status === "completed" || d.status === "delivered").length
+    completed: deliveries.filter(d => d.status === "delivered").length
   };
 
   const handleCancel = async (id: string) => {
@@ -286,11 +288,11 @@ function NewDeliveryForm({ onClose, initialData }: { onClose: () => void, initia
           if (newCust) {
             finalCustomerId = newCust.id;
             await supabase.from("addresses").insert([{
-              customer_id: newCust.id,
+              user_id: newCust.id,
               street: address.split(",")[0] || address,
-              city: selectedCity || "Diamantino", 
-              state: "MT",
-              is_default: true
+              neighborhood: "",
+              number: "",
+              city: selectedCity || "Diamantino",
             }]);
           }
         } else {
