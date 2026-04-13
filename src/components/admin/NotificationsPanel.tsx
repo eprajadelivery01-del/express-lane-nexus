@@ -1,12 +1,14 @@
 import { Bell } from "lucide-react";
 import { useDeliveries } from "@/services/deliveries";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 export function NotificationsPanel() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const { data } = useDeliveries({ pageSize: 10 });
+  const { data } = useDeliveries({ pageSize: 20 });
   const deliveries = data?.data ?? [];
+  const navigate = useNavigate();
 
   const getIcon = (status: string) => {
     switch (status) {
@@ -66,7 +68,8 @@ export function NotificationsPanel() {
           deliveries.map((d, idx) => (
             <div 
               key={d.id} 
-              className="flex items-start gap-4 p-5 hover:bg-muted/30 transition-all cursor-pointer group hover:pl-6"
+              onClick={() => navigate("/admin/deliveries")}
+              className="flex items-start gap-4 p-5 hover:bg-muted/30 transition-all cursor-pointer group hover:pl-6 border-l-4 border-l-transparent hover:border-l-primary"
               style={{ animationDelay: `${idx * 50}ms` }}
             >
               <div className="w-10 h-10 rounded-2xl bg-muted/50 border border-border/40 flex items-center justify-center shrink-0 text-xl transition-transform group-hover:scale-110 group-hover:rotate-6">

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, ChevronDown, ChevronUp, Bike, Building2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useDrivers } from "@/services/drivers";
 import { useCompanies } from "@/services/companies";
 
@@ -7,7 +8,7 @@ export function MotoboysSidebar() {
   const [search, setSearch] = useState("");
   const [showOnline, setShowOnline] = useState(true);
   const [showOffline, setShowOffline] = useState(true);
-  const [showLocais, setShowLocais] = useState(true);
+  const navigate = useNavigate();
 
   const { data: drivers } = useDrivers();
   const { data: companies } = useCompanies();
@@ -56,13 +57,21 @@ export function MotoboysSidebar() {
               {showOnline ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
             {showOnline && online.filter((d) => filterBySearch(d.profiles?.full_name || "")).map((driver) => (
-              <div key={driver.id} className="group flex items-center justify-between px-3 py-2.5 hover:bg-primary/5 rounded-2xl transition-all cursor-pointer">
+              <div 
+                key={driver.id} 
+                onClick={() => navigate("/admin/drivers")}
+                className="group flex items-center justify-between px-3 py-2.5 hover:bg-primary/5 rounded-2xl transition-all cursor-pointer"
+              >
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-2xl bg-success/10 border border-success/20 flex items-center justify-center text-sm overflow-hidden group-hover:scale-110 transition-transform">
-                    {driver.profiles?.avatar_url ? <img src={driver.profiles?.avatar_url} alt="" className="h-full w-full object-cover" /> : "🏍️"}
+                    {driver.profiles?.avatar_url ? (
+                      <img src={driver.profiles?.avatar_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      "🏍️"
+                    )}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm font-black text-foreground truncate tracking-tight">{driver.profiles?.full_name || "—"}</p>
+                    <p className="text-sm font-black text-foreground truncate tracking-tight group-hover:text-primary transition-colors">{driver.profiles?.full_name || "—"}</p>
                     <p className="text-[10px] font-bold text-muted-foreground/80 uppercase tracking-wider">{driver.vehicle_type || "motorcycle"}</p>
                   </div>
                 </div>
@@ -82,10 +91,18 @@ export function MotoboysSidebar() {
               {showOffline ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
             </button>
             {showOffline && offline.filter((d) => filterBySearch(d.profiles?.full_name || "")).map((driver) => (
-              <div key={driver.id} className="flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 rounded-2xl transition-all opacity-60">
+              <div 
+                key={driver.id} 
+                onClick={() => navigate("/admin/drivers")}
+                className="flex items-center justify-between px-3 py-2.5 hover:bg-muted/30 rounded-2xl transition-all opacity-60 cursor-pointer"
+              >
                 <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-2xl bg-muted border border-border flex items-center justify-center text-sm overflow-hidden grayscale">
-                    {driver.profiles?.avatar_url ? <img src={driver.profiles?.avatar_url} alt="" className="h-full w-full object-cover" /> : "🏍️"}
+                    {driver.profiles?.avatar_url ? (
+                      <img src={driver.profiles?.avatar_url} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      "🏍️"
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-black text-foreground/70 truncate tracking-tight">{driver.profiles?.full_name || "—"}</p>
@@ -113,19 +130,27 @@ export function MotoboysSidebar() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto max-h-[250px] scrollbar-thin px-2 py-2">
+        <div className="flex-1 overflow-y-auto max-h-[300px] scrollbar-thin px-2 py-2">
           {companies?.filter(c => c.is_active).length === 0 ? (
             <div className="p-10 text-center">
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest italic">Silêncio operacional...</p>
             </div>
           ) : (
             (companies ?? []).filter(c => c.is_active && filterBySearch(c.name)).map((company) => (
-              <div key={company.id} className="flex items-center gap-4 px-3 py-3 hover:bg-accent/5 rounded-2xl transition-all group cursor-pointer border-b border-border/20 last:border-0">
-                <div className="h-10 w-10 rounded-2xl bg-accent/10 flex items-center justify-center text-xl transition-transform group-hover:rotate-12 border border-accent/20">
-                  🏪
+              <div 
+                key={company.id} 
+                onClick={() => navigate("/admin/companies")}
+                className="flex items-center gap-4 px-3 py-3 hover:bg-accent/5 rounded-2xl transition-all group cursor-pointer border-b border-border/20 last:border-0"
+              >
+                <div className="h-10 w-10 rounded-2xl bg-accent/5 flex items-center justify-center text-xl transition-transform group-hover:rotate-12 border border-accent/20 overflow-hidden shadow-sm">
+                  {company.logo_url ? (
+                    <img src={company.logo_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    "🏪"
+                  )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-black text-foreground truncate tracking-tight">{company.name}</p>
+                  <p className="text-sm font-black text-foreground truncate tracking-tight group-hover:text-accent transition-colors">{company.name}</p>
                   <p className="text-[10px] font-bold text-muted-foreground truncate uppercase tracking-[0.05em]">{company.address || company.phone || "—"}</p>
                 </div>
               </div>
