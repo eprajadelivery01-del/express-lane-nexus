@@ -358,7 +358,30 @@ export default function RegionsPage() {
 
   const handleDelete = async (id: string) => {
     try {
+      // 1. Immediate local map cleanup for instant feedback
+      const m = mapRef.current;
+      if (m) {
+        // Remove layers
+        [`region-fill-${id}`, `region-line-${id}`, `region-highlight-${id}`].forEach((l) => {
+          if (m.getLayer(l)) m.removeLayer(l);
+        });
+        
+        // Remove source
+        if (m.getSource(`region-${id}`)) m.removeSource(`region-${id}`);
+        
+        // Remove from tracking ref so it's not re-rendered during flight re-renders
+        renderedRegionIdsRef.current = renderedRegionIdsRef.current.filter(rid => rid !== id);
+        
+        // Clear any orphaned popups
+        if (popupRef.current) {
+          popupRef.current.remove();
+          popupRef.current = null;
+        }
+      }
+
+      // 2. Perform actual deletion
       await deleteRegion.mutateAsync(id);
+      
       toast({ title: "Região excluída" });
       setSelectedRegion(null);
     } catch (err: any) {
