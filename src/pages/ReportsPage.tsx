@@ -34,7 +34,7 @@ export default function ReportsPage() {
   const deliveries = data?.data ?? [];
   const totalValue = deliveries.reduce((s, d) => s + Number(d.value ?? 0), 0);
   const totalCommission = deliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
-  const completedCount = deliveries.filter((d) => d.status === "completed").length;
+  const completedCount = deliveries.filter((d) => d.status === "delivered").length;
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
 
   // Chart Data Processing

@@ -9,7 +9,7 @@ export function useStores(regionId?: string) {
     queryKey: ["stores", regionId],
     queryFn: async () => {
       let query = supabase.from("companies").select("*").eq("is_active", true);
-      if (regionId) query = query.eq("region_id", regionId);
+      if (regionId) query = query.eq("city_id", regionId);
       const { data, error } = await query;
       if (error) throw error;
       return data;

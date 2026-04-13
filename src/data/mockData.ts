@@ -9,10 +9,10 @@ export const mockRegions: Region[] = [
 ];
 
 export const mockCompanies: Company[] = [
-  { id: "1", name: "Pizzaria Bella", phone: "(11) 99999-0001", address: "Rua das Flores, 123", region_id: "1" },
-  { id: "2", name: "Farmácia Saúde", phone: "(11) 99999-0002", address: "Av. Brasil, 456", region_id: "2" },
-  { id: "3", name: "Restaurante Sabor", phone: "(11) 99999-0003", address: "Rua Paraná, 789", region_id: "1" },
-  { id: "4", name: "Pet Shop Amigo", phone: "(11) 99999-0004", address: "Av. Paulista, 1000", region_id: "3" },
+  { id: "1", name: "Pizzaria Bella", phone: "(11) 99999-0001", address: "Rua das Flores, 123" },
+  { id: "2", name: "Farmácia Saúde", phone: "(11) 99999-0002", address: "Av. Brasil, 456" },
+  { id: "3", name: "Restaurante Sabor", phone: "(11) 99999-0003", address: "Rua Paraná, 789" },
+  { id: "4", name: "Pet Shop Amigo", phone: "(11) 99999-0004", address: "Av. Paulista, 1000" },
 ];
 
 export const mockDrivers: DeliveryDriver[] = [
@@ -29,17 +29,17 @@ export const mockCustomers: Customer[] = [
 ];
 
 export const mockDeliveries: Delivery[] = [
-  { id: "1", company_id: "1", company_name: "Pizzaria Bella", driver_id: "1", driver_name: "Carlos Silva", customer_name: "Maria da Silva", address: "Rua Augusta, 500", region_id: "1", region_name: "Centro", status: "in_route", value: 8.00, commission: 5.00, created_at: "2026-04-01T10:30:00", updated_at: "2026-04-01T10:45:00" },
-  { id: "2", company_id: "2", company_name: "Farmácia Saúde", driver_id: "2", driver_name: "João Santos", customer_name: "Ana Costa", address: "Av. Consolação, 200", region_id: "2", region_name: "Zona Norte", status: "pending", value: 12.00, commission: 7.00, created_at: "2026-04-01T11:00:00", updated_at: "2026-04-01T11:00:00" },
-  { id: "3", company_id: "3", company_name: "Restaurante Sabor", driver_id: "1", driver_name: "Carlos Silva", customer_name: "Roberto Almeida", address: "Rua Oscar Freire, 100", region_id: "1", region_name: "Centro", status: "completed", value: 8.00, commission: 5.00, created_at: "2026-04-01T08:00:00", updated_at: "2026-04-01T08:45:00" },
-  { id: "4", company_id: "1", company_name: "Pizzaria Bella", driver_id: null, driver_name: null, customer_name: "Maria da Silva", address: "Rua Haddock Lobo, 300", region_id: "3", region_name: "Zona Sul", status: "pending", value: 15.00, commission: 9.00, created_at: "2026-04-01T11:15:00", updated_at: "2026-04-01T11:15:00" },
-  { id: "5", company_id: "4", company_name: "Pet Shop Amigo", driver_id: "4", driver_name: "Lucas Souza", customer_name: "Ana Costa", address: "Rua Bela Cintra, 400", region_id: "1", region_name: "Centro", status: "collecting", value: 8.00, commission: 5.00, created_at: "2026-04-01T11:20:00", updated_at: "2026-04-01T11:30:00" },
-  { id: "6", company_id: "2", company_name: "Farmácia Saúde", driver_id: "3", driver_name: "Pedro Oliveira", customer_name: "Roberto Almeida", address: "Av. Faria Lima, 800", region_id: "4", region_name: "Zona Leste", status: "cancelled", value: 18.00, commission: 10.00, created_at: "2026-03-31T16:00:00", updated_at: "2026-03-31T16:30:00" },
+  { id: "1", company_id: "1", company_name: "Pizzaria Bella", driver_id: "1", driver_name: "Carlos Silva", customer_name: "Maria da Silva", address: "Rua Augusta, 500", status: "in_transit", value: 8.00, commission: 5.00, created_at: "2026-04-01T10:30:00", updated_at: "2026-04-01T10:45:00" },
+  { id: "2", company_id: "2", company_name: "Farmácia Saúde", driver_id: "2", driver_name: "João Santos", customer_name: "Ana Costa", address: "Av. Consolação, 200", status: "pending", value: 12.00, commission: 7.00, created_at: "2026-04-01T11:00:00", updated_at: "2026-04-01T11:00:00" },
+  { id: "3", company_id: "3", company_name: "Restaurante Sabor", driver_id: "1", driver_name: "Carlos Silva", customer_name: "Roberto Almeida", address: "Rua Oscar Freire, 100", status: "delivered", value: 8.00, commission: 5.00, created_at: "2026-04-01T08:00:00", updated_at: "2026-04-01T08:45:00" },
+  { id: "4", company_id: "1", company_name: "Pizzaria Bella", driver_id: null, driver_name: null, customer_name: "Maria da Silva", address: "Rua Haddock Lobo, 300", status: "pending", value: 15.00, commission: 9.00, created_at: "2026-04-01T11:15:00", updated_at: "2026-04-01T11:15:00" },
+  { id: "5", company_id: "4", company_name: "Pet Shop Amigo", driver_id: "4", driver_name: "Lucas Souza", customer_name: "Ana Costa", address: "Rua Bela Cintra, 400", status: "collecting", value: 8.00, commission: 5.00, created_at: "2026-04-01T11:20:00", updated_at: "2026-04-01T11:30:00" },
+  { id: "6", company_id: "2", company_name: "Farmácia Saúde", driver_id: "3", driver_name: "Pedro Oliveira", customer_name: "Roberto Almeida", address: "Av. Faria Lima, 800", status: "cancelled", value: 18.00, commission: 10.00, created_at: "2026-03-31T16:00:00", updated_at: "2026-03-31T16:30:00" },
 ];
 
 export const mockOccurrences: Occurrence[] = [
-  { id: "1", driver_id: "1", driver_name: "Carlos Silva", type: "motorcycle_issue", description: "Pneu furado na Rua Augusta", delivery_id: "3", created_at: "2026-04-01T09:00:00", status: "open" },
-  { id: "2", driver_id: "2", driver_name: "João Santos", type: "accident", description: "Colisão leve com veículo parado", delivery_id: null, created_at: "2026-03-31T15:00:00", status: "resolved" },
+  { id: "1", driver_id: "1", driver_name: "Carlos Silva", type: "other", description: "Pneu furado na Rua Augusta", delivery_id: "3", created_at: "2026-04-01T09:00:00", status: "open" },
+  { id: "2", driver_id: "2", driver_name: "João Santos", type: "damage", description: "Colisão leve com veículo parado", delivery_id: null, created_at: "2026-03-31T15:00:00", status: "resolved" },
 ];
 
 export const mockReviews: Review[] = [

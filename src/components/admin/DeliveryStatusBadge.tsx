@@ -6,9 +6,10 @@ const statusConfig: Record<DeliveryStatus, { label: string; className: string }>
   broadcasted: { label: "Enviada", className: "bg-info/10 text-info" },
   accepted: { label: "Aceita", className: "bg-primary/10 text-primary" },
   collecting: { label: "Em Coleta", className: "bg-accent/10 text-accent" },
-  in_route: { label: "Em Rota", className: "bg-violet-500/10 text-violet-600" },
-  completed: { label: "Finalizada", className: "bg-success/10 text-success" },
+  in_transit: { label: "Em Rota", className: "bg-violet-500/10 text-violet-600" },
+  delivered: { label: "Finalizada", className: "bg-success/10 text-success" },
   cancelled: { label: "Cancelada", className: "bg-destructive/10 text-destructive" },
+  returned: { label: "Devolvida", className: "bg-muted text-muted-foreground" },
 };
 
 interface DeliveryStatusBadgeProps {

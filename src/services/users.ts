@@ -118,15 +118,16 @@ export async function acceptInvitation(token: string, userData: { email: string;
     })
     .eq("user_id", authData.user.id);
 
-  await supabase.from("user_roles").insert({
+  await supabase.from("user_roles").insert([{
     user_id: authData.user.id,
-    role: invitation.role,
-  });
+    role: invitation.role as any,
+  }]);
 
   if (invitation.role === "driver") {
-    await supabase.from("delivery_drivers").insert({
+    await supabase.from("delivery_drivers").insert([{
       user_id: authData.user.id,
-    });
+      full_name: userData.fullName,
+    }]);
   }
 
   if (invitation.role === "company") {
