@@ -9,9 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface MapViewProps {
   centerCity?: { name: string; lat: number; lng: number } | null;
+  darkTheme?: boolean;
 }
 
-export function MapView({ centerCity }: MapViewProps) {
+export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
@@ -40,7 +41,9 @@ export function MapView({ centerCity }: MapViewProps) {
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      style: darkTheme 
+        ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+        : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
       center: defaultCenter,
       zoom: 12,
     });

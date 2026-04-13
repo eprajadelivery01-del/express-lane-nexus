@@ -87,28 +87,9 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
     // or we can use the default MapLibre style with a satellite raster source.
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: {
-        version: 8,
-        sources: {
-          "satellite": {
-            type: "raster",
-            tiles: [
-              "https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            ],
-            tileSize: 256,
-            attribution: "Esri, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community"
-          }
-        },
-        layers: [
-          {
-            id: "satellite",
-            type: "raster",
-            source: "satellite",
-            minzoom: 0,
-            maxzoom: 20
-          }
-        ]
-      },
+      style: darkTheme 
+        ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+        : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
       center: centerCity ? [centerCity.lng, centerCity.lat] : [-56.0974, -15.5989],
       zoom: 12,
     });
