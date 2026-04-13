@@ -78,9 +78,12 @@ export default function DashboardPage() {
             ))}
           </div>
         </div>
-        <p className="text-xs text-muted-foreground hidden sm:block">
-          {periodDeliveries.length} entregas · R$ {periodRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-muted-foreground hidden sm:block">
+            {periodDeliveries.length} entregas · R$ {periodRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </p>
+          <DashboardExport deliveries={periodDeliveries} period={PERIOD_LABELS[period]} />
+        </div>
       </div>
 
       {/* Hero Map */}
