@@ -24,9 +24,10 @@ function getDateFrom(period: Period): string {
   return d.toISOString();
 }
 
+const PERIOD_LABELS: Record<Period, string> = { today: "Hoje", "7d": "7 dias", "30d": "30 dias" };
+
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>("7d");
-
   const dateFrom = useMemo(() => getDateFrom(period), [period]);
 
   const { data: stats } = useDeliveryStats();
@@ -34,28 +35,24 @@ export default function DashboardPage() {
   const { data: companies } = useCompanies();
   const { data: allDeliveries } = useDeliveries({ dateFrom, pageSize: 500 });
   const { data: inTransitData } = useDeliveries({ status: "in_transit" });
-  const { data: deliveredData } = useDeliveries({ status: "delivered" });
 
   const { selectedCity, setCity } = useCity();
   const { data: regions } = useRegions(selectedCity || undefined);
 
   const inTransitCount = inTransitData?.count ?? 0;
-  const deliveredCount = deliveredData?.count ?? 0;
   const totalCompanies = companies?.length ?? 0;
   const onlineCount = onlineDrivers?.length ?? 0;
   const cities = Array.from(new Set(regions?.map(r => r.city) || [])).sort();
 
   const periodDeliveries = allDeliveries?.data ?? [];
+  const periodDelivered = periodDeliveries.filter(d => d.status === "delivered").length;
   const periodRevenue = periodDeliveries
     .filter(d => d.status === "delivered")
     .reduce((sum, d) => sum + Number(d.value ?? 0), 0);
-  const periodDelivered = periodDeliveries.filter(d => d.status === "delivered").length;
-
-  const periodLabels: Record<Period, string> = { today: "Hoje", "7d": "7 dias", "30d": "30 dias" };
 
   return (
     <AdminLayout title="Dashboard">
-      {/* Period Filter Bar */}
+      {/* Period Filter */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -72,7 +69,7 @@ export default function DashboardPage() {
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 )}
               >
-                {periodLabels[p]}
+                {PERIOD_LABELS[p]}
               </button>
             ))}
           </div>
@@ -90,90 +87,45 @@ export default function DashboardPage() {
       <div className="mt-6 space-y-6">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KPICard
-            icon={<Clock className="h-5 w-5" />}
-            label="Em Trânsito"
-            value={inTransitCount}
-            sub={`Hoje: ${stats?.today ?? 0}`}
-            color="primary"
-            pulse
-          />
-          <KPICard
-            icon={<Bike className="h-5 w-5" />}
-            label="Frota Online"
-            value={onlineCount}
-            sub="Prontos para entrega"
-            color="success"
-          />
-          <KPICard
-            icon={<DollarSign className="h-5 w-5" />}
-            label="Faturamento"
-            value={`R$ ${periodRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            sub={`${periodLabels[period]}`}
-            color="info"
-          />
-          <KPICard
-            icon={<Package className="h-5 w-5" />}
-            label="Volume Total"
-            value={periodDeliveries.length}
-            sub={`${periodDelivered} entregues`}
-            color="accent"
-          />
+          <KPICard icon={<Clock className="h-5 w-5" />} label="Em Trânsito" value={inTransitCount} sub={`Hoje: ${stats?.today ?? 0}`} color="primary" pulse />
+          <KPICard icon={<Bike className="h-5 w-5" />} label="Frota Online" value={onlineCount} sub="Prontos para entrega" color="success" />
+          <KPICard icon={<DollarSign className="h-5 w-5" />} label="Faturamento" value={`R$ ${periodRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} sub={PERIOD_LABELS[period]} color="info" />
+          <KPICard icon={<Package className="h-5 w-5" />} label="Volume Total" value={periodDeliveries.length} sub={`${periodDelivered} entregues`} color="accent" />
         </div>
 
-        {/* Charts Section */}
+        {/* Charts */}
         <DashboardCharts deliveries={periodDeliveries} period={period} />
 
-        {/* Main Content - 3 columns */}
+        {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Fleet Status */}
-          <div className="lg:col-span-1">
-            <MotoboysSidebar />
-          </div>
+          <div className="lg:col-span-1"><MotoboysSidebar /></div>
 
-          {/* Cities + Quick Stats */}
           <div className="lg:col-span-1 space-y-4">
             <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm">
               <div className="flex items-center justify-between px-5 py-4 border-b border-border/30 bg-muted/20">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                    <MapPin className="h-4 w-4" />
-                  </div>
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-4 w-4" /></div>
                   <h3 className="text-sm font-bold text-foreground">Cidades Ativas</h3>
                 </div>
-                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                  {cities.length}
-                </span>
+                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">{cities.length}</span>
               </div>
               <div className="p-3 space-y-1.5 max-h-[260px] overflow-y-auto scrollbar-thin">
                 {cities.map(city => {
                   const cityRegions = regions?.filter(r => r.city === city) || [];
                   const isActive = selectedCity === city;
                   return (
-                    <button
-                      key={city}
-                      onClick={() => setCity(city)}
-                      className={cn(
-                        "w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all text-left",
-                        isActive ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted/50"
-                      )}
-                    >
+                    <button key={city} onClick={() => setCity(city)} className={cn("w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all text-left", isActive ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted/50")}>
                       <div className="flex items-center gap-3">
                         <Navigation className={cn("h-4 w-4", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
                         <span className={cn("text-sm font-semibold", isActive ? "text-primary-foreground" : "text-foreground")}>{city}</span>
                       </div>
-                      <span className={cn("text-xs font-medium", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                        {cityRegions.length} regiões
-                      </span>
+                      <span className={cn("text-xs font-medium", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>{cityRegions.length} regiões</span>
                     </button>
                   );
                 })}
-                {cities.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground py-6">Nenhuma cidade encontrada</p>
-                )}
+                {cities.length === 0 && <p className="text-center text-sm text-muted-foreground py-6">Nenhuma cidade encontrada</p>}
               </div>
             </div>
-
             <div className="grid grid-cols-3 gap-3">
               <QuickStat icon={<CheckCircle className="h-4 w-4 text-success" />} label="Entregues" value={periodDelivered} />
               <QuickStat icon={<Building2 className="h-4 w-4 text-primary" />} label="Empresas" value={totalCompanies} />
@@ -181,7 +133,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Activity Feed */}
           <div className="lg:col-span-1 h-full">
             <div className="h-full min-h-[400px] lg:min-h-0 border border-border/50 rounded-2xl overflow-hidden bg-card shadow-sm">
               <NotificationsPanel />
@@ -198,10 +149,8 @@ function KPICard({ icon, label, value, sub, color, pulse }: {
   color: "primary" | "success" | "info" | "accent"; pulse?: boolean;
 }) {
   const styles: Record<string, string> = {
-    primary: "bg-primary/10 text-primary",
-    success: "bg-success/10 text-success",
-    info: "bg-info/10 text-info",
-    accent: "bg-accent text-accent-foreground",
+    primary: "bg-primary/10 text-primary", success: "bg-success/10 text-success",
+    info: "bg-info/10 text-info", accent: "bg-accent text-accent-foreground",
   };
   return (
     <div className="bg-card border border-border/50 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow group">
