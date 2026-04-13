@@ -3,7 +3,7 @@ import { MotoboysSidebar } from "@/components/admin/MotoboysSidebar";
 import { NotificationsPanel } from "@/components/admin/NotificationsPanel";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
 import { useDeliveryStats, useDeliveries } from "@/services/deliveries";
-import { useOnlineDrivers } from "@/services/drivers";
+import { useOnlineDrivers, useDrivers } from "@/services/drivers";
 import { useCompanies } from "@/services/companies";
 import React, { useState, useMemo } from "react";
 import { useCity } from "@/contexts/CityContext";
@@ -32,6 +32,7 @@ export default function DashboardPage() {
 
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
+  const { data: allDrivers } = useDrivers();
   const { data: companies } = useCompanies();
   const { data: allDeliveries } = useDeliveries({ dateFrom, pageSize: 500 });
   const { data: inTransitData } = useDeliveries({ status: "in_transit" });
@@ -94,7 +95,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Charts */}
-        <DashboardCharts deliveries={periodDeliveries} period={period} />
+        <DashboardCharts deliveries={periodDeliveries} drivers={allDrivers} period={period} />
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

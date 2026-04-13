@@ -4,21 +4,20 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import type { DeliveryWithRelations } from "@/services/deliveries";
+import type { DriverWithProfile } from "@/services/drivers";
+import { Trophy } from "lucide-react";
 
 interface Props {
   deliveries: DeliveryWithRelations[];
+  drivers?: DriverWithProfile[];
   period: "today" | "7d" | "30d";
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  pending: "hsl(38, 92%, 50%)",
-  broadcasted: "hsl(210, 100%, 52%)",
-  accepted: "hsl(217, 91%, 50%)",
-  collecting: "hsl(32, 95%, 52%)",
-  in_transit: "hsl(270, 60%, 55%)",
-  delivered: "hsl(145, 63%, 42%)",
-  cancelled: "hsl(0, 84%, 60%)",
-  returned: "hsl(220, 10%, 50%)",
+  pending: "hsl(38, 92%, 50%)", broadcasted: "hsl(210, 100%, 52%)",
+  accepted: "hsl(217, 91%, 50%)", collecting: "hsl(32, 95%, 52%)",
+  in_transit: "hsl(270, 60%, 55%)", delivered: "hsl(145, 63%, 42%)",
+  cancelled: "hsl(0, 84%, 60%)", returned: "hsl(220, 10%, 50%)",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -27,7 +26,9 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelado", returned: "Devolvido",
 };
 
-export function DashboardCharts({ deliveries, period }: Props) {
+const RANK_COLORS = ["hsl(38, 92%, 50%)", "hsl(220, 10%, 60%)", "hsl(25, 70%, 45%)", "hsl(217, 91%, 50%)", "hsl(145, 63%, 42%)"];
+
+export function DashboardCharts({ deliveries, drivers, period }: Props) {
   const revenueTrend = useMemo(() => {
     const map = new Map<string, { date: string; revenue: number; count: number }>();
     const now = new Date();
@@ -67,8 +68,26 @@ export function DashboardCharts({ deliveries, period }: Props) {
     return h.filter((_, i) => i >= 6 && i <= 23);
   }, [deliveries]);
 
+  const driverRanking = useMemo(() => {
+    const counts: Record<string, number> = {};
+    deliveries.forEach((d) => {
+      if (d.status === "delivered" && d.driver_id) {
+        counts[d.driver_id] = (counts[d.driver_id] || 0) + 1;
+      }
+    });
+    return Object.entries(counts)
+      .map(([driverId, entregas]) => {
+        const driver = drivers?.find(dr => dr.id === driverId);
+        const name = driver?.profiles?.full_name || `Motoboy ${driverId.slice(0, 6)}`;
+        return { name, entregas, driverId };
+      })
+      .sort((a, b) => b.entregas - a.entregas)
+      .slice(0, 10);
+  }, [deliveries, drivers]);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Revenue Trend */}
       <div className="lg:col-span-2 bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
         <h3 className="text-sm font-bold text-foreground mb-4">📈 Tendência de Receita</h3>
         <ResponsiveContainer width="100%" height={220}>
@@ -88,6 +107,7 @@ export function DashboardCharts({ deliveries, period }: Props) {
         </ResponsiveContainer>
       </div>
 
+      {/* Status Distribution */}
       <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
         <h3 className="text-sm font-bold text-foreground mb-4">🍩 Status</h3>
         {statusDist.length > 0 ? (
@@ -105,7 +125,8 @@ export function DashboardCharts({ deliveries, period }: Props) {
         )}
       </div>
 
-      <div className="lg:col-span-3 bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+      {/* Hourly Volume */}
+      <div className="lg:col-span-2 bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
         <h3 className="text-sm font-bold text-foreground mb-4">⏰ Volume por Hora</h3>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={hourly}>
@@ -116,6 +137,45 @@ export function DashboardCharts({ deliveries, period }: Props) {
             <Bar dataKey="entregas" fill="hsl(217,91%,50%)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
+      </div>
+
+      {/* Driver Ranking */}
+      <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+        <div className="flex items-center gap-2 mb-4">
+          <Trophy className="h-4 w-4 text-warning" />
+          <h3 className="text-sm font-bold text-foreground">Ranking Motoboys</h3>
+        </div>
+        {driverRanking.length > 0 ? (
+          <div className="space-y-2.5">
+            {driverRanking.map((d, i) => {
+              const maxVal = driverRanking[0].entregas;
+              const pct = maxVal > 0 ? (d.entregas / maxVal) * 100 : 0;
+              return (
+                <div key={d.driverId} className="flex items-center gap-3">
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${i < 3 ? "text-white" : "text-muted-foreground bg-muted/50"}`}
+                    style={i < 3 ? { backgroundColor: RANK_COLORS[i] } : undefined}
+                  >
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold text-foreground truncate">{d.name}</span>
+                      <span className="text-xs font-bold text-primary ml-2 shrink-0">{d.entregas}</span>
+                    </div>
+                    <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, backgroundColor: i < 5 ? RANK_COLORS[i] : "hsl(217, 91%, 50%)" }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-[180px] text-sm text-muted-foreground">Sem entregas no período</div>
+        )}
       </div>
     </div>
   );
