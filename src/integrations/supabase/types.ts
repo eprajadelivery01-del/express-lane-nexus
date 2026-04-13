@@ -285,6 +285,7 @@ export type Database = {
           commission: number
           company_id: string | null
           created_at: string | null
+          customer_cpf: string | null
           customer_name: string | null
           customer_phone: string | null
           delivered_at: string | null
@@ -324,6 +325,7 @@ export type Database = {
           commission?: number
           company_id?: string | null
           created_at?: string | null
+          customer_cpf?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
@@ -363,6 +365,7 @@ export type Database = {
           commission?: number
           company_id?: string | null
           created_at?: string | null
+          customer_cpf?: string | null
           customer_name?: string | null
           customer_phone?: string | null
           delivered_at?: string | null
