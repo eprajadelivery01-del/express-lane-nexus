@@ -95,7 +95,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Charts */}
-        <DashboardCharts deliveries={periodDeliveries} period={period} />
+        <DashboardCharts deliveries={periodDeliveries} drivers={allDrivers} period={period} />
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
