@@ -16,22 +16,30 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user && !authLoading) {
-      console.log(`[LoginPage - 9c1a49c1] Verificando acesso para user.id: ${user.id}, status: ${userStatus}`);
-      // Redirecionamento quase imediato para sessões ativas
-      const timer = setTimeout(() => {
-        if (userStatus === "pending") {
-          navigate("/pending-approval", { replace: true });
-        } else if (hasRole("admin")) {
-          navigate("/admin", { replace: true });
-        } else {
-          // Non-admin user on Admin panel
-          console.warn("[Admin - 9c1a49c1] Acesso negado: Perfil não administrativo.");
-          toast({ title: "Acesso Negado", description: "Este portal é exclusivo para administradores.", variant: "destructive" });
-        }
-      }, 100);
-      return () => clearTimeout(timer);
+      console.log(`[LoginPage - 9c1a49c1] Autorizando acesso: ${user.email}`);
+      
+      if (userStatus === "pending") {
+        navigate("/pending-approval", { replace: true });
+      } else if (hasRole("admin")) {
+        navigate("/admin", { replace: true });
+      } else {
+        // PERFIL NÃO ADMINISTRADOR: Bloqueio Rígido
+        console.warn("[Admin - 9c1a49c1] Bloqueio de Segurança: Acesso não autorizado para", user.email);
+        toast({ 
+          title: "Portal Restrito", 
+          description: "Sua conta não possui permissões administrativas. Procure o suporte.", 
+          variant: "destructive" 
+        });
+        
+        // Desconecta automaticamente para manter o portal seguro
+        setTimeout(() => {
+          supabase.auth.signOut().then(() => {
+            window.location.reload();
+          });
+        }, 3000);
+      }
     }
-  }, [user, authLoading, userStatus, hasRole, navigate]);
+  }, [user, authLoading, userStatus, hasRole, navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

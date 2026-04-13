@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[Auth-9c1a49c1] ERRO NO METADATA (Bypassed):", error.message);
     } finally {
       fetchingRef.current = null;
-      // IMPORTANTE: setLoading(false) já deve ter sido chamado antes para emergência
+      // FINAL LOADING RELEASE: ONLY HERE
       setLoading(false);
     }
   };
@@ -124,22 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser ?? null);
         
         if (currentUser) {
-          // V12-TOTAL-RELEASE: Nunca travamos a tela de loading se houver sessão
           const email = currentUser.email?.toLowerCase();
-          const EMERGENCY_EMAILS = ["loja8@nexuspro.test", "admin@nexuspro.test", "suporte@nexuspro.test", "bonasoft@nexuspro.test"];
-          const isEmergency = email && EMERGENCY_EMAILS.includes(email);
-          const isSpecial = currentUser.id === SPECIAL_USER_ID;
-
-          if (isEmergency || isSpecial) {
-            setRoles(isEmergency ? ["company"] : ["admin"]);
-            setUserStatus("active");
-          }
-          
-          console.log(`[Auth-9c1a49c1] V12: Liberando loading para usuário logado: ${email}`);
-          setLoading(false); // LIBERAÇÃO TOTAL
-          
-          // Busca o resto em background
-          setTimeout(() => { if (mounted) fetchUserData(currentUser.id, email); }, 0);
+          // We don't release loading here anymore - we wait for fetchUserData
+          await fetchUserData(currentUser.id, email);
         } else {
           setLoading(false);
         }
@@ -162,16 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (currentUser) {
             const email = currentUser.email?.toLowerCase();
-            const EMERGENCY_EMAILS = ["loja8@nexuspro.test", "admin@nexuspro.test", "suporte@nexuspro.test", "bonasoft@nexuspro.test"];
-            const isEmergency = email && EMERGENCY_EMAILS.includes(email);
-
-            if (isEmergency || currentUser.id === SPECIAL_USER_ID) {
-              setRoles(isEmergency ? ["company"] : ["admin"]);
-              setUserStatus("active");
-            }
-            
-            setLoading(false); // LIBERAÇÃO TOTAL
-            setTimeout(() => { if (mounted) fetchUserData(currentUser.id, email); }, 0);
+            // Wait for metadata before releasing the app
+            fetchUserData(currentUser.id, email);
           } else {
             setLoading(false);
           }
