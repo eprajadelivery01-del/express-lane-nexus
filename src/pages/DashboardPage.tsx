@@ -31,6 +31,7 @@ const PERIOD_LABELS: Record<Period, string> = { today: "Hoje", "7d": "7 dias", "
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>("7d");
   const dateFrom = useMemo(() => getDateFrom(period), [period]);
+  useRealtimeDeliveries();
 
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
