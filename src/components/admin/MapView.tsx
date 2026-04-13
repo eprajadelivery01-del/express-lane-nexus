@@ -205,28 +205,134 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
       if (!lat || !lng) return;
 
       const el = document.createElement("div");
+      el.className = "driver-marker-container";
+      
+      // Premium Google-Maps-Style PIN with Pulse
       el.innerHTML = `
+        <div class="pin-wrapper" style="
+          position: relative;
+          cursor: pointer;
+          filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+          transition: transform 0.2s;
+        " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+          <!-- Pulse Effect -->
+          <div style="
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            background: #22c55e;
+            border-radius: 50%;
+            opacity: 0.6;
+            animation: pinPulse 2s ease-out infinite;
+          "></div>
+          
+          <!-- Outer Circle -->
+          <div style="
+            width: 44px; 
+            height: 44px; 
+            border-radius: 50%; 
+            background: #22c55e; 
+            border: 3px solid white; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            position: relative;
+            z-index: 2;
+          ">
+            <!-- Icon Background -->
+            <div style="
+              width: 32px;
+              height: 32px;
+              border-radius: 50%;
+              background: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden;
+            ">
+              <img src="/logo.png" style="width: 22px; height: 22px; object-fit: contain;" alt="M" />
+            </div>
+          </div>
+          
+          <!-- Tooltip (Small and fast) -->
+          <div style="
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 800;
+            white-space: nowrap;
+            z-index: 3;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+          ">${driver.profiles?.full_name?.split(" ")[0] || "Entregador"}</div>
+        </div>
+        
+        <style>
+          @keyframes pinPulse {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+          }
+        </style>
+      `;
+
+      const popupContent = `
         <div style="
-          width: 36px; height: 36px; border-radius: 50%;
-          background: #22c55e;
-          border: 3px solid white;
-          display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-          font-size: 14px;
-        ">🏍️</div>
+          padding: 16px; 
+          font-family: 'Inter', sans-serif; 
+          min-width: 200px;
+          background: #ffffff;
+          border-radius: 20px;
+        ">
+          <div style="display: flex; items-center; gap: 12px; margin-bottom: 12px;">
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: #f0fdf4; display: flex; align-items: center; justify-content: center;">
+              <img src="/logo.png" style="width: 28px; height: 28px; object-fit: contain;" />
+            </div>
+            <div>
+              <div style="font-size: 15px; font-weight: 800; color: #111827;">${driver.profiles?.full_name || "Entregador"}</div>
+              <div style="font-size: 12px; color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                <div style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e;"></div>
+                Em Rota de Entrega
+              </div>
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-cols: 1fr; gap: 8px;">
+            <a href="https://wa.me/${driver.profiles?.phone?.replace(/\D/g, "")}" target="_blank" style="
+              text-decoration: none;
+              background: #25D366;
+              color: white;
+              padding: 10px;
+              border-radius: 12px;
+              text-align: center;
+              font-size: 13px;
+              font-weight: 700;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+              box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+              transition: transform 0.2s;
+            ">
+              WhatsApp Direto
+            </a>
+            <div style="font-size: 11px; text-align: center; color: #6b7280; font-weight: 500;">
+              Avaliação: ⭐ ${Number(driver.rating).toFixed(1)}
+            </div>
+          </div>
+        </div>
       `;
 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([lng, lat])
-        .setPopup(
-          new maplibregl.Popup({ offset: 20 }).setHTML(`
-            <div style="font-family: sans-serif; padding: 4px;">
-              <strong>${driver.profiles?.full_name || "Entregador"}</strong><br/>
-              <span style="color: #22c55e">● Online</span><br/>
-              <small>${driver.vehicle_type || "Moto"} • ⭐ ${Number(driver.rating).toFixed(1)}</small>
-            </div>
-          `)
-        )
+        .setPopup(new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupContent))
         .addTo(m);
 
       markersRef.current.push(marker);

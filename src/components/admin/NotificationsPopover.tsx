@@ -16,103 +16,129 @@ interface Notification {
 
 const STORAGE_KEY = "epj_notifications_cleared";
 
+import { useDeliveries } from "@/services/deliveries";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+
 export function NotificationsPopover() {
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    try {
-      const cleared = localStorage.getItem(STORAGE_KEY);
-      if (cleared === "true") return [];
-      const saved = localStorage.getItem("epj_notifications");
-      if (saved) return JSON.parse(saved);
-    } catch { /* ignore */ }
-    return [];
-  });
+  const { data: deliveriesData } = useDeliveries({ pageSize: 10 });
+  const deliveries = deliveriesData?.data ?? [];
+  const [lastNotificationId, setLastNotificationId] = useState<string | null>(null);
 
-  // Persist state
+  const pendingDeliveries = deliveries.filter(d => d.status === "pending");
+  const unreadCount = pendingDeliveries.length;
+
+  // Sound alert logic for new pending deliveries
   useEffect(() => {
-    try {
-      localStorage.setItem("epj_notifications", JSON.stringify(notifications));
-    } catch { /* ignore */ }
-  }, [notifications]);
+    if (pendingDeliveries.length > 0) {
+      const newestId = pendingDeliveries[0].id;
+      if (newestId !== lastNotificationId) {
+        if (lastNotificationId !== null) {
+          const audio = new Audio(NOTIFICATION_SOUND);
+          audio.play().catch(e => console.log("Audio play blocked by browser:", e));
+        }
+        setLastNotificationId(newestId);
+      }
+    }
+  }, [pendingDeliveries, lastNotificationId]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending": return "text-warning";
+      case "in_transit": return "text-primary";
+      case "delivered": return "text-success";
+      case "cancelled": return "text-destructive";
+      default: return "text-primary";
+    }
   };
 
-  const clearAll = () => {
-    setNotifications([]);
-    try {
-      localStorage.setItem(STORAGE_KEY, "true");
-      localStorage.setItem("epj_notifications", "[]");
-    } catch { /* ignore */ }
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "pending": return "Novo Pedido";
+      case "accepted": return "Pedido Aceito";
+      case "collecting": return "Coletando";
+      case "in_transit": return "Em Rota";
+      case "delivered": return "Finalizado";
+      case "cancelled": return "Cancelado";
+      default: return status.toUpperCase();
+    }
   };
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="relative p-2 rounded-xl hover:bg-muted transition-colors outline-none">
-          <Bell className="h-5 w-5 text-muted-foreground" />
+        <button className="relative p-2 rounded-xl hover:bg-muted transition-colors outline-none group">
+          <Bell className={cn(
+            "h-5 w-5 transition-colors",
+            unreadCount > 0 ? "text-warning fill-warning/20" : "text-muted-foreground group-hover:text-foreground"
+          )} />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 h-2.5 w-2.5 rounded-full bg-destructive border-2 border-card animate-pulse" />
+            <span className="absolute top-1 right-1 h-3 w-3 rounded-full bg-destructive border-2 border-card flex items-center justify-center">
+              <span className="block h-1 w-1 rounded-full bg-white animate-pulse" />
+            </span>
           )}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 mr-4 mt-1 border-border shadow-2xl rounded-2xl overflow-hidden" align="end">
         <div className="bg-card">
           <div className="flex items-center justify-between p-4 border-b border-border">
-            <h4 className="font-bold text-sm">Notificações</h4>
-            <div className="flex items-center gap-2">
-              {notifications.length > 0 && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={markAllRead} title="Marcar todas como lidas">
-                  <Check className="h-4 w-4" />
-                </Button>
-              )}
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={clearAll} title="Limpar tudo">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <h4 className="font-bold text-sm">Central de Alertas</h4>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              Real-Time Activity
+            </span>
           </div>
           
-          <div className="max-h-72 overflow-y-auto">
-            {notifications.length === 0 ? (
+          <div className="max-h-80 overflow-y-auto">
+            {deliveries.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
                 <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                   <Bell className="h-6 w-6 text-muted-foreground/50" />
                 </div>
-                <p className="text-sm font-medium text-foreground">Nenhuma notificação</p>
-                <p className="text-xs text-muted-foreground mt-1">Você está em dia com os alertas.</p>
+                <p className="text-sm font-medium text-foreground">Nenhuma atividade</p>
+                <p className="text-xs text-muted-foreground mt-1">Aguardando novos pedidos...</p>
               </div>
             ) : (
               <div className="divide-y divide-border">
-                {notifications.map((n) => (
-                  <div key={n.id} className={cn(
+                {deliveries.map((d) => (
+                  <div key={d.id} className={cn(
                     "p-4 hover:bg-muted/50 transition-colors cursor-pointer",
-                    !n.read && "bg-primary/5"
+                    d.status === "pending" && "bg-warning/5"
                   )}>
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <span className={cn(
-                        "text-xs font-bold uppercase tracking-wider",
-                        n.type === "warning" ? "text-warning" : n.type === "success" ? "text-success" : "text-primary"
+                        "text-[10px] font-black uppercase tracking-wider",
+                        getStatusColor(d.status)
                       )}>
-                        {n.title}
+                        {getStatusLabel(d.status)}
                       </span>
-                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">{n.time}</span>
+                      <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                        {d.created_at ? format(new Date(d.created_at), "HH:mm", { locale: ptBR }) : ""}
+                      </span>
                     </div>
-                    <p className="text-sm text-foreground/80 leading-relaxed">{n.message}</p>
+                    <p className="text-sm font-bold text-foreground leading-tight">
+                      {d.companies?.name || "Empresa"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 truncate">
+                      Para: {d.customer_name || "Cliente"}
+                    </p>
+                    <div className="flex items-center justify-between mt-2">
+                       <span className="text-[10px] font-medium px-2 py-0.5 bg-muted rounded-full">
+                         R$ {Number(d.value).toFixed(2)}
+                       </span>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
           
-          {notifications.length > 0 && (
-            <div className="p-3 border-t border-border bg-muted/20 text-center">
-              <Link to="/admin/logs">
-                <Button variant="link" className="text-xs h-auto p-0 font-bold">Ver todo o histórico</Button>
-              </Link>
-            </div>
-          )}
+          <div className="p-3 border-t border-border bg-muted/20 text-center">
+            <Link to="/admin/corridas">
+              <Button variant="link" className="text-xs h-auto p-0 font-bold">Ver todos os pedidos</Button>
+            </Link>
+          </div>
         </div>
       </PopoverContent>
     </Popover>

@@ -46,8 +46,12 @@ export function NotificationsPanel() {
 
       <div className="flex-1 overflow-y-auto divide-y divide-border">
         {deliveries.length === 0 ? (
-          <div className="p-6 text-center">
-            <p className="text-sm text-muted-foreground">Nenhuma atividade recente</p>
+          <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Bell className="h-6 w-6 text-muted-foreground/30" />
+            </div>
+            <p className="text-sm font-medium text-foreground">Nenhuma atividade recente</p>
+            <p className="text-xs text-muted-foreground mt-1 px-4">Aguardando novas solicitações de entrega...</p>
           </div>
         ) : (
           deliveries.map((d) => (
