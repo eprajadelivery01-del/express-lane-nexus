@@ -1,19 +1,94 @@
-import { useState } from "react";
+import React, { useState, useEffect, FormEvent } from "react";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Truck, Clock, CheckCircle, Loader2, ArrowLeft, MapPin, Package } from "lucide-react";
+import { Plus, Truck, Clock, CheckCircle, Loader2, ArrowLeft, MapPin, Package, Trash2, Pencil, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { CustomerSelector } from "@/components/business/CustomerSelector";
+import { useDeliveries } from "@/services/deliveries";
+import { DeliveryStatusBadge } from "@/components/admin/DeliveryStatusBadge";
+import type { DeliveryStatus } from "@/types/models";
+import { cn } from "@/lib/utils";
 
 export default function BusinessHomePage() {
   const { profile } = useAuth();
   const [showNewDelivery, setShowNewDelivery] = useState(false);
+  const [editingDelivery, setEditingDelivery] = useState<any>(null);
+  const qc = useQueryClient();
+  
+  const { data: companyData } = useQuery({
+    queryKey: ["company-info", profile?.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("companies").select("id").eq("user_id", profile?.id).maybeSingle();
+      return data;
+    },
+    enabled: !!profile?.id
+  });
+
+  const companyId = companyData?.id;
+
+  const { data, isLoading } = useDeliveries({
+    companyId: companyId || undefined,
+    pageSize: 10
+  });
+
+  const deliveries = data?.data || [];
+  
+  // Realtime subscription
+  useEffect(() => {
+    if (!companyId) return;
+    const channel = supabase
+      .channel("business-home-deliveries")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "deliveries", filter: `company_id=eq.${companyId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["deliveries"] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [companyId, qc]);
+
+  const stats = {
+    pending: deliveries.filter(d => ["pending", "broadcasted"].includes(d.status)).length,
+    inRoute: deliveries.filter(d => ["accepted", "collecting", "in_route", "in_transit"].includes(d.status)).length,
+    completed: deliveries.filter(d => d.status === "completed" || d.status === "delivered").length
+  };
+
+  const handleCancel = async (id: string) => {
+    if (!confirm("Tem certeza que deseja cancelar esta entrega?")) return;
+    
+    try {
+      const { error } = await supabase
+        .from("deliveries")
+        .update({ status: "cancelled" })
+        .eq("id", id);
+        
+      if (error) throw error;
+      toast.success("Entrega cancelada com sucesso");
+      qc.invalidateQueries({ queryKey: ["deliveries"] });
+    } catch (error: any) {
+      toast.error("Erro ao cancelar: " + error.message);
+    }
+  };
+
+  const handleEdit = (delivery: any) => {
+    setEditingDelivery(delivery);
+    setShowNewDelivery(true);
+  };
 
   return (
     <BusinessLayout title="Painel de Entregas">
       {showNewDelivery ? (
-        <NewDeliveryForm onClose={() => setShowNewDelivery(false)} />
+        <NewDeliveryForm 
+          onClose={() => {
+            setShowNewDelivery(false);
+            setEditingDelivery(null);
+          }} 
+          initialData={editingDelivery}
+        />
       ) : (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -34,25 +109,81 @@ export default function BusinessHomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <StatCard label="Pendentes" value="0" icon={Clock} color="warning" />
-            <StatCard label="Em trânsito" value="0" icon={Truck} color="primary" />
-            <StatCard label="Entregues" value="0" icon={CheckCircle} color="success" />
+            <StatCard label="Pendentes" value={String(stats.pending)} icon={Clock} color="warning" />
+            <StatCard label="Em trânsito" value={String(stats.inRoute)} icon={Truck} color="primary" />
+            <StatCard label="Entregues" value={String(stats.completed)} icon={CheckCircle} color="success" />
           </div>
 
-          <div className="bg-card border border-border rounded-[2.5rem] p-12 text-center shadow-card border-dashed">
-            <div className="w-20 h-20 rounded-3xl bg-muted/50 flex items-center justify-center mx-auto mb-6">
-               <Package className="h-10 w-10 text-muted-foreground/50" />
+          {isLoading ? (
+            <div className="flex items-center justify-center p-20">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">Sem atividade recente</h3>
-            <p className="text-muted-foreground max-w-xs mx-auto">Suas novas solicitações de entrega aparecerão aqui.</p>
-          </div>
+          ) : deliveries.length > 0 ? (
+            <div className="space-y-4">
+              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-2">Atividade Recente</h3>
+              <div className="grid grid-cols-1 gap-4">
+                {deliveries.map((delivery) => (
+                  <div key={delivery.id} className="bg-card border border-border/50 rounded-[2rem] p-6 shadow-card hover:border-primary/20 transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center shrink-0 group-hover:bg-primary/5 transition-colors">
+                        <Package className="h-7 w-7 text-muted-foreground/50 group-hover:text-primary/50 transition-colors" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-lg font-bold text-foreground truncate">{delivery.customer_name}</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-1.5 truncate">
+                          <MapPin className="h-3.5 w-3.5" /> {delivery.address}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-4 md:gap-8">
+                       <div className="text-left md:text-right">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1">Status</p>
+                          <DeliveryStatusBadge status={delivery.status as DeliveryStatus} />
+                       </div>
+                       <div className="text-left md:text-right">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1">Valor</p>
+                          <p className="text-lg font-black text-foreground">R$ {Number(delivery.value || 0).toFixed(2)}</p>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          {["pending", "broadcasted"].includes(delivery.status) && (
+                            <>
+                              <button 
+                                onClick={() => handleEdit(delivery)}
+                                className="p-2 rounded-lg hover:bg-muted text-muted-foreground transition-colors"
+                                title="Editar"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleCancel(delivery.id)}
+                                className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                                title="Cancelar"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-card border border-border rounded-[2.5rem] p-12 text-center shadow-card border-dashed animate-in fade-in duration-700">
+              <div className="w-20 h-20 rounded-3xl bg-muted/50 flex items-center justify-center mx-auto mb-6">
+                 <Package className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-xl font-bold text-foreground mb-2">Sem atividade recente</h3>
+              <p className="text-muted-foreground max-w-xs mx-auto">Suas novas solicitações de entrega aparecerão aqui.</p>
+            </div>
+          )}
         </div>
       )}
     </BusinessLayout>
   );
 }
-
-import { cn } from "@/lib/utils";
 
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color: string }) {
   const colors: Record<string, string> = {
@@ -72,81 +203,124 @@ function StatCard({ label, value, icon: Icon, color }: { label: string; value: s
   );
 }
 
-function NewDeliveryForm({ onClose }: { onClose: () => void }) {
+function NewDeliveryForm({ onClose, initialData }: { onClose: () => void, initialData?: any }) {
   const qc = useQueryClient();
-  const [customerName, setCustomerName] = useState("");
-  const [address, setAddress] = useState("");
-  const [value, setValue] = useState("");
-  const [notes, setNotes] = useState("");
+  const [customerName, setCustomerName] = useState(initialData?.customer_name || "");
+  const [customerPhone, setCustomerPhone] = useState(initialData?.customer_phone || "");
+  const [address, setAddress] = useState(initialData?.address || "");
+  const [value, setValue] = useState(initialData?.value?.toString() || "");
+  const [difficulty, setDifficulty] = useState(initialData?.difficulty || "Padrão");
+  const [notes, setNotes] = useState(initialData?.notes || "");
   const [submitting, setSubmitting] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(initialData?.company_id || null);
+  const [companyAddress, setCompanyAddress] = useState(initialData?.pickup_address || "");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const fetchCompanyInfo = async () => {
+    if (initialData?.company_id) return { id: initialData.company_id, address: initialData.pickup_address };
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    
+    const { data: company } = await supabase
+      .from("companies")
+      .select("id, address")
+      .eq("user_id", user.id)
+      .maybeSingle();
+      
+    if (company) {
+      setCompanyAddress(company.address || "");
+    }
+    return company || null;
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
 
     try {
-      // Find current company ID
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      const cId = companyId || (await fetchCompanyInfo())?.id;
+      if (!cId) throw new Error("Empresa não encontrada.");
 
-      const { data: company } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!company) throw new Error("Empresa não encontrada para este usuário.");
-
-      const { error } = await supabase.from("deliveries").insert([{
-        company_id: company.id,
+      const payload = {
+        company_id: cId,
         customer_name: customerName,
-        address: address, // In this app schema, we use 'address' for dropoff
+        customer_phone: customerPhone,
+        address: address, 
+        dropoff_address: address,
+        pickup_address: companyAddress || "Retirada na Loja",
         value: value ? parseFloat(value) : 0, 
+        difficulty: difficulty,
         notes: notes || null,
-        status: "pending",
-        commission: 0 // Will be defined by admin later or app logic
-      }]);
+        status: initialData ? initialData.status : "pending",
+        commission: initialData ? initialData.commission : 0
+      };
+
+      const query = initialData 
+        ? supabase.from("deliveries").update(payload).eq("id", initialData.id)
+        : supabase.from("deliveries").insert([payload]);
+
+      const { error } = await query;
 
       if (error) throw error;
 
-      toast.success("Entrega criada! Aguardando entregador.");
+      toast.success(initialData ? "Entrega atualizada com sucesso!" : "Entrega solicitada com sucesso!");
       qc.invalidateQueries({ queryKey: ["deliveries"] });
       onClose();
     } catch (err: any) {
-      toast.error(err.message || "Erro ao criar entrega");
+      toast.error(err.message || "Erro ao processar entrega");
     } finally {
       setSubmitting(false);
     }
   };
 
+  useEffect(() => {
+    if (!initialData) {
+      fetchCompanyInfo().then(data => {
+        if (data) setCompanyId(data.id);
+      });
+    }
+  }, [initialData]);
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in slide-in-from-left-4 duration-300">
-      <button onClick={onClose} className="group flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors">
+      <button onClick={onClose} className="group flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors px-2">
         <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Voltar ao Início
       </button>
 
       <div className="bg-card border border-border rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden">
-        {/* Aesthetic background element */}
         <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
         
         <h2 className="text-2xl font-black text-foreground mb-8 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-             <Plus className="h-6 w-6 text-primary-foreground" />
+             {initialData ? <Pencil className="h-6 w-6 text-primary-foreground" /> : <Plus className="h-6 w-6 text-primary-foreground" />}
           </div>
-          Nova Solicitação de Entrega
+          {initialData ? "Editar Solicitação de Entrega" : "Nova Solicitação de Entrega"}
         </h2>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
           <div className="md:col-span-2">
             <label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2 block">Destinatário</label>
-            <div className="relative">
-              <Package className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <input
+            {companyId && (
+              <CustomerSelector 
+                companyId={companyId} 
                 value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="Nome completo do cliente"
+                onChange={(name, addr, phone) => {
+                  setCustomerName(name);
+                  if (addr) setAddress(addr);
+                  if (phone) setCustomerPhone(phone);
+                }}
+              />
+            )}
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2 block">Telefone do Destinatário</label>
+            <div className="relative">
+              <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <input
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="(00) 00000-0000"
                 className="w-full pl-12 pr-4 py-4 rounded-2xl border border-border bg-background/50 font-medium outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-base"
-                required
               />
             </div>
           </div>
@@ -180,10 +354,14 @@ function NewDeliveryForm({ onClose }: { onClose: () => void }) {
 
           <div>
             <label className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-2 block">Dificuldade/Tipo (Opcional)</label>
-            <select className="w-full px-4 py-4 rounded-2xl border border-border bg-background/50 font-medium outline-none focus:border-primary transition-all text-base">
-               <option>Padrão</option>
-               <option>Frágil</option>
-               <option>Grande Porte</option>
+            <select 
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+              className="w-full px-4 py-4 rounded-2xl border border-border bg-background/50 font-medium outline-none focus:border-primary transition-all text-base"
+            >
+               <option value="Padrão">Padrão</option>
+               <option value="Frágil">Frágil</option>
+               <option value="Grande Porte">Grande Porte</option>
             </select>
           </div>
 
