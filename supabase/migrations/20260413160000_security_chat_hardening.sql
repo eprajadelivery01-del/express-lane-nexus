@@ -62,16 +62,22 @@ CREATE POLICY "Participants can view chat messages" ON public.chat_messages
   );
 
 -- 2. [GLOBAL FUNCTION HYGIENE]
--- Re-applying search_path to ensure 100% compliance with scanner warnings
+-- Fixes "Function Search Path Mutable" for all system functions
+-- Using pg_get_function_identity_arguments to avoid signature errors
 DO $$ 
 DECLARE 
-  func_name text;
+  func_record record;
 BEGIN 
-  FOR func_name IN 
-    SELECT proname FROM pg_proc JOIN pg_namespace ON pg_proc.pronamespace = pg_namespace.oid 
-    WHERE nspname = 'public' 
+  FOR func_record IN 
+    SELECT n.nspname as schema_name, p.proname as function_name, pg_get_function_identity_arguments(p.oid) as args
+    FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid 
+    WHERE n.nspname = 'public' 
   LOOP 
-    EXECUTE format('ALTER FUNCTION public.%I SET search_path TO public', func_name); 
+    EXECUTE format('ALTER FUNCTION %I.%I(%s) SET search_path TO public', 
+                   func_record.schema_name, 
+                   func_record.function_name, 
+                   func_record.args); 
   END LOOP; 
 END $$;
 
