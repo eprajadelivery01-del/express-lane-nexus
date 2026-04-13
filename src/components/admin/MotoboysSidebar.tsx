@@ -55,7 +55,7 @@ export function MotoboysSidebar() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground truncate">{driver.profiles?.full_name || "—"}</p>
-                    <p className="text-[10px] text-muted-foreground">{driver.vehicle || "—"}</p>
+                    <p className="text-[10px] text-muted-foreground">{driver.vehicle_type || "—"}</p>
                   </div>
                 </div>
                 <span className="h-2 w-2 rounded-full bg-success shrink-0" />
@@ -76,7 +76,7 @@ export function MotoboysSidebar() {
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-foreground/70 truncate">{driver.profiles?.full_name || "—"}</p>
-                    <p className="text-[10px] text-muted-foreground/60">{driver.vehicle || "—"}</p>
+                    <p className="text-[10px] text-muted-foreground/60">{driver.vehicle_type || "—"}</p>
                   </div>
                 </div>
                 <span className="h-2 w-2 rounded-full bg-muted-foreground/30 shrink-0" />
