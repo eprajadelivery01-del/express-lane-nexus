@@ -31,6 +31,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     longitude: "",
     regionId: "",
     is_active: true,
+    category: "restaurante",
   });
 
   // Reset form when company changes
@@ -46,6 +47,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         longitude: company.longitude?.toString() || "",
         regionId: company.region_id || "",
         is_active: company.is_active ?? true,
+        category: company.category || "restaurante",
       });
       // Fetch owner profile
       if (company.user_id) {
@@ -81,6 +83,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           longitude: form.longitude ? parseFloat(form.longitude) : null,
           region_id: form.regionId || null,
           is_active: form.is_active,
+          category: form.category,
         })
         .eq("id", company.id);
 
@@ -143,9 +146,25 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               <Input value={form.document} onChange={e => set("document", e.target.value)} className="mt-1.5" disabled />
             </div>
           </div>
-          <div>
             <Label>Endereço Completo</Label>
             <Input value={form.address} onChange={e => set("address", e.target.value)} className="mt-1.5" />
+          </div>
+          <div>
+            <Label>Categoria do Marketplace</Label>
+            <select
+              value={form.category}
+              onChange={e => set("category", e.target.value)}
+              className="w-full mt-1.5 px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors font-bold"
+            >
+              <option value="restaurante">Restaurante</option>
+              <option value="mercado">Mercado</option>
+              <option value="farmacia">Farmácia</option>
+              <option value="lanches">Lanches</option>
+              <option value="pizza">Pizzaria</option>
+              <option value="bebidas">Adega</option>
+              <option value="doces">Doceria</option>
+              <option value="pet">Pet Shop</option>
+            </select>
           </div>
           <div>
             <Label>Região</Label>
