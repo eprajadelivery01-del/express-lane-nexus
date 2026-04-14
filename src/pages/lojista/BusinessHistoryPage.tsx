@@ -11,10 +11,10 @@ type Delivery = {
   status: string;
   value: number;
   created_at: string;
-  completed_at: string | null;
+  delivered_at: string | null;
 };
 
-type FilterStatus = "all" | "completed" | "cancelled";
+type FilterStatus = "all" | "delivered" | "cancelled";
 
 export default function BusinessHistoryPage() {
   const { user } = useAuth();
