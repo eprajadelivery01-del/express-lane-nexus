@@ -69,6 +69,9 @@ export async function updateOrderStatus(orderId: string, status: "pending" | "pr
   return data;
 }
 
+/**
+ * HOOKS
+ */
 export function useCalculateDeliveryFee() {
   return useMutation({
     mutationFn: ({ lat, lng }: { lat: number; lng: number }) => calculateDeliveryFee(lat, lng),

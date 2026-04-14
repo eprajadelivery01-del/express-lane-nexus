@@ -12,10 +12,9 @@ interface UnifiedMapProps {
   regions: RegionRow[];
   centerCity?: { name: string; lat: number; lng: number } | null;
   interactive?: boolean;
-  darkTheme?: boolean;
 }
 
-export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = false, darkTheme = false }: UnifiedMapProps) {
+export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = false }: UnifiedMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
@@ -87,9 +86,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
     // or we can use the default MapLibre style with a satellite raster source.
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: darkTheme 
-        ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
-        : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
       center: centerCity ? [centerCity.lng, centerCity.lat] : [-56.0974, -15.5989],
       zoom: 12,
     });
@@ -150,7 +147,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
             type: "Feature",
             properties: { 
               name: region.name, 
-              price: `R$ ${Number((region as any).delivery_price ?? region.price ?? 0).toFixed(2)}` 
+              price: `R$ ${Number(region.price).toFixed(2)}` 
             },
             geometry: geojson,
           },

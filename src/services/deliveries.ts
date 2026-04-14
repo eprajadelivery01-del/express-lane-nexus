@@ -9,10 +9,10 @@ export interface DeliveryWithRelations {
   customer_name: string | null;
   customer_phone: string | null;
   address: string | null;
-  pickup_address: string | null;
+  pickup_address: string;
+  dropoff_address: string;
   pickup_latitude: number | null;
   pickup_longitude: number | null;
-  dropoff_address: string | null;
   dropoff_latitude: number | null;
   dropoff_longitude: number | null;
   delivery_address: string | null;
@@ -21,17 +21,20 @@ export interface DeliveryWithRelations {
   value: number;
   price: number | null;
   commission: number;
+  distance_km: number | null;
+  estimated_time_minutes: number | null;
   status: DeliveryStatus;
   notes: string | null;
-  created_at: string;
-  updated_at: string | null;
+  proof_photo_url: string | null;
+  signature_url: string | null;
   accepted_at: string | null;
   collected_at: string | null;
   delivered_at: string | null;
   cancelled_at: string | null;
   picked_up_at: string | null;
-  distance_km: number | null;
-  estimated_time_minutes: number | null;
+  cancellation_reason: string | null;
+  created_at: string;
+  updated_at: string | null;
   companies?: { name: string; phone: string | null } | null;
 }
 
@@ -84,7 +87,7 @@ export function useDeliveryStats() {
       today.setHours(0, 0, 0, 0);
 
       const [todayRes, totalRes] = await Promise.all([
-        supabase.from("deliveries").select("status, value").gte("created_at", today.toISOString()),
+        supabase.from("deliveries").select("status, price").gte("created_at", today.toISOString()),
         supabase.from("deliveries").select("id", { count: "exact", head: true }),
       ]);
 
@@ -98,7 +101,7 @@ export function useDeliveryStats() {
         inTransit: data.filter((d) => d.status === "in_transit").length,
         delivered: data.filter((d) => d.status === "delivered").length,
         cancelled: data.filter((d) => d.status === "cancelled").length,
-        todayRevenue: data.filter((d) => d.status === "delivered").reduce((sum, d) => sum + Number(d.value ?? 0), 0),
+        todayRevenue: data.filter((d) => d.status === "delivered").reduce((sum, d) => sum + Number(d.price ?? d.value ?? 0), 0),
       };
     },
     refetchInterval: 30000,
@@ -110,6 +113,10 @@ export function useUpdateDeliveryStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: DeliveryStatus }) => {
       const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+      if (status === "accepted") updates.accepted_at = new Date().toISOString();
+      if (status === "collecting") updates.collected_at = new Date().toISOString();
+      if (status === "delivered") updates.delivered_at = new Date().toISOString();
+      if (status === "cancelled") updates.cancelled_at = new Date().toISOString();
       const { error } = await supabase.from("deliveries").update(updates as any).eq("id", id);
       if (error) throw error;
     },

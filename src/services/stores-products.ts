@@ -65,21 +65,5 @@ export function useProductsManager(companyId?: string) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["products-manager"] }),
   });
 
-  const updateProduct = useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: any }) => {
-      const { error } = await supabase.from("products").update(data).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products-manager"] }),
-  });
-
-  const deleteProduct = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("products").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["products-manager"] }),
-  });
-
-  return { ...query, createProduct, updateProduct, deleteProduct };
+  return { ...query, createProduct };
 }

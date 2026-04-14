@@ -83,10 +83,8 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
       ].filter(Boolean);
       
       const fullAddress = parts.join(", ");
-      console.log("Auto-filling data for", customer.name, ":", { fullAddress, phone: customer.phone, cpf: customer.cpf });
       onChange(customer.name, fullAddress, customer.phone || "", customer.cpf || "");
     } else {
-      console.log("No address found for", customer.name);
       onChange(customer.name, "", customer.phone || "", customer.cpf || "");
     }
   };
@@ -157,4 +155,3 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
     </div>
   );
 }
-

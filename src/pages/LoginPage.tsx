@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { APP_TYPE, APP_PROJECT_ID, APP_COLOR } from "@/constants/app-config";
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -47,41 +49,32 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
-      console.log("Iniciando tentativa de login (NUCLEAR):", email);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      
       if (error) {
-        console.error("Erro detetado no Supabase Auth:", error.message);
         toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
       }
-    } catch (err: any) {
-      console.error("ERRO CRÍTICO NO LOGIN:", err);
+    } catch (error: any) {
+      toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-4 shadow-lg p-2">
-            <img src="/logo.png" alt="É Pra Já" className="w-full h-full object-contain" />
-          </div>
-          <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight">É Pra Já</h1>
-          <p className="text-sm text-muted-foreground mt-1 font-medium">Delivery • Painel de Gestão</p>
-          <div className="mt-4 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-            <p className="text-[10px] font-bold text-primary uppercase tracking-widest leading-tight text-center">
-              Painel de Controle Admin (9c1a49c1)<br />BUILD: V16-NUCLEAR-CLEANUP
-            </p>
+    <div className="flex min-h-screen items-center justify-center bg-sidebar px-4">
+      <form onSubmit={handleLogin} className="w-full max-w-sm space-y-6 rounded-2xl bg-card p-8 shadow-card">
+        <div className="flex flex-col items-center gap-2">
+          <img src="/logo.png" alt="É Pra Já Delivery" className="h-20 w-auto rounded-xl" />
+          <p className="text-sm text-muted-foreground font-black text-primary uppercase">Painel Administrativo Central</p>
+          <div className="mt-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-primary">BUILD: V16-NUCLEAR-CLEANUP (bfeb2f00)</p>
           </div>
         </div>
 
-        <form onSubmit={handleLogin} className="bg-card rounded-2xl p-6 shadow-card space-y-4">
-          <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Email</label>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -95,8 +88,8 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Senha</label>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Senha</label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -107,43 +100,30 @@ export default function LoginPage() {
                 className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-              >
+              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
                 {showPassword ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-muted-foreground" />}
               </button>
             </div>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-xl gradient-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2 shadow-md"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            <span>{loading ? "Entrando..." : "Entrar"}</span>
-          </button>
+        {user && !authLoading && roles.length === 0 && (
+          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+            <p className="text-[11px] text-destructive text-center font-bold uppercase leading-tight">
+              Acesso Negado: Seu perfil não possui permissões. Contate o administrador.
+            </p>
+          </div>
+        )}
 
-          <button
-            type="button"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              localStorage.clear();
-              sessionStorage.clear();
-              window.location.reload();
-            }}
-            className="w-full py-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest font-bold"
-          >
-            Problemas ao entrar? Limpar Sessão
-          </button>
-        </form>
+        <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 gradient-primary text-primary-foreground py-2.5 rounded-xl font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+          {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+          <span>{loading ? "Entrando..." : "Entrar"}</span>
+        </button>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-xs text-muted-foreground">
           Acesso exclusivo por convite do administrador
         </p>
-      </div>
+      </form>
     </div>
   );
 }

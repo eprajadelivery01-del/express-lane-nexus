@@ -1,25 +1,26 @@
 import React, { useState, useEffect, FormEvent } from "react";
-import { BusinessLayout } from "@/components/business/BusinessLayout";
-import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Truck, Clock, CheckCircle, Loader2, ArrowLeft, MapPin, Package, Trash2, Pencil, Phone } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { MessageSquare, Plus, Truck, Clock, CheckCircle, Loader2, ArrowLeft, MapPin, Package, Trash2, Pencil, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { CustomerSelector } from "@/components/business/CustomerSelector";
 import { useCity } from "@/contexts/CityContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useDeliveries } from "@/services/deliveries";
 import { format } from "date-fns";
 import { DeliveryStatusBadge } from "@/components/admin/DeliveryStatusBadge";
 import type { DeliveryStatus } from "@/types/models";
+import { cn } from "@/lib/utils";
 
 export default function BusinessHomePage() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { selectedCity } = useCity();
+  const navigate = useNavigate();
   const [showNewDelivery, setShowNewDelivery] = useState(false);
   const [editingDelivery, setEditingDelivery] = useState<any>(null);
   const qc = useQueryClient();
-  
-  const { user } = useAuth();
   
   const { data: companyData } = useQuery({
     queryKey: ["company-info", user?.id],
@@ -103,13 +104,29 @@ export default function BusinessHomePage() {
               <p className="text-muted-foreground font-medium">Gerencie suas solicitações de entrega em tempo real.</p>
             </div>
 
-            <button
-              onClick={() => setShowNewDelivery(true)}
-              className="px-8 py-4 rounded-2xl modal-gradient text-white text-lg font-black flex items-center justify-center gap-3 shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all"
-            >
-              <Plus className="h-6 w-6" />
-              Nova Entrega
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/chat")}
+                className="p-4 rounded-2xl bg-card border border-border text-foreground hover:bg-muted transition-all shadow-lg flex items-center justify-center group"
+                title="Chat com Central"
+              >
+                <div className="relative">
+                  <MessageSquare className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+                  </span>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setShowNewDelivery(true)}
+                className="px-8 py-4 rounded-2xl modal-gradient text-white text-lg font-black flex items-center justify-center gap-3 shadow-xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all"
+              >
+                <Plus className="h-6 w-6" />
+                Nova Entrega
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -189,8 +206,6 @@ export default function BusinessHomePage() {
   );
 }
 
-import { cn } from "@/lib/utils";
-
 function StatCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: any; color: string }) {
   const colors: Record<string, string> = {
     primary: "text-primary bg-primary/10",
@@ -245,7 +260,8 @@ function NewDeliveryForm({ onClose, initialData }: { onClose: () => void, initia
     setSubmitting(true);
 
     try {
-      const cId = companyId || (await fetchCompanyInfo())?.id;
+      const cInfo = await fetchCompanyInfo();
+      const cId = companyId || cInfo?.id;
       if (!cId) throw new Error("Empresa não encontrada.");
 
       // For new deliveries, we handle customer profile
@@ -314,7 +330,7 @@ function NewDeliveryForm({ onClose, initialData }: { onClose: () => void, initia
         customer_cpf: customerCpf,
         address: address, 
         dropoff_address: address,
-        pickup_address: companyAddress || "Retirada na Loja",
+        pickup_address: companyAddress || cInfo?.address || "Retirada na Loja",
         value: value ? parseFloat(value) : 0, 
         difficulty: difficulty,
         notes: notes || null,
@@ -473,5 +489,3 @@ function NewDeliveryForm({ onClose, initialData }: { onClose: () => void, initia
     </div>
   );
 }
-
-import { useQuery } from "@tanstack/react-query";
