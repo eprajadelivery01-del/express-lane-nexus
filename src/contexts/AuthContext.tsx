@@ -39,8 +39,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       const userEmail = (forceEmail || currentUser?.email)?.toLowerCase();
-
-      console.log(`[Auth-Admin] V12-TOTAL-RELEASE - Carregando dados: ${userEmail || userId}`);
+      
+      console.log(`[Auth-bfeb] V12-TOTAL-RELEASE - Carregando perfil: ${userEmail || userId}`);
       
       const timeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Timeout")), 10000)
@@ -66,11 +66,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         finalRoles = rolesRes.data.map((r: any) => r.role as AppRole);
       }
 
-      // Bypass supremo para Admin
-      if (userId === SPECIAL_USER_ID) {
-        if (!finalRoles.includes("admin")) finalRoles.push("admin");
-      }
-
       setRoles(finalRoles);
 
       if (profileRes?.data) {
@@ -80,15 +75,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone: null
         });
         setUserStatus("active");
-      } else if (userId === SPECIAL_USER_ID) {
-        setProfile({ full_name: "Admin (Fallback)", avatar_url: null, phone: null });
+      } else {
         setUserStatus("active");
       }
     } catch (error: any) {
-      console.error("[Auth-Admin] ERRO NO METADATA (Bypassed):", error.message);
+      console.error("[Auth-bfeb] ERRO NO METADATA (Bypassed):", error.message);
     } finally {
       fetchingRef.current = null;
-      setLoading(false);
+      setLoading(false); // Garantimos que o loading morra no final do background fetch se necessário
     }
   };
 
@@ -106,10 +100,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         if (currentUser) {
           // V12: LIBERAÇÃO IMEDIATA
-          console.log("[Auth-Admin] V12: Liberando loading para usuário logado.");
+          console.log("[Auth-bfeb] V12: Liberando loading para usuário logado.");
           setLoading(false);
-          // Busca perfil em background
-          setTimeout(() => { if (mounted) fetchUserData(currentUser.id, currentUser.email); }, 0);
+          // Carregamos o resto em background sem travar
+          const email = currentUser.email?.toLowerCase();
+          setTimeout(() => { if (mounted) fetchUserData(currentUser.id, email); }, 0);
         } else {
           setLoading(false);
         }
@@ -123,13 +118,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const authListener = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        console.log(`[Auth-Admin] Evento V17: ${event}`);
+        console.log(`[Auth-bfeb] Evento V17 (TOTAL-RELEASE): ${event}`);
 
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
           const currentUser = session?.user;
           setSession(session);
           setUser(currentUser ?? null);
-          setLoading(false); // V12
+          setLoading(false); // LIBERAÇÃO IMEDIATA
           if (currentUser) {
             setTimeout(() => { if (mounted) fetchUserData(currentUser.id, currentUser.email); }, 0);
           }
@@ -171,33 +166,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const signOut = async () => { 
-    try {
-      await supabase.auth.signOut(); 
-      // Hard reset to clear all states and redirect
-      localStorage.clear();
-      sessionStorage.clear();
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Erro ao sair:", error);
-      window.location.href = "/login";
-    }
-  };
+  const signOut = async () => { await supabase.auth.signOut(); };
 
   const deleteAccount = async () => {
     if (!user) return;
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ status: "rejected" })
-        .eq("user_id", user.id);
-      
-      if (error) throw error;
+      await supabase.from("profiles").update({ status: "rejected" }).eq("user_id", user.id);
       await signOut();
-    } catch (error) {
-      console.error("Erro ao deletar conta:", error);
-      throw error;
-    }
+    } catch (error) {}
   };
 
   return (

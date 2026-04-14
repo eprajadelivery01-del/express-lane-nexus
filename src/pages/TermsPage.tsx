@@ -6,7 +6,7 @@ export default function TermsPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-background p-6 md:p-12">
+    <div className="min-h-screen bg-background p-6 md:p-12 text-foreground">
       <div className="max-w-3xl mx-auto space-y-8">
         <Button 
           variant="ghost" 
@@ -16,27 +16,27 @@ export default function TermsPage() {
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Button>
         
-        <h1 className="text-3xl font-black tracking-tighter uppercase">Termos de Uso - Lojista</h1>
+        <h1 className="text-3xl font-black tracking-tighter uppercase">Termos de Uso - Cliente</h1>
         
         <div className="prose prose-sm prose-invert max-w-none text-muted-foreground space-y-6">
           <section>
-            <h2 className="text-xl font-bold text-foreground">1. Aceitação dos Termos</h2>
-            <p>Ao utilizar o painel de lojista do É Pra Já, você concorda em cumprir estes termos de serviço...</p>
+            <h2 className="text-xl font-bold text-foreground">1. Objeto</h2>
+            <p>O É Pra Já é uma plataforma de delivery que conecta clientes a estabelecimentos locais...</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-foreground">2. Uso do Serviço</h2>
-            <p>O lojista é responsável por manter a precisão das informações de seus estabelecimentos e pedidos...</p>
+            <h2 className="text-xl font-bold text-foreground">2. Uso da Localização</h2>
+            <p>Para o funcionamento do serviço, o aplicativo solicita acesso à sua localização para exibir lojas próximas e calcular fretes.</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-foreground">3. Taxas e Pagamentos</h2>
-            <p>As comissões e taxas de serviço serão aplicadas conforme acordado no momento do cadastro...</p>
+            <h2 className="text-xl font-bold text-foreground">3. Pagamentos</h2>
+            <p>Os pagamentos são processados de forma segura através de nossos parceiros financeiros...</p>
           </section>
 
           <section>
-            <h2 className="text-xl font-bold text-foreground">4. Cancelamento</h2>
-            <p>Você pode excluir sua conta a qualquer momento através das configurações de perfil, o que resultará na remoção de todos os dados do estabelecimento.</p>
+            <h2 className="text-xl font-bold text-foreground">4. Exclusão de Conta</h2>
+            <p>Conforme exigido pelas normas da Apple e Google, o usuário pode solicitar a exclusão permanente de seus dados através do menu de Perfil.</p>
           </section>
         </div>
       </div>
