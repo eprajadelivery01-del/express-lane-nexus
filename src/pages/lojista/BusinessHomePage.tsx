@@ -269,12 +269,13 @@ function NewDeliveryForm({
       const lng = parseFloat(results[0].lon);
       setCoords({ lat, lng });
 
-      const { data: regionId } = await supabase.rpc("find_region_for_point", { _lat: lat, _lng: lng });
+      const { data: regionData } = await supabase.rpc("find_region_for_point", { _lat: lat, _lng: lng });
+      const regionId = Array.isArray(regionData) && regionData.length > 0 ? regionData[0].region_id : regionData;
       if (regionId) {
         const { data: region } = await supabase
           .from("regions")
           .select("name, price, color")
-          .eq("id", regionId)
+          .eq("id", regionId as string)
           .single();
         if (region) setRegionInfo({ name: region.name, price: Number(region.price), color: region.color });
       } else {

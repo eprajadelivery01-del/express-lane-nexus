@@ -46,7 +46,7 @@ export default function BusinessMapPage() {
     setSendingRequest(false);
   };
 
-  const activeRegions = regions?.filter((r) => r.is_active) ?? [];
+  const activeRegions = regions?.filter((r) => r.active) ?? [];
 
   return (
     <BusinessLayout title="Mapa de Regiões">

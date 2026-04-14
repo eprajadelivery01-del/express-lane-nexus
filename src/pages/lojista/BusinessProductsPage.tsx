@@ -19,7 +19,10 @@ import {
 export default function BusinessProductsPage() {
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const { data: products, isLoading, createProduct, updateProduct, deleteProduct } = useProductsManager(companyId || "");
+  const productsManager = useProductsManager(companyId || "");
+  const { data: products, isLoading, createProduct } = productsManager;
+  const updateProduct = (productsManager as any).updateProduct;
+  const deleteProduct = (productsManager as any).deleteProduct;
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);

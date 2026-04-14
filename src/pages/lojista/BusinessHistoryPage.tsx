@@ -42,17 +42,17 @@ export default function BusinessHistoryPage() {
 
     let q = supabase
       .from("deliveries")
-      .select("id, customer_name, address, status, value, created_at, completed_at")
+      .select("id, customer_name, address, status, value, created_at, delivered_at")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .range(0, pageSize - 1);
 
-    if (filterStatus === "completed") q = q.eq("status", "completed");
+    if (filterStatus === "delivered") q = q.eq("status", "delivered");
     else if (filterStatus === "cancelled") q = q.eq("status", "cancelled");
-    else q = q.in("status", ["completed", "cancelled"]);
+    else q = q.in("status", ["delivered", "cancelled"]);
 
     q.then(({ data }) => {
-      setDeliveries(data ?? []);
+      setDeliveries((data as any) ?? []);
       setLoading(false);
     });
   }, [companyId, filterStatus]);
@@ -62,18 +62,18 @@ export default function BusinessHistoryPage() {
     const next = page + 1;
     let q = supabase
       .from("deliveries")
-      .select("id, customer_name, address, status, value, created_at, completed_at")
+      .select("id, customer_name, address, status, value, created_at, delivered_at")
       .eq("company_id", companyId)
       .order("created_at", { ascending: false })
       .range(next * pageSize, (next + 1) * pageSize - 1);
 
-    if (filterStatus === "completed") q = q.eq("status", "completed");
+    if (filterStatus === "delivered") q = q.eq("status", "delivered");
     else if (filterStatus === "cancelled") q = q.eq("status", "cancelled");
-    else q = q.in("status", ["completed", "cancelled"]);
+    else q = q.in("status", ["delivered", "cancelled"]);
 
     const { data } = await q;
     if (data && data.length > 0) {
-      setDeliveries((prev) => [...prev, ...(data as Delivery[])]);
+      setDeliveries((prev) => [...prev, ...(data as any)]);
       setPage(next);
     }
   };
