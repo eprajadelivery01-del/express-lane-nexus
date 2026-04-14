@@ -62,6 +62,41 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_message_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          sender_id: string | null
+          session_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          sender_id?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          sender_id?: string | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_message_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           created_at: string | null
@@ -100,6 +135,44 @@ export type Database = {
           },
         ]
       }
+      chat_sessions: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          status: string | null
+          topic: string
+          updated_at: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          status?: string | null
+          topic: string
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          status?: string | null
+          topic?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cities: {
         Row: {
           active: boolean | null
@@ -132,6 +205,7 @@ export type Database = {
           active: boolean | null
           address: string | null
           banner_url: string | null
+          business_hours: string | null
           category: string | null
           city: string | null
           city_id: string | null
@@ -144,6 +218,7 @@ export type Database = {
           email: string | null
           id: string
           is_active: boolean | null
+          is_open: boolean | null
           latitude: number | null
           logo_url: string | null
           longitude: number | null
@@ -160,6 +235,7 @@ export type Database = {
           active?: boolean | null
           address?: string | null
           banner_url?: string | null
+          business_hours?: string | null
           category?: string | null
           city?: string | null
           city_id?: string | null
@@ -172,6 +248,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          is_open?: boolean | null
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
@@ -188,6 +265,7 @@ export type Database = {
           active?: boolean | null
           address?: string | null
           banner_url?: string | null
+          business_hours?: string | null
           category?: string | null
           city?: string | null
           city_id?: string | null
@@ -200,6 +278,7 @@ export type Database = {
           email?: string | null
           id?: string
           is_active?: boolean | null
+          is_open?: boolean | null
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
@@ -239,6 +318,62 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          active: boolean | null
+          code: string
+          company_id: string | null
+          created_at: string | null
+          description: string | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          max_discount_value: number | null
+          min_order_value: number | null
+          usage_limit: number | null
+          used_count: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          code: string
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_type: string
+          discount_value: number
+          expires_at?: string | null
+          id?: string
+          max_discount_value?: number | null
+          min_order_value?: number | null
+          usage_limit?: number | null
+          used_count?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          code?: string
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          max_discount_value?: number | null
+          min_order_value?: number | null
+          usage_limit?: number | null
+          used_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1143,7 +1278,7 @@ export type Database = {
           created_at?: string | null
           document?: string | null
           full_name?: string | null
-          id: string
+          id?: string
           phone?: string | null
           role?: string | null
           status?: Database["public"]["Enums"]["user_status"] | null
@@ -1291,6 +1426,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_coupons: {
+        Row: {
+          coupon_id: string | null
+          created_at: string | null
+          id: string
+          order_id: string | null
+          used_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          coupon_id?: string | null
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          coupon_id?: string | null
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_coupons_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_coupons_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1433,6 +1610,7 @@ export type Database = {
         | "delivered"
         | "cancelled"
         | "returned"
+        | "completed"
       driver_status: "pending" | "active" | "rejected" | "suspended"
       invitation_status: "pending" | "accepted" | "expired"
       occurrence_type: "delay" | "damage" | "absence" | "other"
@@ -1586,6 +1764,7 @@ export const Constants = {
         "delivered",
         "cancelled",
         "returned",
+        "completed",
       ],
       driver_status: ["pending", "active", "rejected", "suspended"],
       invitation_status: ["pending", "accepted", "expired"],

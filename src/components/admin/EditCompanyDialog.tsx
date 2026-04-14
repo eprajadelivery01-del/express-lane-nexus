@@ -146,6 +146,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               <Input value={form.document} onChange={e => set("document", e.target.value)} className="mt-1.5" disabled />
             </div>
           </div>
+          <div>
             <Label>Endereço Completo</Label>
             <Input value={form.address} onChange={e => set("address", e.target.value)} className="mt-1.5" />
           </div>
