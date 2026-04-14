@@ -89,7 +89,7 @@ export default function BusinessHistoryPage() {
 
   const filters: { key: FilterStatus; label: string }[] = [
     { key: "all", label: "Todos" },
-    { key: "completed", label: "Concluídos" },
+    { key: "delivered", label: "Concluídos" },
     { key: "cancelled", label: "Cancelados" },
   ];
 
