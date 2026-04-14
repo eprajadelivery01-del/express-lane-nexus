@@ -19,7 +19,10 @@ import {
 export default function BusinessProductsPage() {
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const { data: products, isLoading, createProduct, updateProduct, deleteProduct } = useProductsManager(companyId || "");
+  const productsManager = useProductsManager(companyId || "");
+  const { data: products, isLoading, createProduct } = productsManager;
+  const updateProduct = (productsManager as any).updateProduct;
+  const deleteProduct = (productsManager as any).deleteProduct;
   const [search, setSearch] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -105,9 +108,9 @@ export default function BusinessProductsPage() {
               <div key={product.id} className="group relative bg-card rounded-[32px] overflow-hidden shadow-card border border-border hover:shadow-card-hover transition-all duration-300">
                 {/* Image Placeholder/Preview */}
                 <div className="aspect-video w-full bg-muted relative overflow-hidden">
-                  {(product.image_urls && product.image_urls.length > 0) ? (
+                  {(product.image_urls && (product.image_urls as any[]).length > 0) ? (
                     <img 
-                      src={product.image_urls[0]} 
+                      src={(product.image_urls as any[])[0]} 
                       alt={product.name} 
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
@@ -161,19 +164,19 @@ export default function BusinessProductsPage() {
                   
                   <div className="pt-2 flex items-center gap-2">
                      <div className="flex -space-x-2">
-                        {(product.image_urls || []).slice(0, 3).map((url: string, i: number) => (
-                           <div key={i} className="w-6 h-6 rounded-full border-2 border-card bg-muted overflow-hidden">
-                              <img src={url} className="w-full h-full object-cover" />
-                           </div>
-                        ))}
-                        {(product.image_urls || []).length > 3 && (
-                           <div className="w-6 h-6 rounded-full border-2 border-card bg-muted flex items-center justify-center text-[8px] font-bold text-muted-foreground">
-                              +{(product.image_urls || []).length - 3}
-                           </div>
-                        )}
-                     </div>
-                     <span className="text-[10px] text-muted-foreground font-bold italic">
-                        {(product.image_urls || []).length} { (product.image_urls || []).length === 1 ? "foto" : "fotos" }
+                         {((product.image_urls || []) as any[]).slice(0, 3).map((url: string, i: number) => (
+                            <div key={i} className="w-6 h-6 rounded-full border-2 border-card bg-muted overflow-hidden">
+                               <img src={url} className="w-full h-full object-cover" />
+                            </div>
+                         ))}
+                         {((product.image_urls || []) as any[]).length > 3 && (
+                            <div className="w-6 h-6 rounded-full border-2 border-card bg-muted flex items-center justify-center text-[8px] font-bold text-muted-foreground">
+                               +{((product.image_urls || []) as any[]).length - 3}
+                            </div>
+                         )}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground font-bold italic">
+                         {((product.image_urls || []) as any[]).length} { ((product.image_urls || []) as any[]).length === 1 ? "foto" : "fotos" }
                      </span>
                   </div>
                 </div>
@@ -213,7 +216,9 @@ export default function BusinessProductsPage() {
 
 function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any, companyId: string | null, onSuccess: () => void }) {
   const { toast } = useToast();
-  const { createProduct, updateProduct } = useProductsManager(companyId || "");
+  const pm = useProductsManager(companyId || "");
+  const createProduct = pm.createProduct;
+  const updateProduct = (pm as any).updateProduct;
   const [loading, setLoading] = useState(false);
   
   const [form, setForm] = useState({
@@ -458,7 +463,7 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
             className="flex-1 py-4 rounded-2xl gradient-primary text-primary-foreground text-sm font-bold disabled:opacity-50 shadow-glow hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
          >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {editingProduct ? "Salvar Alterações" : "Adicionar ao Cardápio"}
+            {initialData ? "Salvar Alterações" : "Adicionar ao Cardápio"}
          </button>
       </div>
     </form>

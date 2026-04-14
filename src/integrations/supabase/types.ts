@@ -309,7 +309,6 @@ export type Database = {
           pickup_longitude: number | null
           price: number | null
           proof_photo_url: string | null
-          region_id: string | null
           signature_url: string | null
           status: Database["public"]["Enums"]["delivery_status"] | null
           updated_at: string | null
@@ -947,7 +946,6 @@ export type Database = {
           customer_id: string
           delivery_address: string | null
           delivery_fee: number | null
-          delivery_id: string | null
           delivery_latitude: number | null
           delivery_longitude: number | null
           id: string
@@ -966,7 +964,6 @@ export type Database = {
           customer_id: string
           delivery_address?: string | null
           delivery_fee?: number | null
-          delivery_id?: string | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           id?: string

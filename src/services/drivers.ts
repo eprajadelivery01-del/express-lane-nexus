@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 export type DriverWithProfile = {
   id: string;
   user_id: string;
+  full_name: string;
+  phone?: string | null;
   vehicle_type?: string | null;
   vehicle_plate?: string | null;
   online?: boolean | null;
@@ -11,6 +13,8 @@ export type DriverWithProfile = {
   rating: number;
   latitude: number | null;
   longitude: number | null;
+  avatar_url?: string | null;
+  status?: string | null;
   created_at?: string;
   profiles?: { full_name: string; phone: string | null; avatar_url: string | null } | null;
 };

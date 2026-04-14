@@ -22,6 +22,9 @@ import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/shared/ScrollToTop";
 import { PageTransition } from "@/components/shared/PageTransition";
 import BusinessChatPage from "./pages/business/BusinessChatPage";
+import CompaniesPage from "./pages/CompaniesPage";
+
+const ReviewsPage = () => <div>Reviews - Em construção</div>;
 
 const queryClient = new QueryClient();
 
