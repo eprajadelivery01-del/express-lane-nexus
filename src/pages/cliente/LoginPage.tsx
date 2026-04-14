@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { APP_TYPE, APP_PROJECT_ID, APP_COLOR } from "@/constants/app-config";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -12,41 +13,46 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading: authLoading, hasRole, roles, userStatus } = useAuth();
+  const { user, loading: authLoading, hasRole, roles } = useAuth();
 
   useEffect(() => {
-    if (user && !authLoading) {
-      console.log(`[LoginPage - 9c1a49c1] Verificando acesso para user.id: ${user.id}, status: ${userStatus}`);
-      // Redirecionamento quase imediato para sessões ativas
+    if (!authLoading && user) {
+      console.log(`[LoginPage - Cliente] Verificando acesso para user.id: ${user.id}, roles:`, roles);
       const timer = setTimeout(() => {
-        if (userStatus === "pending") {
-          navigate("/pending-approval", { replace: true });
-        } else if (hasRole("admin")) {
-          navigate("/admin", { replace: true });
+        if (hasRole("admin")) {
+          console.log("[LoginPage] Role ADMIN detectada. Navegando para /admin");
+          navigate("/admin");
+        } else if (hasRole("company")) {
+          navigate("/business");
+        } else if (hasRole("driver")) {
+          navigate("/driver");
         } else {
-          // Non-admin user on Admin panel
-          console.warn("[Admin - 9c1a49c1] Acesso negado: Perfil não administrativo.");
-          toast({ title: "Acesso Negado", description: "Este portal é exclusivo para administradores.", variant: "destructive" });
+          console.warn("[LoginPage] Usuário sem papel detectado no redirecionamento.");
         }
-      }, 100);
+      }, 800);
       return () => clearTimeout(timer);
     }
-  }, [user, authLoading, userStatus, hasRole, navigate]);
+  }, [user, authLoading, hasRole, roles, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      console.log("Iniciando tentativa de login (NUCLEAR):", email);
+      console.log("Iniciando tentativa de login para:", email);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        console.error("Erro detetado no Supabase Auth:", error.message);
+        console.error("Erro de Autenticação Supabase:", error.message);
         toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
       }
     } catch (err: any) {
       console.error("ERRO CRÍTICO NO LOGIN:", err);
+      toast({ 
+        title: "Erro Inesperado", 
+        description: err.message || "Ocorreu um erro interno ao processar o login.", 
+        variant: "destructive" 
+      });
     } finally {
       setLoading(false);
     }
@@ -61,10 +67,8 @@ export default function LoginPage() {
           </div>
           <h1 className="font-display text-2xl font-extrabold text-foreground tracking-tight">É Pra Já</h1>
           <p className="text-sm text-muted-foreground mt-1 font-medium">Delivery • Painel de Gestão</p>
-          <div className="mt-4 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-            <p className="text-[10px] font-bold text-primary uppercase tracking-widest leading-tight text-center">
-              Painel de Controle Admin (9c1a49c1)<br />BUILD: V16-NUCLEAR-CLEANUP
-            </p>
+          <div className="mt-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full" style={{ borderColor: APP_COLOR + '40', backgroundColor: APP_COLOR + '10' }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: APP_COLOR }}>PROJETO: {APP_TYPE} ({APP_PROJECT_ID})</p>
           </div>
         </div>
 
@@ -106,6 +110,14 @@ export default function LoginPage() {
             </div>
           </div>
 
+          {user && !authLoading && roles.length === 0 && (
+            <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+              <p className="text-[11px] text-destructive text-center font-bold uppercase leading-tight">
+                Acesso Negado: Seu perfil não possui permissões. Contate o administrador.
+              </p>
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -113,19 +125,6 @@ export default function LoginPage() {
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             <span>{loading ? "Entrando..." : "Entrar"}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={async () => {
-              await supabase.auth.signOut();
-              localStorage.clear();
-              sessionStorage.clear();
-              window.location.reload();
-            }}
-            className="w-full py-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest font-bold"
-          >
-            Problemas ao entrar? Limpar Sessão
           </button>
         </form>
 

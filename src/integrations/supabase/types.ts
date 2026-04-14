@@ -176,10 +176,6 @@ export type Database = {
           latitude: number | null
           longitude: number | null
           notes: string | null
-          pickup_lat?: number | null
-          pickup_lng?: number | null
-          dropoff_lat?: number | null
-          dropoff_lng?: number | null
           region_id: string | null
           status: Database["public"]["Enums"]["delivery_status"]
           updated_at: string
@@ -413,11 +409,9 @@ export type Database = {
       }
       orders: {
         Row: {
-          address_id?: string | null
           company_id: string
           created_at: string
           customer_id: string
-          delivery_fee?: number | null
           delivery_id: string | null
           id: string
           status: Database["public"]["Enums"]["order_status"]
@@ -425,11 +419,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          address_id?: string | null
           company_id: string
           created_at?: string
           customer_id: string
-          delivery_fee?: number | null
           delivery_id?: string | null
           id?: string
           status?: Database["public"]["Enums"]["order_status"]
@@ -488,7 +480,6 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
-          active?: boolean
           is_active?: boolean
           name: string
           price: number
@@ -570,7 +561,6 @@ export type Database = {
           is_active?: boolean
           name: string
           price?: number
-          delivery_price?: number
           updated_at?: string
         }
         Update: {

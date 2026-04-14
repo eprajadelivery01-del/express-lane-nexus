@@ -16,22 +16,18 @@ export async function calculateDeliveryFee(lat: number, lng: number) {
 
   const { data: region, error: regError } = await supabase
     .from("regions")
-    .select("price, delivery_price")
+    .select("price")
     .eq("id", regionId)
     .single();
 
   if (regError) throw regError;
 
-  const validFee = (region as any).delivery_price ?? region.price ?? 0;
-
-  return { fee: validFee, regionId: regionId };
+  return { fee: region.price, regionId: regionId };
 }
 
 export async function createOrder(orderData: {
   company_id: string;
   customer_id: string;
-  address_id?: string;
-  delivery_fee?: number;
   items: { product_id: string; quantity: number; price: number }[];
   total: number;
 }) {
@@ -41,8 +37,6 @@ export async function createOrder(orderData: {
     .insert({
       company_id: orderData.company_id,
       customer_id: orderData.customer_id,
-      address_id: orderData.address_id,
-      delivery_fee: orderData.delivery_fee,
       total: orderData.total,
       status: "pending",
     })
@@ -63,27 +57,6 @@ export async function createOrder(orderData: {
   if (itemsError) throw itemsError;
 
   return order;
-}
-
-export async function getCompanyOrders(companyId: string) {
-  const { data, error } = await supabase
-    .from("orders")
-    .select("*, order_items(*), customers(*), deliveries(*)")
-    .eq("company_id", companyId)
-    .order("created_at", { ascending: false });
-  if (error) throw error;
-  return data;
-}
-
-export async function updateOrderStatus(orderId: string, status: "pending" | "preparing" | "ready" | "delivered" | "cancelled") {
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ status })
-    .eq("id", orderId)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
 }
 
 /**
@@ -117,45 +90,4 @@ export function useOrders(customerId?: string) {
     },
     enabled: !!customerId,
   });
-}
-
-export function useCompanyOrders(companyId?: string | null) {
-  return useQuery({
-    queryKey: ["orders", "company", companyId],
-    queryFn: () => getCompanyOrders(companyId as string),
-    enabled: !!companyId,
-  });
-}
-
-export function useUpdateOrderStatus() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ orderId, status }: { orderId: string; status: any }) => updateOrderStatus(orderId, status),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["orders"] });
-    },
-  });
-}
-
-// Opcional para componentizar escuta Realtime:
-import { useEffect } from "react";
-export function useRealtimeOrders(companyId?: string | null) {
-  const qc = useQueryClient();
-  useEffect(() => {
-    if (!companyId) return;
-    const channel = supabase
-      .channel(`orders-company-${companyId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "orders", filter: `company_id=eq.${companyId}` },
-        () => {
-          qc.invalidateQueries({ queryKey: ["orders", "company", companyId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [companyId, qc]);
 }

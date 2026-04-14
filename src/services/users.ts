@@ -109,6 +109,7 @@ export async function acceptInvitation(token: string, userData: { email: string;
   if (authError) throw authError;
   if (!authData.user) throw new Error("Erro ao criar conta");
 
+  // Profile is auto-created by trigger with status=pending
   await supabase
     .from("profiles")
     .update({

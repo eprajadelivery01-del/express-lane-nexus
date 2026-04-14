@@ -10,10 +10,9 @@ interface UnifiedMapProps {
   regions: RegionRow[];
   centerCity?: { name: string; lat: number; lng: number } | null;
   interactive?: boolean;
-  darkTheme?: boolean;
 }
 
-export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = false, darkTheme = false }: UnifiedMapProps) {
+export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = false }: UnifiedMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<maplibregl.Marker[]>([]);
@@ -51,9 +50,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: darkTheme 
-        ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
-        : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
       center: centerCity ? [centerCity.lng, centerCity.lat] : [-56.0974, -15.5989],
       zoom: 12,
     });
@@ -124,7 +121,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
             type: "Feature",
             properties: { 
               name: region.name, 
-              price: `R$ ${Number((region as any).delivery_price ?? region.price ?? 0).toFixed(2)}` 
+              price: `R$ ${Number(region.price).toFixed(2)}` 
             },
             geometry: geojson,
           },
@@ -134,14 +131,14 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
           id: `rfill-${region.id}`,
           type: "fill",
           source: srcId,
-          paint: { "fill-color": (region as any).color || "#F59E0B", "fill-opacity": 0.25 },
+          paint: { "fill-color": region.color, "fill-opacity": 0.15 },
         });
 
         m.addLayer({
           id: `rline-${region.id}`,
           type: "line",
           source: srcId,
-          paint: { "line-color": (region as any).color || "#F59E0B", "line-width": 2, "line-opacity": 0.8 },
+          paint: { "line-color": region.color, "line-width": 2, "line-opacity": 0.6 },
         });
 
         m.addLayer({

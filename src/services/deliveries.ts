@@ -1,58 +1,99 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { DeliveryStatus } from "@/types/models";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { Tables } from "@/integrations/supabase/types";
 
-export interface DeliveryWithRelations {
-  id: string;
-  company_id: string | null;
-  driver_id: string | null;
-  customer_name: string | null;
-  address: string;
-  value: number | null;
-  status: DeliveryStatus;
-  created_at: string;
-  updated_at: string;
-  companies?: { name: string; phone: string | null } | null;
-}
+export type DeliveryWithRelations = Tables<"deliveries"> & {
+  companies?: { name: string } | null;
+  delivery_drivers?: { id: string; user_id: string } & { profiles?: { full_name: string } | null } | null;
+  regions?: { name: string; color: string } | null;
+};
 
-interface UseDeliveriesParams {
+interface DeliveryFilters {
   status?: string;
-  search?: string;
   companyId?: string;
   driverId?: string;
+  search?: string;
   dateFrom?: string;
   dateTo?: string;
-  pageSize?: number;
   page?: number;
+  pageSize?: number;
 }
 
-export function useDeliveries(params?: UseDeliveriesParams) {
-  const { status, search, companyId, driverId, dateFrom, dateTo, pageSize = 50, page = 0 } = params || {};
+export async function fetchDeliveries(filters: DeliveryFilters = {}) {
+  let query = supabase
+    .from("deliveries")
+    .select(`
+      *,
+      companies(name),
+      delivery_drivers(id, user_id),
+      regions(name, color)
+    `, { count: "exact" })
+    .order("created_at", { ascending: false });
 
+  if (filters.status && filters.status !== "all") {
+    query = query.eq("status", filters.status as any);
+  }
+  if (filters.companyId) {
+    query = query.eq("company_id", filters.companyId);
+  }
+  if (filters.driverId) {
+    query = query.eq("driver_id", filters.driverId);
+  }
+  if (filters.search) {
+    query = query.or(`customer_name.ilike.%${filters.search}%,address.ilike.%${filters.search}%`);
+  }
+  if (filters.dateFrom) {
+    query = query.gte("created_at", filters.dateFrom);
+  }
+  if (filters.dateTo) {
+    query = query.lte("created_at", filters.dateTo);
+  }
+
+  const page = filters.page ?? 0;
+  const pageSize = filters.pageSize ?? 20;
+  query = query.range(page * pageSize, (page + 1) * pageSize - 1);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+  return { data: data ?? [], count: count ?? 0 };
+}
+
+export async function updateDeliveryStatus(id: string, status: string) {
+  const timestampField = {
+    accepted: "accepted_at",
+    collecting: "collected_at",
+    completed: "completed_at",
+    cancelled: "cancelled_at",
+  }[status];
+
+  const updates: Record<string, any> = { status };
+  if (timestampField) updates[timestampField] = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("deliveries")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function reassignDelivery(id: string, driverId: string | null) {
+  const { data, error } = await supabase
+    .from("deliveries")
+    .update({ driver_id: driverId })
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export function useDeliveries(filters: DeliveryFilters = {}) {
   return useQuery({
-    queryKey: ["deliveries", status, search, companyId, driverId, dateFrom, dateTo, page, pageSize],
-    queryFn: async () => {
-      let query = supabase
-        .from("deliveries")
-        .select("*, companies(name, phone)", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(page * pageSize, (page + 1) * pageSize - 1);
-
-      if (status && status !== "all") query = query.eq("status", status as DeliveryStatus);
-      if (search) query = query.ilike("customer_name", `%${search}%`);
-      if (companyId) query = query.eq("company_id", companyId);
-      if (driverId) query = query.eq("driver_id", driverId);
-      if (dateFrom) query = query.gte("created_at", new Date(dateFrom).toISOString());
-      if (dateTo) {
-        const end = new Date(dateTo);
-        end.setHours(23, 59, 59, 999);
-        query = query.lte("created_at", end.toISOString());
-      }
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { data: (data ?? []) as DeliveryWithRelations[], count: count || 0 };
-    },
+    queryKey: ["deliveries", filters],
+    queryFn: () => fetchDeliveries(filters),
   });
 }
 
@@ -63,146 +104,43 @@ export function useDeliveryStats() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const [todayRes, totalRes] = await Promise.all([
-        supabase.from("deliveries").select("status, value").gte("created_at", today.toISOString()),
+      const [allRes, todayRes, completedRes] = await Promise.all([
         supabase.from("deliveries").select("id", { count: "exact", head: true }),
+        supabase.from("deliveries").select("id", { count: "exact", head: true })
+          .gte("created_at", today.toISOString()),
+        supabase.from("deliveries").select("value")
+          .eq("status", "completed")
+          .gte("created_at", today.toISOString()),
       ]);
 
-      if (todayRes.error) throw todayRes.error;
-      const data = todayRes.data;
+      const totalRevenue = (completedRes.data ?? []).reduce((sum, d) => sum + Number(d.value), 0);
 
       return {
-        today: data.length,
-        total: totalRes.count ?? 0,
-        pending: data.filter((d) => d.status === "pending").length,
-        inTransit: data.filter((d) => d.status === "in_route").length,
-        delivered: data.filter((d) => d.status === "completed").length,
-        cancelled: data.filter((d) => d.status === "cancelled").length,
-        todayRevenue: data.filter((d) => d.status === "completed").reduce((sum, d) => sum + Number((d as any).value ?? 0), 0),
+        total: allRes.count ?? 0,
+        today: todayRes.count ?? 0,
+        todayRevenue: totalRevenue,
       };
     },
-    refetchInterval: 30000,
   });
 }
 
 export function useUpdateDeliveryStatus() {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: DeliveryStatus }) => {
-      const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
-      const { error } = await supabase.from("deliveries").update(updates).eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: ({ id, status }: { id: string; status: string }) => updateDeliveryStatus(id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["deliveries"] });
-      queryClient.invalidateQueries({ queryKey: ["delivery-stats"] });
+      qc.invalidateQueries({ queryKey: ["deliveries"] });
+      qc.invalidateQueries({ queryKey: ["delivery-stats"] });
     },
   });
 }
 
 export function useReassignDelivery() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ id, driverId }: { id: string; driverId: string | null }) => {
-      const { error } = await supabase.from("deliveries").update({ driver_id: driverId, updated_at: new Date().toISOString() }).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["deliveries"] }),
-  });
-}
-
-/**
- * INTEGRAÇÕES COM PAINEL LOJISTA (iFood Style)
- */
-export async function createDeliveryRequest(orderId: string) {
-  // 1. Puxa os dados do pedido (orders)
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .select("*, customers(*), order_items(*)")
-    .eq("id", orderId)
-    .single();
-
-  if (orderError) throw orderError;
-  if (!order) throw new Error("Pedido não encontrado");
-
-  // O "customer" no iFood tem nome e endereço
-  // Como as orders apontam pra customers, puxamos o endereço real do customer
-  const { data: address, error: addressError } = await supabase
-    .from("addresses")
-    .select("*")
-    .eq("customer_id", order.customer_id)
-    .single();
-
-  const dropoff = address ? `${address.street}, ${address.number} - ${address.neighborhood}` : "Endereço não cadastrado";
-
-  // 2. Insere na tabela de deliveries
-  const { data: delivery, error: deliveryError } = await supabase
-    .from("deliveries")
-    .insert({
-      company_id: order.company_id,
-      customer_name: order.customers ? (order.customers as any).name : "Cliente Avulso",
-      address: dropoff, // IMPORTANTE: no types.ts a coluna chama 'address'
-      value: order.total || 0, // No types.ts a coluna chama 'value'
-      status: "pending",
-      region_id: address?.region_id || null
-    })
-    .select()
-    .single();
-
-  if (deliveryError) throw deliveryError;
-
-  // 3. Associa a delivery_id ao pedido
-  await supabase
-    .from("orders")
-    .update({ delivery_id: delivery.id })
-    .eq("id", orderId);
-
-  return delivery;
-}
-
-export function useCreateDeliveryRequest() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: createDeliveryRequest,
+    mutationFn: ({ id, driverId }: { id: string; driverId: string | null }) => reassignDelivery(id, driverId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["deliveries"] });
-      qc.invalidateQueries({ queryKey: ["orders"] });
     },
   });
-}
-
-import { useEffect } from "react";
-export function useDeliveryTracking(orderId?: string | null) {
-  const qc = useQueryClient();
-
-  const { data: order } = useQuery({
-    queryKey: ["order", orderId],
-    queryFn: async () => {
-      if (!orderId) return null;
-      const { data } = await supabase.from("orders").select("*, deliveries(*)").eq("id", orderId).single();
-      return data;
-    },
-    enabled: !!orderId,
-  });
-
-  const deliveryId = (order as any)?.delivery_id;
-
-  useEffect(() => {
-    if (!deliveryId) return;
-    const uuid = typeof crypto !== 'undefined' && crypto.randomUUID 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2, 11);
-
-    const channel = supabase
-      .channel(`delivery-tracker-${deliveryId}-${uuid}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "deliveries", filter: `id=eq.${deliveryId}` },
-        () => qc.invalidateQueries({ queryKey: ["order", orderId] })
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [deliveryId, orderId, qc]);
-
-  return { order, delivery: (order as any)?.deliveries };
 }
