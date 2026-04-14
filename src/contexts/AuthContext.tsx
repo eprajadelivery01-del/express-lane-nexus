@@ -149,8 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (currentUser) {
             const email = currentUser.email?.toLowerCase();
-            // Wait for metadata before releasing the app
-            fetchUserData(currentUser.id, email);
+            // MUST await to ensure roles are loaded before loading becomes false
+            await fetchUserData(currentUser.id, email);
           } else {
             setLoading(false);
           }

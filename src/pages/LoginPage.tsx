@@ -15,31 +15,34 @@ export default function LoginPage() {
   const { user, loading: authLoading, hasRole, roles, userStatus } = useAuth();
 
   useEffect(() => {
-    if (user && !authLoading) {
-      console.log(`[LoginPage - 9c1a49c1] Autorizando acesso: ${user.email}`);
+    if (authLoading || !user) return;
+    
+    // Wait until roles are actually loaded before making decisions
+    if (roles.length === 0) return;
+    
+    console.log(`[LoginPage - 9c1a49c1] Autorizando acesso: ${user.email}, roles: ${roles.join(",")}`);
+    
+    if (userStatus === "pending") {
+      navigate("/pending-approval", { replace: true });
+    } else if (hasRole("admin")) {
+      navigate("/admin", { replace: true });
+    } else if (hasRole("company")) {
+      navigate("/business", { replace: true });
+    } else {
+      console.warn("[Login - 9c1a49c1] Bloqueio de Segurança: Acesso não autorizado para", user.email);
+      toast({ 
+        title: "Portal Restrito", 
+        description: "Sua conta não possui permissões administrativas. Procure o suporte.", 
+        variant: "destructive" 
+      });
       
-      if (userStatus === "pending") {
-        navigate("/pending-approval", { replace: true });
-      } else if (hasRole("admin")) {
-        navigate("/admin", { replace: true });
-      } else {
-        // PERFIL NÃO ADMINISTRADOR: Bloqueio Rígido
-        console.warn("[Admin - 9c1a49c1] Bloqueio de Segurança: Acesso não autorizado para", user.email);
-        toast({ 
-          title: "Portal Restrito", 
-          description: "Sua conta não possui permissões administrativas. Procure o suporte.", 
-          variant: "destructive" 
+      setTimeout(() => {
+        supabase.auth.signOut().then(() => {
+          window.location.reload();
         });
-        
-        // Desconecta automaticamente para manter o portal seguro
-        setTimeout(() => {
-          supabase.auth.signOut().then(() => {
-            window.location.reload();
-          });
-        }, 3000);
-      }
+      }, 3000);
     }
-  }, [user, authLoading, userStatus, hasRole, navigate, toast]);
+  }, [user, authLoading, roles, userStatus, hasRole, navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
