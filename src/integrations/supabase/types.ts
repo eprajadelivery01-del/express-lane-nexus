@@ -1032,6 +1032,7 @@ export type Database = {
           order_id: string
           price: number | null
           product_id: string
+          product_image: string | null
           product_name: string | null
           quantity: number
           unit_price: number | null
@@ -1042,6 +1043,7 @@ export type Database = {
           order_id: string
           price?: number | null
           product_id: string
+          product_image?: string | null
           product_name?: string | null
           quantity?: number
           unit_price?: number | null
@@ -1052,6 +1054,7 @@ export type Database = {
           order_id?: string
           price?: number | null
           product_id?: string
+          product_image?: string | null
           product_name?: string | null
           quantity?: number
           unit_price?: number | null
