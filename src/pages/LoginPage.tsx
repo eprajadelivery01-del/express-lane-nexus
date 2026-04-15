@@ -14,13 +14,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading: authLoading, hasRole, roles, userStatus } = useAuth();
+  const { user, loading: authLoading, rolesLoaded, hasRole, roles, userStatus } = useAuth();
 
   useEffect(() => {
     if (authLoading || !user) return;
     
-    // Wait until roles are actually loaded before making decisions
-    if (roles.length === 0) return;
+    if (!rolesLoaded) return;
     
     console.log(`[LoginPage - 9c1a49c1] Autorizando acesso: ${user.email}, roles: ${roles.join(",")}`);
     
@@ -44,7 +43,7 @@ export default function LoginPage() {
         });
       }, 3000);
     }
-  }, [user, authLoading, roles, userStatus, hasRole, navigate, toast]);
+  }, [user, authLoading, rolesLoaded, roles, userStatus, hasRole, navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +106,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {user && !authLoading && roles.length === 0 && (
+        {user && !authLoading && rolesLoaded && roles.length === 0 && (
           <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
             <p className="text-[11px] text-destructive text-center font-bold uppercase leading-tight">
               Acesso Negado: Seu perfil não possui permissões. Contate o administrador.
