@@ -44,8 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setRolesLoaded(false);
     
     try {
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const userEmail = (forceEmail || currentUser?.email)?.toLowerCase();
+      const userEmail = forceEmail?.toLowerCase();
       
       console.log(`[Auth-bfeb] V12-TOTAL-RELEASE - Carregando perfil: ${userEmail || userId}`);
       
@@ -126,8 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     initializeAuth();
 
-    const authListener = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
         if (!mounted) return;
         console.log(`[Auth-bfeb] V17 (TOTAL-RELEASE): ${event}`);
 
@@ -138,8 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (currentUser) {
             const email = currentUser.email?.toLowerCase();
-            // MUST await to ensure roles are loaded before loading becomes false
-            await fetchUserData(currentUser.id, email);
+            fetchUserData(currentUser.id, email);
           } else {
             setRolesLoaded(true);
             setLoading(false);
@@ -158,9 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       mounted = false;
-      if (authListener?.data?.subscription) {
-        authListener.data.subscription.unsubscribe();
-      }
+      subscription.unsubscribe();
     };
   }, []);
 
