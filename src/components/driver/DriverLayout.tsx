@@ -30,7 +30,7 @@ export function DriverLayout({ children, title }: DriverLayoutProps) {
       <header className="sticky top-0 z-30 bg-card border-b border-border px-4 py-3 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm p-1">
-            <img src="/logo.png" alt="É Pra Já" className="w-full h-full object-contain" />
+            <img src="/icon.svg" alt="É Pra Já" className="w-full h-full object-contain" />
           </div>
           <span className="font-display font-black text-foreground tracking-tighter uppercase text-sm">É Pra Já</span>
         </div>
