@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  rolesLoaded: boolean;
   roles: AppRole[];
   userStatus: UserStatus | null;
   profile: { full_name: string; avatar_url: string | null; phone: string | null } | null;
@@ -27,14 +28,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
   const [profile, setProfile] = useState<AuthContextType["profile"]>(null);
   const fetchingRef = useRef<string | null>(null);
 
+  const isAppRole = (role: string | null | undefined): role is AppRole => {
+    return role === "admin" || role === "company" || role === "driver" || role === "customer";
+  };
+
   const fetchUserData = async (userId: string, forceEmail?: string) => {
     if (fetchingRef.current === userId) return;
     fetchingRef.current = userId;
+    setRolesLoaded(false);
     
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
@@ -50,7 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const rolesFetch = supabase.from("user_roles").select("role").eq("user_id", userId);
       const profileFetch = supabase
         .from("profiles")
-        .select("id, full_name, avatar_url") 
+        .select("id, full_name, avatar_url, phone, status, role") 
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -66,15 +73,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         finalRoles = rolesRes.data.map((r: any) => r.role as AppRole);
       }
 
+      if (finalRoles.length === 0 && isAppRole(profileRes?.data?.role)) {
+        finalRoles = [profileRes.data.role];
+      }
+
       setRoles(finalRoles);
 
       if (profileRes?.data) {
         setProfile({
           full_name: profileRes.data.full_name,
           avatar_url: profileRes.data.avatar_url,
-          phone: null
+          phone: profileRes.data.phone
         });
-        setUserStatus("active");
+        setUserStatus(profileRes.data.status ?? "active");
       } else {
         setUserStatus("active");
       }
@@ -82,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("[Auth-bfeb] ERRO NO METADATA (Bypassed):", error.message);
     } finally {
       fetchingRef.current = null;
+      setRolesLoaded(true);
       setLoading(false);
     }
   };
@@ -103,9 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Wait for metadata to be loaded before releasing the transition screen
           await fetchUserData(currentUser.id, email);
         } else {
+          setRolesLoaded(true);
           setLoading(false);
         }
       } catch (error) {
+        setRolesLoaded(true);
         setLoading(false);
       }
     };
@@ -127,12 +141,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // MUST await to ensure roles are loaded before loading becomes false
             await fetchUserData(currentUser.id, email);
           } else {
+            setRolesLoaded(true);
             setLoading(false);
           }
         } else if (event === "SIGNED_OUT") {
           setSession(null);
           setUser(null);
           setRoles([]);
+          setRolesLoaded(true);
           setProfile(null);
           setUserStatus(null);
           setLoading(false);
@@ -179,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ 
-      user, session, loading, roles, userStatus, profile, hasRole, signIn, signUp, signOut, deleteAccount 
+      user, session, loading, rolesLoaded, roles, userStatus, profile, hasRole, signIn, signUp, signOut, deleteAccount 
     }}>
       {children}
     </AuthContext.Provider>
