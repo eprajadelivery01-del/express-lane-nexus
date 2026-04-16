@@ -444,6 +444,7 @@ export type Database = {
           pickup_longitude: number | null
           price: number | null
           proof_photo_url: string | null
+          region_id: string | null
           signature_url: string | null
           status: Database["public"]["Enums"]["delivery_status"] | null
           updated_at: string | null
@@ -484,6 +485,7 @@ export type Database = {
           pickup_longitude?: number | null
           price?: number | null
           proof_photo_url?: string | null
+          region_id?: string | null
           signature_url?: string | null
           status?: Database["public"]["Enums"]["delivery_status"] | null
           updated_at?: string | null
@@ -524,6 +526,7 @@ export type Database = {
           pickup_longitude?: number | null
           price?: number | null
           proof_photo_url?: string | null
+          region_id?: string | null
           signature_url?: string | null
           status?: Database["public"]["Enums"]["delivery_status"] | null
           updated_at?: string | null
@@ -549,6 +552,13 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
             referencedColumns: ["id"]
           },
         ]

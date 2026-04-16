@@ -66,9 +66,6 @@ export default function LoginPage() {
         <div className="flex flex-col items-center gap-2">
           <img src="/logo.png" alt="É Pra Já Delivery" className="h-20 w-auto rounded-xl" />
           <p className="text-sm text-muted-foreground font-black text-primary uppercase">Painel Administrativo Central</p>
-          <div className="mt-2 px-3 py-1 bg-primary/10 border border-primary/20 rounded-full">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-primary">BUILD: V16-NUCLEAR-CLEANUP (bfeb2f00)</p>
-          </div>
         </div>
 
         <div className="space-y-4">
