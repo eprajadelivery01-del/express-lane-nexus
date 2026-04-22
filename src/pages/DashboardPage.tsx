@@ -399,52 +399,27 @@ export default function DashboardPage() {
         {/* Charts */}
         <DashboardCharts deliveries={periodDeliveries} drivers={allDrivers} period={period} />
 
-        {/* Operational Monitoring - 2 main columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Frota e Cidades empilhados na primeira coluna */}
-          <div className="lg:col-span-1 space-y-4">
-            <MotoboysSidebar />
-            {cities.length > 0 && (
-              <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/20">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-3.5 w-3.5" /></div>
-                    <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Cidades</h3>
-                  </div>
-                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{cities.length}</span>
-                </div>
-                <div className="p-2 space-y-1 max-h-[200px] overflow-y-auto scrollbar-thin">
-                  {cities.map(city => {
-                    const cityRegions = regions?.filter(r => r.city === city) || [];
-                    const isActive = selectedCity === city;
-                    return (
-                      <button key={city} onClick={() => setCity(city)} className={cn("w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all text-left", isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted/50")}>
-                        <div className="flex items-center gap-2">
-                          <Navigation className={cn("h-3.5 w-3.5", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
-                          <span className={cn("text-xs font-semibold", isActive ? "text-primary-foreground" : "text-foreground")}>{city}</span>
-                        </div>
-                        <span className={cn("text-[10px] font-medium", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>{cityRegions.length} reg.</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+      {/* Operational Monitoring — Grid harmônico de altura uniforme */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 auto-rows-fr">
+          {/* COLUNA 1 — Frota (4/12) */}
+          <div className="lg:col-span-4 flex flex-col min-h-[560px]">
+            <div className="bg-card border border-border/50 rounded-2xl shadow-sm h-full overflow-hidden flex flex-col">
+              <MotoboysSidebar />
+            </div>
           </div>
 
-          {/* Top Empresas */}
-          <div className="lg:col-span-1">
-            <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-border/30 bg-muted/20">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-info/10 flex items-center justify-center text-info"><Building2 className="h-4 w-4" /></div>
-                  <h3 className="text-sm font-bold text-foreground">Top Empresas</h3>
-                </div>
-                <button onClick={() => navigate("/admin/companies")} className="text-[10px] font-bold text-info bg-info/10 px-2.5 py-1 rounded-full uppercase tracking-wider hover:bg-info/20 transition-colors">
-                  Gerenciar
-                </button>
-              </div>
-              <div className="flex-1 overflow-y-auto scrollbar-thin max-h-[420px]">
+          {/* COLUNA 2 — Top Empresas + Cidades (4/12) */}
+          <div className="lg:col-span-4 flex flex-col gap-4 min-h-[560px]">
+            {/* Top Empresas */}
+            <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
+              <SectionHeader
+                icon={<Building2 className="h-4 w-4" />}
+                tone="info"
+                title="Top Empresas"
+                subtitle="Volume no período"
+                action={{ label: "Gerenciar", onClick: () => navigate("/admin/companies") }}
+              />
+              <div className="flex-1 overflow-y-auto scrollbar-thin">
                 {(() => {
                   const counts = new Map<string, { name: string; count: number; revenue: number }>();
                   periodDeliveries.forEach((d: any) => {
@@ -456,42 +431,151 @@ export default function DashboardPage() {
                     if (d.status === "delivered") cur.revenue += Number(d.value ?? 0);
                     counts.set(id, cur);
                   });
-                  const top = Array.from(counts.values()).sort((a, b) => b.count - a.count).slice(0, 8);
+                  const top = Array.from(counts.values()).sort((a, b) => b.count - a.count).slice(0, 6);
                   if (top.length === 0) {
-                    return <p className="text-center text-sm text-muted-foreground py-10">Sem dados no período</p>;
+                    return (
+                      <div className="flex flex-col items-center justify-center h-full py-10 px-6 text-center">
+                        <div className="w-12 h-12 rounded-2xl bg-muted/40 flex items-center justify-center mb-3 border border-dashed border-border/60">
+                          <Building2 className="h-5 w-5 text-muted-foreground/40" />
+                        </div>
+                        <p className="text-xs font-semibold text-foreground">Sem dados no período</p>
+                      </div>
+                    );
                   }
+                  const maxCount = Math.max(...top.map(t => t.count), 1);
                   return (
-                    <div className="divide-y divide-border/20">
-                      {top.map((c, i) => (
-                        <div key={c.name + i} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-[11px] font-bold text-foreground shrink-0">
+                    <div className="p-2 space-y-1">
+                      {top.map((c, i) => {
+                        const pct = (c.count / maxCount) * 100;
+                        return (
+                          <div
+                            key={c.name + i}
+                            className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/40 transition-colors cursor-pointer overflow-hidden"
+                            onClick={() => navigate("/admin/companies")}
+                          >
+                            {/* barra de progresso sutil */}
+                            <div
+                              className="absolute inset-y-0 left-0 bg-info/5 rounded-xl pointer-events-none"
+                              style={{ width: `${pct}%` }}
+                            />
+                            <div className="relative w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
                               {i + 1}
                             </div>
-                            <p className="text-xs font-semibold text-foreground truncate">{c.name}</p>
+                            <p className="relative text-xs font-semibold text-foreground truncate flex-1">{c.name}</p>
+                            <div className="relative text-right shrink-0">
+                              <p className="text-xs font-bold text-foreground leading-none">{c.count}</p>
+                              <p className="text-[10px] font-medium text-success mt-0.5">R$ {c.revenue.toFixed(0)}</p>
+                            </div>
                           </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-xs font-bold text-foreground">{c.count}</p>
-                            <p className="text-[10px] font-medium text-success">R$ {c.revenue.toFixed(0)}</p>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   );
                 })()}
               </div>
             </div>
+
+            {/* Cidades — só renderiza se houver */}
+            {cities.length > 0 && (
+              <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm shrink-0">
+                <SectionHeader
+                  icon={<MapPin className="h-4 w-4" />}
+                  tone="primary"
+                  title="Cidades"
+                  subtitle={`${cities.length} ${cities.length === 1 ? "cidade ativa" : "cidades ativas"}`}
+                />
+                <div className="p-2 max-h-[160px] overflow-y-auto scrollbar-thin space-y-1">
+                  {cities.map(city => {
+                    const cityRegions = regions?.filter(r => r.city === city) || [];
+                    const isActive = selectedCity === city;
+                    return (
+                      <button
+                        key={city}
+                        onClick={() => setCity(city)}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-left",
+                          isActive
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "hover:bg-muted/40"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Navigation className={cn("h-3.5 w-3.5 shrink-0", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
+                          <span className={cn("text-xs font-semibold truncate", isActive ? "text-primary-foreground" : "text-foreground")}>
+                            {city}
+                          </span>
+                        </div>
+                        <span className={cn(
+                          "text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0",
+                          isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                        )}>
+                          {cityRegions.length} reg.
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Atividade Recente */}
-          <div className="lg:col-span-1">
-            <div className="border border-border/50 rounded-2xl overflow-hidden bg-card shadow-sm h-full">
+          {/* COLUNA 3 — Atividade Recente (4/12) */}
+          <div className="lg:col-span-4 flex flex-col min-h-[560px]">
+            <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
               <NotificationsPanel />
             </div>
           </div>
         </div>
       </div>
     </AdminLayout>
+  );
+}
+
+/** Cabeçalho unificado para as seções do painel inferior */
+function SectionHeader({
+  icon, title, subtitle, tone, action,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle?: string;
+  tone: "primary" | "info" | "warning" | "accent";
+  action?: { label: string; onClick: () => void };
+}) {
+  const toneStyles: Record<string, string> = {
+    primary: "bg-primary/10 text-primary",
+    info: "bg-info/10 text-info",
+    warning: "bg-warning/10 text-warning",
+    accent: "bg-accent text-accent-foreground",
+  };
+  const actionStyles: Record<string, string> = {
+    primary: "text-primary bg-primary/10 hover:bg-primary/20",
+    info: "text-info bg-info/10 hover:bg-info/20",
+    warning: "text-warning bg-warning/10 hover:bg-warning/20",
+    accent: "text-accent-foreground bg-accent hover:bg-accent/80",
+  };
+  return (
+    <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/10 shrink-0">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", toneStyles[tone])}>
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-foreground leading-tight truncate">{title}</h3>
+          {subtitle && <p className="text-[10px] text-muted-foreground truncate">{subtitle}</p>}
+        </div>
+      </div>
+      {action && (
+        <button
+          onClick={action.onClick}
+          className={cn(
+            "text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition-colors shrink-0",
+            actionStyles[tone]
+          )}
+        >
+          {action.label}
+        </button>
+      )}
+    </div>
   );
 }
 
