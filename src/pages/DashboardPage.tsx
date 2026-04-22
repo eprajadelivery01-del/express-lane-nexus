@@ -110,6 +110,26 @@ export default function DashboardPage() {
     };
   }, [autoRefresh, isOnline, refreshScopedQueries]);
 
+  // Persist compact mode + auto-suggest on small viewports
+  useEffect(() => {
+    try { localStorage.setItem("epj_dashboard_compact", compact ? "1" : "0"); } catch {}
+  }, [compact]);
+
+  useEffect(() => {
+    try {
+      const suggested = sessionStorage.getItem("epj_dashboard_compact_suggested");
+      if (!suggested && typeof window !== "undefined" && window.innerWidth < 1280 && !compact) {
+        sessionStorage.setItem("epj_dashboard_compact_suggested", "1");
+        toast("Tela pequena detectada", {
+          description: "Ative o modo compacto para uma visualização melhor.",
+          action: { label: "Ativar", onClick: () => setCompact(true) },
+          duration: 8000,
+        });
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Online/offline awareness with auto-reconnect
   useEffect(() => {
     const handleOnline = () => {
