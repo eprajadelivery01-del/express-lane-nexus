@@ -182,9 +182,12 @@ export default function DashboardPage() {
   }, [periodDeliveries]);
 
   const handleRefresh = async () => {
+    if (!isOnline) {
+      toast.error("Sem conexão. Verifique sua rede.");
+      return;
+    }
     setRefreshing(true);
-    await queryClient.invalidateQueries();
-    setLastSync(new Date());
+    await refreshScopedQueries({ full: true });
     setTimeout(() => setRefreshing(false), 600);
     toast.success("Dados atualizados");
   };
@@ -194,8 +197,19 @@ export default function DashboardPage() {
     if (diff < 5) return "agora";
     if (diff < 60) return `${diff}s atrás`;
     const m = Math.floor(diff / 60);
-    return `${m}min atrás`;
+    if (m < 60) return `${m}min atrás`;
+    const h = Math.floor(m / 60);
+    return `${h}h atrás`;
   };
+
+  // Tick to keep relative timestamps fresh without polling data
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setTick((x) => x + 1), 15000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const liveActive = autoRefresh > 0 && isOnline;
 
   return (
     <AdminLayout title="Dashboard">
