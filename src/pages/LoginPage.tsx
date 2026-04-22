@@ -20,9 +20,7 @@ export default function LoginPage() {
     if (authLoading || !user) return;
     
     if (!rolesLoaded) return;
-    
-    console.log(`[LoginPage - 9c1a49c1] Autorizando acesso: ${user.email}, roles: ${roles.join(",")}`);
-    
+
     if (userStatus === "pending") {
       navigate("/pending-approval", { replace: true });
     } else if (hasRole("admin")) {
@@ -30,13 +28,12 @@ export default function LoginPage() {
     } else if (hasRole("company")) {
       navigate("/business", { replace: true });
     } else {
-      console.warn("[Login - 9c1a49c1] Bloqueio de Segurança: Acesso não autorizado para", user.email);
-      toast({ 
-        title: "Portal Restrito", 
-        description: "Sua conta não possui permissões administrativas. Procure o suporte.", 
-        variant: "destructive" 
+      toast({
+        title: "Portal Restrito",
+        description: "Sua conta não possui permissões administrativas. Procure o suporte.",
+        variant: "destructive"
       });
-      
+
       setTimeout(() => {
         supabase.auth.signOut().then(() => {
           window.location.reload();

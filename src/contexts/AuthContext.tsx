@@ -22,8 +22,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const SPECIAL_USER_ID = "1044ade5-6510-4aa5-96e6-6c5fb3aaa8b3";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -45,8 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     try {
       const userEmail = forceEmail?.toLowerCase();
-      
-      console.log(`[Auth-bfeb] V12-TOTAL-RELEASE - Carregando perfil: ${userEmail || userId}`);
+
+      if (import.meta.env.DEV) {
+        console.log(`[Auth] Loading profile for user`);
+      }
       
       const timeout = new Promise((_, reject) => 
         setTimeout(() => reject(new Error("Timeout")), 10000)
@@ -67,13 +67,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const [rolesRes, profileRes] = results;
 
+      // Roles are sourced ONLY from user_roles table (server-side trust boundary).
+      // The profiles.role column is NOT used as a fallback to prevent privilege
+      // escalation via self-update of a profile row.
       let finalRoles: AppRole[] = [];
       if (rolesRes?.data) {
         finalRoles = rolesRes.data.map((r: any) => r.role as AppRole);
-      }
-
-      if (finalRoles.length === 0 && isAppRole(profileRes?.data?.role)) {
-        finalRoles = [profileRes.data.role];
       }
 
       setRoles(finalRoles);
@@ -89,7 +88,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserStatus("active");
       }
     } catch (error: any) {
-      console.error("[Auth-bfeb] ERRO NO METADATA (Bypassed):", error.message);
+      if (import.meta.env.DEV) {
+        console.error("[Auth] Metadata load error:", error?.message);
+      }
     } finally {
       fetchingRef.current = null;
       setRolesLoaded(true);
@@ -128,7 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!mounted) return;
-        console.log(`[Auth-bfeb] V17 (TOTAL-RELEASE): ${event}`);
+        if (import.meta.env.DEV) {
+          console.log(`[Auth] event: ${event}`);
+        }
 
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
           const currentUser = session?.user;
@@ -161,7 +164,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const hasRole = (role: AppRole) => {
-    if (user?.id === SPECIAL_USER_ID) return true; 
     return roles.includes(role);
   };
   

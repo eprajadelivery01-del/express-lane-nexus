@@ -17,17 +17,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      console.log(`[LoginPage - Cliente] Verificando acesso para user.id: ${user.id}, roles:`, roles);
       const timer = setTimeout(() => {
         if (hasRole("admin")) {
-          console.log("[LoginPage] Role ADMIN detectada. Navegando para /admin");
           navigate("/admin");
         } else if (hasRole("company")) {
           navigate("/business");
         } else if (hasRole("driver")) {
           navigate("/driver");
-        } else {
-          console.warn("[LoginPage] Usuário sem papel detectado no redirecionamento.");
         }
       }, 800);
       return () => clearTimeout(timer);
