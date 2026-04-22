@@ -21,7 +21,7 @@ import ReportsPage from "./pages/ReportsPage";
 import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/shared/ScrollToTop";
 import { PageTransition } from "@/components/shared/PageTransition";
-import BusinessChatPage from "./pages/business/BusinessChatPage";
+import AdminChatPage from "./pages/admin/AdminChatPage";
 import CompaniesPage from "./pages/CompaniesPage";
 
 const ReviewsPage = () => <div>Reviews - Em construção</div>;
@@ -50,8 +50,8 @@ const App = () => (
                  <Route path="/admin/reports" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute></PageTransition>} />
                  <Route path="/admin/profile" element={<PageTransition><ProtectedRoute requiredRole="admin"><ProfilePage /></ProtectedRoute></PageTransition>} />
                  
-                 <Route path="/admin/chat" element={<PageTransition><BusinessChatPage /></PageTransition>} />
-                 <Route path="/chat" element={<PageTransition><BusinessChatPage /></PageTransition>} />
+                 <Route path="/admin/chat" element={<PageTransition><ProtectedRoute requiredRole="admin"><AdminChatPage /></ProtectedRoute></PageTransition>} />
+                 <Route path="/chat" element={<PageTransition><ProtectedRoute requiredRole="admin"><AdminChatPage /></ProtectedRoute></PageTransition>} />
 
                  <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
             </Routes>
