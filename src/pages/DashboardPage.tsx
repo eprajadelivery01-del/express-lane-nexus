@@ -316,6 +316,23 @@ export default function DashboardPage() {
             ))}
           </div>
 
+          {/* Compact mode toggle */}
+          <button
+            onClick={() => setCompact((c) => !c)}
+            title={compact ? "Modo padrão" : "Modo compacto (ideal para telas menores)"}
+            aria-pressed={compact}
+            className={cn(
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition-all",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-95",
+              compact
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-muted/40 border-border/50 text-muted-foreground hover:text-foreground hover:bg-muted"
+            )}
+          >
+            {compact ? <Maximize2 className="h-3 w-3" /> : <Minimize2 className="h-3 w-3" />}
+            {compact ? "Padrão" : "Compacto"}
+          </button>
+
           <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing} className="gap-1.5">
             <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
             Atualizar
