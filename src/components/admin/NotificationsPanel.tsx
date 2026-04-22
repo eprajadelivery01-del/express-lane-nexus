@@ -1,21 +1,19 @@
-import { Bell, ChevronRight } from "lucide-react";
+import { Bell, ChevronLeft, ChevronRight } from "lucide-react";
 import { useDeliveries } from "@/services/deliveries";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
-const INITIAL_LIMIT = 6;
-const EXPANDED_LIMIT = 15;
+const PAGE_SIZE = 8;
 
 export function NotificationsPanel() {
-  const { data } = useDeliveries({ pageSize: 20 });
-  const allDeliveries = data?.data ?? [];
+  const [page, setPage] = useState(0);
+  const { data, isLoading, isFetching } = useDeliveries({ pageSize: PAGE_SIZE, page });
+  const deliveries = data?.data ?? [];
+  const totalCount = data?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
   const navigate = useNavigate();
-  const [expanded, setExpanded] = useState(false);
-
-  const limit = expanded ? EXPANDED_LIMIT : INITIAL_LIMIT;
-  const deliveries = allDeliveries.slice(0, limit);
-  const hasMore = allDeliveries.length > limit;
 
   const getIcon = (status: string) => {
     switch (status) {
@@ -45,30 +43,37 @@ export function NotificationsPanel() {
 
   return (
     <div className="h-full flex flex-col bg-card overflow-hidden">
-      {/* Header compacto */}
+      {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border/30 bg-muted/20 shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
             <Bell className="h-4 w-4" />
           </div>
-          <h3 className="text-sm font-bold text-foreground">Atividade Recente</h3>
+          <div>
+            <h3 className="text-sm font-bold text-foreground leading-tight">Atividade Recente</h3>
+            <p className="text-[10px] text-muted-foreground">
+              {totalCount} {totalCount === 1 ? "registro" : "registros"} no total
+            </p>
+          </div>
         </div>
-        <span className="text-[10px] font-bold text-warning bg-warning/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
-          {allDeliveries.length}
-        </span>
+        {isFetching && (
+          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase animate-pulse">
+            sync
+          </span>
+        )}
       </div>
 
-      {/* Lista limitada com altura fixa */}
+      {/* Lista paginada */}
       <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-border/20 max-h-[420px]">
-        {deliveries.length === 0 ? (
+        {isLoading ? (
+          <div className="py-12 text-center text-xs text-muted-foreground">Carregando...</div>
+        ) : deliveries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
             <div className="w-14 h-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-3 border border-dashed border-border/60">
               <Bell className="h-6 w-6 text-muted-foreground/30" />
             </div>
             <p className="text-sm font-bold text-foreground">Sem atividade</p>
-            <p className="text-xs text-muted-foreground mt-1 px-4">
-              Nenhuma entrega registrada recentemente.
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Nenhuma entrega registrada.</p>
           </div>
         ) : (
           deliveries.map((d) => (
@@ -104,33 +109,37 @@ export function NotificationsPanel() {
         )}
       </div>
 
-      {/* Footer com ações */}
-      {allDeliveries.length > 0 && (
-        <div className="border-t border-border/30 px-3 py-2.5 flex items-center justify-between gap-2 bg-muted/10 shrink-0">
-          {hasMore ? (
-            <button
-              onClick={() => setExpanded(true)}
-              className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors"
-            >
-              Ver mais ({allDeliveries.length - limit})
-            </button>
-          ) : expanded ? (
-            <button
-              onClick={() => setExpanded(false)}
-              className="text-[11px] font-semibold text-muted-foreground hover:text-primary transition-colors"
-            >
-              Mostrar menos
-            </button>
-          ) : (
-            <span className="text-[11px] font-medium text-muted-foreground/60">
-              Mostrando {deliveries.length} de {allDeliveries.length}
-            </span>
-          )}
+      {/* Footer com paginação real */}
+      {totalCount > 0 && (
+        <div className="border-t border-border/30 px-3 py-2 flex items-center justify-between gap-2 bg-muted/10 shrink-0">
           <button
-            onClick={() => navigate("/admin/deliveries")}
-            className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className={cn(
+              "flex items-center gap-1 text-[11px] font-semibold transition-colors px-2 py-1 rounded",
+              page === 0
+                ? "text-muted-foreground/40 cursor-not-allowed"
+                : "text-foreground hover:bg-muted"
+            )}
           >
-            Ver todas <ChevronRight className="h-3 w-3" />
+            <ChevronLeft className="h-3 w-3" /> Anterior
+          </button>
+
+          <span className="text-[10px] font-medium text-muted-foreground">
+            Página {page + 1} de {totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage((p) => (p + 1 < totalPages ? p + 1 : p))}
+            disabled={page + 1 >= totalPages}
+            className={cn(
+              "flex items-center gap-1 text-[11px] font-semibold transition-colors px-2 py-1 rounded",
+              page + 1 >= totalPages
+                ? "text-muted-foreground/40 cursor-not-allowed"
+                : "text-foreground hover:bg-muted"
+            )}
+          >
+            Próxima <ChevronRight className="h-3 w-3" />
           </button>
         </div>
       )}

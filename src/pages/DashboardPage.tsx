@@ -5,7 +5,7 @@ import { DashboardCharts } from "@/components/admin/DashboardCharts";
 import { useDeliveryStats, useDeliveries } from "@/services/deliveries";
 import { useOnlineDrivers, useDrivers } from "@/services/drivers";
 import { useCompanies } from "@/services/companies";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useCity } from "@/contexts/CityContext";
 import { useRegions } from "@/services/regions";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import {
   Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, MapPin, Navigation,
   ArrowUpRight, Calendar, RefreshCw, AlertTriangle, Receipt, Timer, XCircle, Truck,
-  PackageCheck, Map as MapIcon
+  PackageCheck, Map as MapIcon, Radio
 } from "lucide-react";
 import { useRealtimeDeliveries } from "@/hooks/useRealtimeDeliveries";
 import { DashboardExport } from "@/components/admin/DashboardExport";
@@ -23,6 +23,13 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 type Period = "today" | "7d" | "30d";
+type AutoRefreshOption = 0 | 15 | 30 | 60;
+const AUTO_REFRESH_OPTIONS: { value: AutoRefreshOption; label: string }[] = [
+  { value: 0, label: "Off" },
+  { value: 15, label: "15s" },
+  { value: 30, label: "30s" },
+  { value: 60, label: "60s" },
+];
 
 function getDateFrom(period: Period): string {
   const d = new Date();
@@ -37,10 +44,38 @@ const PERIOD_LABELS: Record<Period, string> = { today: "Hoje", "7d": "7 dias", "
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>("7d");
   const [refreshing, setRefreshing] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState<AutoRefreshOption>(() => {
+    try {
+      const v = Number(localStorage.getItem("epj_dashboard_autorefresh") ?? "30");
+      return ([0, 15, 30, 60].includes(v) ? v : 30) as AutoRefreshOption;
+    } catch { return 30; }
+  });
+  const [lastSync, setLastSync] = useState<Date>(new Date());
   const dateFrom = useMemo(() => getDateFrom(period), [period]);
   useRealtimeDeliveries();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const intervalRef = useRef<number | null>(null);
+
+  // Auto-refresh effect
+  useEffect(() => {
+    try { localStorage.setItem("epj_dashboard_autorefresh", String(autoRefresh)); } catch {}
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    if (autoRefresh > 0) {
+      intervalRef.current = window.setInterval(() => {
+        queryClient.invalidateQueries({ queryKey: ["deliveries"] });
+        queryClient.invalidateQueries({ queryKey: ["delivery-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["drivers"] });
+        setLastSync(new Date());
+      }, autoRefresh * 1000);
+    }
+    return () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+    };
+  }, [autoRefresh, queryClient]);
 
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
@@ -100,8 +135,17 @@ export default function DashboardPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     await queryClient.invalidateQueries();
+    setLastSync(new Date());
     setTimeout(() => setRefreshing(false), 600);
     toast.success("Dados atualizados");
+  };
+
+  const formatLastSync = (d: Date) => {
+    const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diff < 5) return "agora";
+    if (diff < 60) return `${diff}s atrás`;
+    const m = Math.floor(diff / 60);
+    return `${m}min atrás`;
   };
 
   return (
