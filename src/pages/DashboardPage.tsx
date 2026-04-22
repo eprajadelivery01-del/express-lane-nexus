@@ -14,13 +14,14 @@ import { cn } from "@/lib/utils";
 import {
   Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, MapPin, Navigation,
   ArrowUpRight, Calendar, RefreshCw, AlertTriangle, Receipt, Timer, XCircle, Truck,
-  PackageCheck, Map as MapIcon, Radio, WifiOff
+  PackageCheck, Map as MapIcon, Radio, WifiOff, Minimize2, Maximize2, Trophy
 } from "lucide-react";
 import { useRealtimeDeliveries } from "@/hooks/useRealtimeDeliveries";
 import { DashboardExport } from "@/components/admin/DashboardExport";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { SectionHeader, EmptyState, StatusBadge } from "@/components/admin/SectionHeader";
 
 type Period = "today" | "7d" | "30d";
 type AutoRefreshOption = 0 | 15 | 30 | 60;
