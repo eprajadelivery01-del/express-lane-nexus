@@ -54,6 +54,10 @@ export default function DashboardPage() {
       return ([0, 15, 30, 60].includes(v) ? v : 30) as AutoRefreshOption;
     } catch { return 30; }
   });
+  const [compact, setCompact] = useState<boolean>(() => {
+    try { return localStorage.getItem("epj_dashboard_compact") === "1"; } catch { return false; }
+  });
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const initialNow = new Date();
   const [syncMap, setSyncMap] = useState<SyncMap>({
     deliveries: initialNow, stats: initialNow, drivers: initialNow,
