@@ -4,10 +4,14 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { SectionHeader, EmptyState, StatusBadge } from "./SectionHeader";
 
-const PAGE_SIZE = 8;
+interface NotificationsPanelProps {
+  compact?: boolean;
+}
 
-export function NotificationsPanel() {
+export function NotificationsPanel({ compact = false }: NotificationsPanelProps) {
+  const PAGE_SIZE = compact ? 6 : 8;
   const [page, setPage] = useState(0);
   const { data, isLoading, isFetching } = useDeliveries({ pageSize: PAGE_SIZE, page });
   const deliveries = data?.data ?? [];
@@ -42,64 +46,74 @@ export function NotificationsPanel() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-card overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/30 bg-muted/20 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-warning/10 flex items-center justify-center text-warning">
-            <Bell className="h-4 w-4" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-foreground leading-tight">Atividade Recente</h3>
-            <p className="text-[10px] text-muted-foreground">
-              {totalCount} {totalCount === 1 ? "registro" : "registros"} no total
-            </p>
-          </div>
-        </div>
-        {isFetching && (
-          <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase animate-pulse">
-            sync
-          </span>
-        )}
-      </div>
+    <div className="h-full flex flex-col">
+      <SectionHeader
+        icon={<Bell className="h-4 w-4" />}
+        tone="warning"
+        compact={compact}
+        title="Atividade Recente"
+        subtitle={`${totalCount} ${totalCount === 1 ? "registro" : "registros"} no total`}
+        rightSlot={
+          isFetching ? (
+            <StatusBadge variant="online" label="Sync" title="Sincronizando..." className="animate-pulse" />
+          ) : (
+            <StatusBadge variant="count" value={totalCount} title="Total de registros" />
+          )
+        }
+      />
 
       {/* Lista paginada */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-border/20 max-h-[420px]">
+      <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-border/20 min-h-0">
         {isLoading ? (
           <div className="py-12 text-center text-xs text-muted-foreground">Carregando...</div>
         ) : deliveries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-muted/40 flex items-center justify-center mb-3 border border-dashed border-border/60">
-              <Bell className="h-6 w-6 text-muted-foreground/30" />
-            </div>
-            <p className="text-sm font-bold text-foreground">Sem atividade</p>
-            <p className="text-xs text-muted-foreground mt-1">Nenhuma entrega registrada.</p>
-          </div>
+          <EmptyState
+            icon={<Bell className="h-6 w-6" />}
+            title="Sem atividade"
+            subtitle="Nenhuma entrega registrada ainda."
+          />
         ) : (
           deliveries.map((d) => (
             <div
               key={d.id}
+              role="button"
+              tabIndex={0}
               onClick={() => navigate("/admin/deliveries")}
-              className="flex items-start gap-3 p-3.5 hover:bg-muted/30 transition-all cursor-pointer group"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate("/admin/deliveries");
+                }
+              }}
+              className={cn(
+                "flex items-start gap-3 cursor-pointer group border-l-2 border-transparent transition-all",
+                "hover:bg-muted/30 hover:border-l-primary/40 hover:translate-x-px",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:bg-muted/30",
+                "active:scale-[0.99]",
+                compact ? "p-2.5" : "p-3.5",
+              )}
             >
-              <div className="w-9 h-9 rounded-xl bg-muted/50 border border-border/40 flex items-center justify-center shrink-0 text-base">
+              <div className={cn(
+                "rounded-xl bg-muted/50 border border-border/40 flex items-center justify-center shrink-0",
+                compact ? "w-8 h-8 text-sm" : "w-9 h-9 text-base",
+              )}>
                 {getIcon(d.status)}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2 mb-0.5">
-                  <p className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
+                  <p className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors tracking-tight">
                     {getTitle(d)}
                   </p>
-                  <span className="text-[10px] font-semibold text-muted-foreground whitespace-nowrap">
+                  <span className="text-[10px] font-semibold text-muted-foreground whitespace-nowrap tabular-nums">
                     {d.updated_at ? format(new Date(d.updated_at), "HH:mm") : "—"}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <p className="text-[10px] font-medium text-muted-foreground/80 truncate">
+                  <p className="text-[11px] font-medium text-muted-foreground/80 truncate">
                     {d.customer_name || "—"}
                   </p>
                   <div className="w-0.5 h-0.5 rounded-full bg-border" />
-                  <p className="text-[10px] font-bold text-primary whitespace-nowrap">
+                  <p className="text-[11px] font-bold text-success whitespace-nowrap tabular-nums">
                     R$ {Number(d.value ?? 0).toFixed(2)}
                   </p>
                 </div>
@@ -116,7 +130,8 @@ export function NotificationsPanel() {
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             disabled={page === 0}
             className={cn(
-              "flex items-center gap-1 text-[11px] font-semibold transition-colors px-2 py-1 rounded",
+              "flex items-center gap-1 text-[11px] font-semibold transition-all px-2 py-1 rounded-lg",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-95",
               page === 0
                 ? "text-muted-foreground/40 cursor-not-allowed"
                 : "text-foreground hover:bg-muted"
@@ -125,15 +140,16 @@ export function NotificationsPanel() {
             <ChevronLeft className="h-3 w-3" /> Anterior
           </button>
 
-          <span className="text-[10px] font-medium text-muted-foreground">
-            Página {page + 1} de {totalPages}
+          <span className="text-[10px] font-medium text-muted-foreground tabular-nums">
+            Página <strong className="text-foreground">{page + 1}</strong> de {totalPages}
           </span>
 
           <button
             onClick={() => setPage((p) => (p + 1 < totalPages ? p + 1 : p))}
             disabled={page + 1 >= totalPages}
             className={cn(
-              "flex items-center gap-1 text-[11px] font-semibold transition-colors px-2 py-1 rounded",
+              "flex items-center gap-1 text-[11px] font-semibold transition-all px-2 py-1 rounded-lg",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-95",
               page + 1 >= totalPages
                 ? "text-muted-foreground/40 cursor-not-allowed"
                 : "text-foreground hover:bg-muted"
