@@ -436,6 +436,7 @@ export type Database = {
           estimated_time_minutes: number | null
           estimated_value: number | null
           id: string
+          motoboy_id: string | null
           notes: string | null
           order_id: string | null
           picked_up_at: string | null
@@ -477,6 +478,7 @@ export type Database = {
           estimated_time_minutes?: number | null
           estimated_value?: number | null
           id?: string
+          motoboy_id?: string | null
           notes?: string | null
           order_id?: string | null
           picked_up_at?: string | null
@@ -518,6 +520,7 @@ export type Database = {
           estimated_time_minutes?: number | null
           estimated_value?: number | null
           id?: string
+          motoboy_id?: string | null
           notes?: string | null
           order_id?: string | null
           picked_up_at?: string | null
@@ -545,6 +548,13 @@ export type Database = {
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "delivery_drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_motoboy_id_fkey"
+            columns: ["motoboy_id"]
+            isOneToOne: false
+            referencedRelation: "motoboys"
             referencedColumns: ["id"]
           },
           {
@@ -954,6 +964,27 @@ export type Database = {
           },
         ]
       }
+      motoboys: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_online: boolean | null
+          name: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_online?: boolean | null
+          name?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_online?: boolean | null
+          name?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null
@@ -1088,12 +1119,14 @@ export type Database = {
       }
       orders: {
         Row: {
+          address_id: string | null
           city_id: string | null
           company_id: string
           created_at: string | null
           customer_id: string
           delivery_address: string | null
           delivery_fee: number | null
+          delivery_id: string | null
           delivery_latitude: number | null
           delivery_longitude: number | null
           id: string
@@ -1104,14 +1137,17 @@ export type Database = {
           status: string
           total: number
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
+          address_id?: string | null
           city_id?: string | null
           company_id: string
           created_at?: string | null
           customer_id: string
           delivery_address?: string | null
           delivery_fee?: number | null
+          delivery_id?: string | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           id?: string
@@ -1122,14 +1158,17 @@ export type Database = {
           status?: string
           total?: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
+          address_id?: string | null
           city_id?: string | null
           company_id?: string
           created_at?: string | null
           customer_id?: string
           delivery_address?: string | null
           delivery_fee?: number | null
+          delivery_id?: string | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           id?: string
@@ -1140,8 +1179,16 @@ export type Database = {
           status?: string
           total?: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_address_id_fkey"
+            columns: ["address_id"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_company_id_fkey"
             columns: ["company_id"]
@@ -1579,6 +1626,7 @@ export type Database = {
           region_price: number
         }[]
       }
+      get_business_orders_v2: { Args: { p_company_id: string }; Returns: Json }
       get_delivery_price: {
         Args: { lat: number; lng: number }
         Returns: number
@@ -1603,6 +1651,13 @@ export type Database = {
       process_payment_split: {
         Args: { p_payment_id: string }
         Returns: undefined
+      }
+      update_order_status_v4: {
+        Args: {
+          p_new_status: Database["public"]["Enums"]["order_status"]
+          p_order_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {
