@@ -8,13 +8,19 @@ import { useCompanies } from "@/services/companies";
 import React, { useState, useMemo } from "react";
 import { useCity } from "@/contexts/CityContext";
 import { useRegions } from "@/services/regions";
-import { HeroMapSection } from "@/components/shared/HeroMapSection";
+import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
-  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, MapPin, Navigation, ArrowUpRight, Calendar
+  Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, MapPin, Navigation,
+  ArrowUpRight, Calendar, RefreshCw, AlertTriangle, Receipt, Timer, XCircle, Truck,
+  PackageCheck, Map as MapIcon
 } from "lucide-react";
 import { useRealtimeDeliveries } from "@/hooks/useRealtimeDeliveries";
 import { DashboardExport } from "@/components/admin/DashboardExport";
+import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 type Period = "today" | "7d" | "30d";
 
@@ -30,8 +36,11 @@ const PERIOD_LABELS: Record<Period, string> = { today: "Hoje", "7d": "7 dias", "
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>("7d");
+  const [refreshing, setRefreshing] = useState(false);
   const dateFrom = useMemo(() => getDateFrom(period), [period]);
   useRealtimeDeliveries();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
@@ -49,16 +58,57 @@ export default function DashboardPage() {
   const cities = Array.from(new Set(regions?.map(r => r.city) || [])).sort();
 
   const periodDeliveries = allDeliveries?.data ?? [];
-  const periodDelivered = periodDeliveries.filter(d => d.status === "delivered").length;
-  const periodRevenue = periodDeliveries
-    .filter(d => d.status === "delivered")
-    .reduce((sum, d) => sum + Number(d.value ?? 0), 0);
+
+  const metrics = useMemo(() => {
+    const total = periodDeliveries.length;
+    const delivered = periodDeliveries.filter(d => d.status === "delivered").length;
+    const pending = periodDeliveries.filter(d => d.status === "pending" || d.status === "broadcasted").length;
+    const accepted = periodDeliveries.filter(d => d.status === "accepted").length;
+    const collecting = periodDeliveries.filter(d => d.status === "collecting").length;
+    const cancelled = periodDeliveries.filter(d => d.status === "cancelled").length;
+    const revenue = periodDeliveries
+      .filter(d => d.status === "delivered")
+      .reduce((sum, d) => sum + Number(d.value ?? 0), 0);
+    const avgTicket = delivered > 0 ? revenue / delivered : 0;
+    const cancelRate = total > 0 ? (cancelled / total) * 100 : 0;
+    const conversionRate = total > 0 ? (delivered / total) * 100 : 0;
+
+    const deliveredWithTimes = periodDeliveries.filter(
+      (d: any) => d.status === "delivered" && d.delivered_at && d.accepted_at
+    );
+    const avgDeliveryMin = deliveredWithTimes.length
+      ? deliveredWithTimes.reduce((sum: number, d: any) => {
+          const diff = (new Date(d.delivered_at).getTime() - new Date(d.accepted_at).getTime()) / 60000;
+          return sum + diff;
+        }, 0) / deliveredWithTimes.length
+      : 0;
+
+    const now = Date.now();
+    const criticalAlerts = periodDeliveries.filter((d: any) => {
+      if (d.status !== "pending" && d.status !== "broadcasted") return false;
+      if (d.driver_id) return false;
+      const created = new Date(d.created_at).getTime();
+      return (now - created) / 60000 > 30;
+    });
+
+    return {
+      total, delivered, pending, accepted, collecting, cancelled,
+      revenue, avgTicket, cancelRate, conversionRate, avgDeliveryMin, criticalAlerts,
+    };
+  }, [periodDeliveries]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setTimeout(() => setRefreshing(false), 600);
+    toast.success("Dados atualizados");
+  };
 
   return (
     <AdminLayout title="Dashboard">
-      {/* Period Filter */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
+      {/* Header: Filters + Quick Actions */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
           <Calendar className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-medium text-muted-foreground">Período:</span>
           <div className="flex bg-muted/50 rounded-lg p-0.5 gap-0.5">
@@ -77,38 +127,78 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <p className="text-xs text-muted-foreground hidden sm:block">
-            {periodDeliveries.length} entregas · R$ {periodRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          <p className="text-xs text-muted-foreground hidden md:block ml-2">
+            {periodDeliveries.length} entregas · R$ {metrics.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
           </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing} className="gap-1.5">
+            <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+            Atualizar
+          </Button>
+          <GenerateInviteDialog fixedRole="driver" triggerLabel="Convidar Entregador" />
+          <Button size="sm" variant="outline" onClick={() => navigate("/admin/regions")} className="gap-1.5">
+            <MapIcon className="h-3.5 w-3.5" />
+            Ver Mapa
+          </Button>
           <DashboardExport deliveries={periodDeliveries} period={PERIOD_LABELS[period]} />
         </div>
       </div>
 
-      {/* Hero Map */}
-      <div className="rounded-2xl overflow-hidden border border-border/40 shadow-sm">
-        <HeroMapSection />
-      </div>
+      {/* Critical Alerts */}
+      {metrics.criticalAlerts.length > 0 && (
+        <div className="mb-4 bg-destructive/5 border border-destructive/30 rounded-xl p-3 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-destructive/10 flex items-center justify-center text-destructive flex-shrink-0">
+            <AlertTriangle className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-foreground">
+              {metrics.criticalAlerts.length} entrega{metrics.criticalAlerts.length > 1 ? "s" : ""} pendente{metrics.criticalAlerts.length > 1 ? "s" : ""} há mais de 30 min
+            </p>
+            <p className="text-xs text-muted-foreground">Sem motoboy alocado. Ação urgente recomendada.</p>
+          </div>
+          <Button size="sm" variant="destructive" onClick={() => navigate("/admin/deliveries")}>
+            Resolver
+          </Button>
+        </div>
+      )}
 
-      <div className="mt-6 space-y-6">
+      <div className="space-y-5">
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <KPICard icon={<Clock className="h-5 w-5" />} label="Em Trânsito" value={inTransitCount} sub={`Hoje: ${stats?.today ?? 0}`} color="primary" pulse />
           <KPICard icon={<Bike className="h-5 w-5" />} label="Frota Online" value={onlineCount} sub="Prontos para entrega" color="success" />
-          <KPICard icon={<DollarSign className="h-5 w-5" />} label="Faturamento" value={`R$ ${periodRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} sub={PERIOD_LABELS[period]} color="info" />
-          <KPICard icon={<Package className="h-5 w-5" />} label="Volume Total" value={periodDeliveries.length} sub={`${periodDelivered} entregues`} color="accent" />
+          <KPICard icon={<DollarSign className="h-5 w-5" />} label="Faturamento" value={`R$ ${metrics.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} sub={PERIOD_LABELS[period]} color="info" />
+          <KPICard icon={<Package className="h-5 w-5" />} label="Volume Total" value={metrics.total} sub={`${metrics.delivered} entregues`} color="accent" />
+        </div>
+
+        {/* Quick Stats - Operational Status */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <QuickStat icon={<Clock className="h-4 w-4 text-warning" />} label="Pendentes" value={metrics.pending} />
+          <QuickStat icon={<CheckCircle className="h-4 w-4 text-info" />} label="Aceitos" value={metrics.accepted} />
+          <QuickStat icon={<Truck className="h-4 w-4 text-primary" />} label="Coletando" value={metrics.collecting} />
+          <QuickStat icon={<PackageCheck className="h-4 w-4 text-success" />} label="Entregues" value={metrics.delivered} />
+          <QuickStat icon={<XCircle className="h-4 w-4 text-destructive" />} label="Cancelados" value={metrics.cancelled} />
+          <QuickStat icon={<Receipt className="h-4 w-4 text-accent-foreground" />} label="Ticket Médio" value={`R$ ${metrics.avgTicket.toFixed(2)}`} />
+        </div>
+
+        {/* Operational Row - Business KPIs */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <QuickStat icon={<Building2 className="h-4 w-4 text-primary" />} label="Empresas Ativas" value={totalCompanies} />
+          <QuickStat icon={<MapPin className="h-4 w-4 text-info" />} label="Cidades Ativas" value={cities.length} />
+          <QuickStat icon={<TrendingUp className="h-4 w-4 text-success" />} label="Taxa Conversão" value={`${metrics.conversionRate.toFixed(0)}%`} />
+          <QuickStat icon={<Timer className="h-4 w-4 text-accent-foreground" />} label="Tempo Médio" value={metrics.avgDeliveryMin > 0 ? `${metrics.avgDeliveryMin.toFixed(0)} min` : "—"} />
         </div>
 
         {/* Charts */}
         <DashboardCharts deliveries={periodDeliveries} drivers={allDrivers} period={period} />
 
-        {/* Main Content */}
+        {/* Operational Monitoring - 3 columns */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-1"><MotoboysSidebar /></div>
 
-          <div className="lg:col-span-1 space-y-4">
-            <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm">
+          <div className="lg:col-span-1">
+            <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm h-full">
               <div className="flex items-center justify-between px-5 py-4 border-b border-border/30 bg-muted/20">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-4 w-4" /></div>
@@ -116,7 +206,7 @@ export default function DashboardPage() {
                 </div>
                 <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">{cities.length}</span>
               </div>
-              <div className="p-3 space-y-1.5 max-h-[260px] overflow-y-auto scrollbar-thin">
+              <div className="p-3 space-y-1.5 max-h-[320px] overflow-y-auto scrollbar-thin">
                 {cities.map(city => {
                   const cityRegions = regions?.filter(r => r.city === city) || [];
                   const isActive = selectedCity === city;
@@ -132,11 +222,6 @@ export default function DashboardPage() {
                 })}
                 {cities.length === 0 && <p className="text-center text-sm text-muted-foreground py-6">Nenhuma cidade encontrada</p>}
               </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <QuickStat icon={<CheckCircle className="h-4 w-4 text-success" />} label="Entregues" value={periodDelivered} />
-              <QuickStat icon={<Building2 className="h-4 w-4 text-primary" />} label="Empresas" value={totalCompanies} />
-              <QuickStat icon={<TrendingUp className="h-4 w-4 text-accent-foreground" />} label="Taxa" value={`${periodDeliveries.length ? Math.round((periodDelivered / periodDeliveries.length) * 100) : 0}%`} />
             </div>
           </div>
 
