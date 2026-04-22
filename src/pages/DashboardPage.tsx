@@ -304,6 +304,53 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Per-endpoint sync timestamps */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground/80 mb-3 px-1">
+        <span className="flex items-center gap-1">
+          <Package className="h-3 w-3" /> Entregas: <strong className="text-foreground/80">{formatLastSync(syncMap.deliveries)}</strong>
+          <span className="text-muted-foreground/50">({syncMap.deliveries.toLocaleTimeString("pt-BR")})</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <TrendingUp className="h-3 w-3" /> Stats: <strong className="text-foreground/80">{formatLastSync(syncMap.stats)}</strong>
+          <span className="text-muted-foreground/50">({syncMap.stats.toLocaleTimeString("pt-BR")})</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <Bike className="h-3 w-3" /> Frota: <strong className="text-foreground/80">{formatLastSync(syncMap.drivers)}</strong>
+          <span className="text-muted-foreground/50">({syncMap.drivers.toLocaleTimeString("pt-BR")})</span>
+        </span>
+      </div>
+
+      {/* Offline / Live error banner */}
+      {(!isOnline || liveError) && (
+        <div className={cn(
+          "mb-4 rounded-xl p-3 flex items-center gap-3 border",
+          !isOnline
+            ? "bg-destructive/5 border-destructive/30"
+            : "bg-warning/5 border-warning/30"
+        )}>
+          <div className={cn(
+            "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
+            !isOnline ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
+          )}>
+            {!isOnline ? <WifiOff className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-foreground">
+              {!isOnline ? "Você está offline" : "Falha na sincronização ao vivo"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {!isOnline
+                ? "O modo Live foi pausado. Reconectaremos automaticamente quando a internet voltar."
+                : (liveError ?? "Tentando reconectar...")}
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleRefresh} disabled={!isOnline || refreshing} className="gap-1.5">
+            <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+            Tentar agora
+          </Button>
+        </div>
+      )}
+
       {/* Critical Alerts */}
       {metrics.criticalAlerts.length > 0 && (
         <div className="mb-4 bg-destructive/5 border border-destructive/30 rounded-xl p-3 flex items-center gap-3">
