@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import {
   Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, MapPin, Navigation,
   ArrowUpRight, Calendar, RefreshCw, AlertTriangle, Receipt, Timer, XCircle, Truck,
-  PackageCheck, Map as MapIcon, Radio
+  PackageCheck, Map as MapIcon, Radio, WifiOff
 } from "lucide-react";
 import { useRealtimeDeliveries } from "@/hooks/useRealtimeDeliveries";
 import { DashboardExport } from "@/components/admin/DashboardExport";
@@ -30,6 +30,9 @@ const AUTO_REFRESH_OPTIONS: { value: AutoRefreshOption; label: string }[] = [
   { value: 30, label: "30s" },
   { value: 60, label: "60s" },
 ];
+
+type EndpointKey = "deliveries" | "stats" | "drivers";
+type SyncMap = Record<EndpointKey, Date>;
 
 function getDateFrom(period: Period): string {
   const d = new Date();
@@ -50,32 +53,78 @@ export default function DashboardPage() {
       return ([0, 15, 30, 60].includes(v) ? v : 30) as AutoRefreshOption;
     } catch { return 30; }
   });
-  const [lastSync, setLastSync] = useState<Date>(new Date());
+  const initialNow = new Date();
+  const [syncMap, setSyncMap] = useState<SyncMap>({
+    deliveries: initialNow, stats: initialNow, drivers: initialNow,
+  });
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [liveError, setLiveError] = useState<string | null>(null);
   const dateFrom = useMemo(() => getDateFrom(period), [period]);
   useRealtimeDeliveries();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const intervalRef = useRef<number | null>(null);
 
-  // Auto-refresh effect
+  // Period-scoped invalidation: only refresh queries actually affected by current dateFrom
+  const refreshScopedQueries = React.useCallback(async (opts?: { full?: boolean }) => {
+    try {
+      const ts = new Date();
+      await Promise.all([
+        queryClient.invalidateQueries({
+          predicate: (q) => {
+            const k = q.queryKey;
+            if (!Array.isArray(k) || k[0] !== "deliveries") return false;
+            // full=true → all delivery queries; otherwise restrict to active period
+            return opts?.full ? true : (k as unknown[]).includes(dateFrom);
+          },
+        }),
+        queryClient.invalidateQueries({ queryKey: ["delivery-stats"] }),
+        queryClient.invalidateQueries({ queryKey: ["online-drivers"] }),
+      ]);
+      setSyncMap({ deliveries: ts, stats: ts, drivers: ts });
+      setLiveError(null);
+    } catch (e: any) {
+      setLiveError(e?.message ?? "Falha ao sincronizar");
+    }
+  }, [queryClient, dateFrom]);
+
+  // Auto-refresh effect (period-scoped + offline-aware)
   useEffect(() => {
     try { localStorage.setItem("epj_dashboard_autorefresh", String(autoRefresh)); } catch {}
     if (intervalRef.current) {
       window.clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    if (autoRefresh > 0) {
+    if (autoRefresh > 0 && isOnline) {
       intervalRef.current = window.setInterval(() => {
-        queryClient.invalidateQueries({ queryKey: ["deliveries"] });
-        queryClient.invalidateQueries({ queryKey: ["delivery-stats"] });
-        queryClient.invalidateQueries({ queryKey: ["drivers"] });
-        setLastSync(new Date());
+        refreshScopedQueries();
       }, autoRefresh * 1000);
     }
     return () => {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
-  }, [autoRefresh, queryClient]);
+  }, [autoRefresh, isOnline, refreshScopedQueries]);
+
+  // Online/offline awareness with auto-reconnect
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setLiveError(null);
+      toast.success("Conexão restabelecida — sincronizando...");
+      refreshScopedQueries({ full: true });
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setLiveError("Sem conexão com a internet");
+      toast.error("Você está offline. Atualizações em tempo real pausadas.");
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [refreshScopedQueries]);
 
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
@@ -133,9 +182,12 @@ export default function DashboardPage() {
   }, [periodDeliveries]);
 
   const handleRefresh = async () => {
+    if (!isOnline) {
+      toast.error("Sem conexão. Verifique sua rede.");
+      return;
+    }
     setRefreshing(true);
-    await queryClient.invalidateQueries();
-    setLastSync(new Date());
+    await refreshScopedQueries({ full: true });
     setTimeout(() => setRefreshing(false), 600);
     toast.success("Dados atualizados");
   };
@@ -145,8 +197,19 @@ export default function DashboardPage() {
     if (diff < 5) return "agora";
     if (diff < 60) return `${diff}s atrás`;
     const m = Math.floor(diff / 60);
-    return `${m}min atrás`;
+    if (m < 60) return `${m}min atrás`;
+    const h = Math.floor(m / 60);
+    return `${h}h atrás`;
   };
+
+  // Tick to keep relative timestamps fresh without polling data
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setTick((x) => x + 1), 15000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  const liveActive = autoRefresh > 0 && isOnline;
 
   return (
     <AdminLayout title="Dashboard">
@@ -176,21 +239,36 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Indicador Live + última sincronização */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/40 border border-border/50">
-            <span className="relative flex h-2 w-2">
-              {autoRefresh > 0 && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-              )}
-              <span className={cn(
-                "relative inline-flex rounded-full h-2 w-2",
-                autoRefresh > 0 ? "bg-success" : "bg-muted-foreground/40"
-              )}></span>
-            </span>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              {autoRefresh > 0 ? "Live" : "Pausado"}
-            </span>
-            <span className="text-[10px] text-muted-foreground/70">· {formatLastSync(lastSync)}</span>
+          {/* Indicador Live + estado da conexão */}
+          <div className={cn(
+            "flex items-center gap-1.5 px-2.5 py-1 rounded-lg border",
+            !isOnline
+              ? "bg-destructive/10 border-destructive/30"
+              : liveError
+                ? "bg-warning/10 border-warning/30"
+                : "bg-muted/40 border-border/50"
+          )}>
+            {!isOnline ? (
+              <>
+                <WifiOff className="h-3 w-3 text-destructive" />
+                <span className="text-[10px] font-bold text-destructive uppercase tracking-wider">Offline</span>
+              </>
+            ) : (
+              <>
+                <span className="relative flex h-2 w-2">
+                  {liveActive && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                  )}
+                  <span className={cn(
+                    "relative inline-flex rounded-full h-2 w-2",
+                    liveActive ? "bg-success" : "bg-muted-foreground/40"
+                  )}></span>
+                </span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {liveError ? "Reconectando" : liveActive ? "Live" : "Pausado"}
+                </span>
+              </>
+            )}
           </div>
 
           {/* Auto-refresh selector */}
@@ -225,6 +303,53 @@ export default function DashboardPage() {
           <DashboardExport deliveries={periodDeliveries} period={PERIOD_LABELS[period]} />
         </div>
       </div>
+
+      {/* Per-endpoint sync timestamps */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-muted-foreground/80 mb-3 px-1">
+        <span className="flex items-center gap-1">
+          <Package className="h-3 w-3" /> Entregas: <strong className="text-foreground/80">{formatLastSync(syncMap.deliveries)}</strong>
+          <span className="text-muted-foreground/50">({syncMap.deliveries.toLocaleTimeString("pt-BR")})</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <TrendingUp className="h-3 w-3" /> Stats: <strong className="text-foreground/80">{formatLastSync(syncMap.stats)}</strong>
+          <span className="text-muted-foreground/50">({syncMap.stats.toLocaleTimeString("pt-BR")})</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <Bike className="h-3 w-3" /> Frota: <strong className="text-foreground/80">{formatLastSync(syncMap.drivers)}</strong>
+          <span className="text-muted-foreground/50">({syncMap.drivers.toLocaleTimeString("pt-BR")})</span>
+        </span>
+      </div>
+
+      {/* Offline / Live error banner */}
+      {(!isOnline || liveError) && (
+        <div className={cn(
+          "mb-4 rounded-xl p-3 flex items-center gap-3 border",
+          !isOnline
+            ? "bg-destructive/5 border-destructive/30"
+            : "bg-warning/5 border-warning/30"
+        )}>
+          <div className={cn(
+            "w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0",
+            !isOnline ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
+          )}>
+            {!isOnline ? <WifiOff className="h-5 w-5" /> : <AlertTriangle className="h-5 w-5" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-foreground">
+              {!isOnline ? "Você está offline" : "Falha na sincronização ao vivo"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {!isOnline
+                ? "O modo Live foi pausado. Reconectaremos automaticamente quando a internet voltar."
+                : (liveError ?? "Tentando reconectar...")}
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleRefresh} disabled={!isOnline || refreshing} className="gap-1.5">
+            <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+            Tentar agora
+          </Button>
+        </div>
+      )}
 
       {/* Critical Alerts */}
       {metrics.criticalAlerts.length > 0 && (
