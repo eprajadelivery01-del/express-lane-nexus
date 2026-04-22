@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import {
   Package, Bike, Building2, DollarSign, TrendingUp, Clock, CheckCircle, MapPin, Navigation,
   ArrowUpRight, Calendar, RefreshCw, AlertTriangle, Receipt, Timer, XCircle, Truck,
-  PackageCheck, Map as MapIcon, Radio
+  PackageCheck, Map as MapIcon, Radio, WifiOff
 } from "lucide-react";
 import { useRealtimeDeliveries } from "@/hooks/useRealtimeDeliveries";
 import { DashboardExport } from "@/components/admin/DashboardExport";
@@ -30,6 +30,9 @@ const AUTO_REFRESH_OPTIONS: { value: AutoRefreshOption; label: string }[] = [
   { value: 30, label: "30s" },
   { value: 60, label: "60s" },
 ];
+
+type EndpointKey = "deliveries" | "stats" | "drivers";
+type SyncMap = Record<EndpointKey, Date>;
 
 function getDateFrom(period: Period): string {
   const d = new Date();
@@ -50,32 +53,78 @@ export default function DashboardPage() {
       return ([0, 15, 30, 60].includes(v) ? v : 30) as AutoRefreshOption;
     } catch { return 30; }
   });
-  const [lastSync, setLastSync] = useState<Date>(new Date());
+  const initialNow = new Date();
+  const [syncMap, setSyncMap] = useState<SyncMap>({
+    deliveries: initialNow, stats: initialNow, drivers: initialNow,
+  });
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [liveError, setLiveError] = useState<string | null>(null);
   const dateFrom = useMemo(() => getDateFrom(period), [period]);
   useRealtimeDeliveries();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const intervalRef = useRef<number | null>(null);
 
-  // Auto-refresh effect
+  // Period-scoped invalidation: only refresh queries actually affected by current dateFrom
+  const refreshScopedQueries = React.useCallback(async (opts?: { full?: boolean }) => {
+    try {
+      const ts = new Date();
+      await Promise.all([
+        queryClient.invalidateQueries({
+          predicate: (q) => {
+            const k = q.queryKey;
+            if (!Array.isArray(k) || k[0] !== "deliveries") return false;
+            // full=true → all delivery queries; otherwise restrict to active period
+            return opts?.full ? true : (k as unknown[]).includes(dateFrom);
+          },
+        }),
+        queryClient.invalidateQueries({ queryKey: ["delivery-stats"] }),
+        queryClient.invalidateQueries({ queryKey: ["online-drivers"] }),
+      ]);
+      setSyncMap({ deliveries: ts, stats: ts, drivers: ts });
+      setLiveError(null);
+    } catch (e: any) {
+      setLiveError(e?.message ?? "Falha ao sincronizar");
+    }
+  }, [queryClient, dateFrom]);
+
+  // Auto-refresh effect (period-scoped + offline-aware)
   useEffect(() => {
     try { localStorage.setItem("epj_dashboard_autorefresh", String(autoRefresh)); } catch {}
     if (intervalRef.current) {
       window.clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    if (autoRefresh > 0) {
+    if (autoRefresh > 0 && isOnline) {
       intervalRef.current = window.setInterval(() => {
-        queryClient.invalidateQueries({ queryKey: ["deliveries"] });
-        queryClient.invalidateQueries({ queryKey: ["delivery-stats"] });
-        queryClient.invalidateQueries({ queryKey: ["drivers"] });
-        setLastSync(new Date());
+        refreshScopedQueries();
       }, autoRefresh * 1000);
     }
     return () => {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
-  }, [autoRefresh, queryClient]);
+  }, [autoRefresh, isOnline, refreshScopedQueries]);
+
+  // Online/offline awareness with auto-reconnect
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      setLiveError(null);
+      toast.success("Conexão restabelecida — sincronizando...");
+      refreshScopedQueries({ full: true });
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setLiveError("Sem conexão com a internet");
+      toast.error("Você está offline. Atualizações em tempo real pausadas.");
+    };
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [refreshScopedQueries]);
 
   const { data: stats } = useDeliveryStats();
   const { data: onlineDrivers } = useOnlineDrivers();
