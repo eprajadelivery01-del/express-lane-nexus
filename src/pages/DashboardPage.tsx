@@ -193,40 +193,93 @@ export default function DashboardPage() {
         {/* Charts */}
         <DashboardCharts deliveries={periodDeliveries} drivers={allDrivers} period={period} />
 
-        {/* Operational Monitoring - 3 columns */}
+        {/* Operational Monitoring - 2 main columns */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-1"><MotoboysSidebar /></div>
+          {/* Frota e Cidades empilhados na primeira coluna */}
+          <div className="lg:col-span-1 space-y-4">
+            <MotoboysSidebar />
+            {cities.length > 0 && (
+              <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/20">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-3.5 w-3.5" /></div>
+                    <h3 className="text-xs font-bold text-foreground uppercase tracking-wide">Cidades</h3>
+                  </div>
+                  <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{cities.length}</span>
+                </div>
+                <div className="p-2 space-y-1 max-h-[200px] overflow-y-auto scrollbar-thin">
+                  {cities.map(city => {
+                    const cityRegions = regions?.filter(r => r.city === city) || [];
+                    const isActive = selectedCity === city;
+                    return (
+                      <button key={city} onClick={() => setCity(city)} className={cn("w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all text-left", isActive ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-muted/50")}>
+                        <div className="flex items-center gap-2">
+                          <Navigation className={cn("h-3.5 w-3.5", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
+                          <span className={cn("text-xs font-semibold", isActive ? "text-primary-foreground" : "text-foreground")}>{city}</span>
+                        </div>
+                        <span className={cn("text-[10px] font-medium", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>{cityRegions.length} reg.</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
 
+          {/* Top Empresas */}
           <div className="lg:col-span-1">
-            <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm h-full">
+            <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
               <div className="flex items-center justify-between px-5 py-4 border-b border-border/30 bg-muted/20">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary"><MapPin className="h-4 w-4" /></div>
-                  <h3 className="text-sm font-bold text-foreground">Cidades Ativas</h3>
+                  <div className="w-8 h-8 rounded-xl bg-info/10 flex items-center justify-center text-info"><Building2 className="h-4 w-4" /></div>
+                  <h3 className="text-sm font-bold text-foreground">Top Empresas</h3>
                 </div>
-                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">{cities.length}</span>
+                <button onClick={() => navigate("/admin/companies")} className="text-[10px] font-bold text-info bg-info/10 px-2.5 py-1 rounded-full uppercase tracking-wider hover:bg-info/20 transition-colors">
+                  Gerenciar
+                </button>
               </div>
-              <div className="p-3 space-y-1.5 max-h-[320px] overflow-y-auto scrollbar-thin">
-                {cities.map(city => {
-                  const cityRegions = regions?.filter(r => r.city === city) || [];
-                  const isActive = selectedCity === city;
+              <div className="flex-1 overflow-y-auto scrollbar-thin max-h-[420px]">
+                {(() => {
+                  const counts = new Map<string, { name: string; count: number; revenue: number }>();
+                  periodDeliveries.forEach((d: any) => {
+                    const id = d.company_id;
+                    const name = d.companies?.name || "—";
+                    if (!id) return;
+                    const cur = counts.get(id) || { name, count: 0, revenue: 0 };
+                    cur.count += 1;
+                    if (d.status === "delivered") cur.revenue += Number(d.value ?? 0);
+                    counts.set(id, cur);
+                  });
+                  const top = Array.from(counts.values()).sort((a, b) => b.count - a.count).slice(0, 8);
+                  if (top.length === 0) {
+                    return <p className="text-center text-sm text-muted-foreground py-10">Sem dados no período</p>;
+                  }
                   return (
-                    <button key={city} onClick={() => setCity(city)} className={cn("w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all text-left", isActive ? "bg-primary text-primary-foreground shadow-md" : "hover:bg-muted/50")}>
-                      <div className="flex items-center gap-3">
-                        <Navigation className={cn("h-4 w-4", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
-                        <span className={cn("text-sm font-semibold", isActive ? "text-primary-foreground" : "text-foreground")}>{city}</span>
-                      </div>
-                      <span className={cn("text-xs font-medium", isActive ? "text-primary-foreground/80" : "text-muted-foreground")}>{cityRegions.length} regiões</span>
-                    </button>
+                    <div className="divide-y divide-border/20">
+                      {top.map((c, i) => (
+                        <div key={c.name + i} className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center text-[11px] font-bold text-foreground shrink-0">
+                              {i + 1}
+                            </div>
+                            <p className="text-xs font-semibold text-foreground truncate">{c.name}</p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xs font-bold text-foreground">{c.count}</p>
+                            <p className="text-[10px] font-medium text-success">R$ {c.revenue.toFixed(0)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   );
-                })}
-                {cities.length === 0 && <p className="text-center text-sm text-muted-foreground py-6">Nenhuma cidade encontrada</p>}
+                })()}
               </div>
             </div>
           </div>
 
-          <div className="lg:col-span-1 h-full">
-            <div className="h-full min-h-[400px] lg:min-h-0 border border-border/50 rounded-2xl overflow-hidden bg-card shadow-sm">
+          {/* Atividade Recente */}
+          <div className="lg:col-span-1">
+            <div className="border border-border/50 rounded-2xl overflow-hidden bg-card shadow-sm h-full">
               <NotificationsPanel />
             </div>
           </div>
