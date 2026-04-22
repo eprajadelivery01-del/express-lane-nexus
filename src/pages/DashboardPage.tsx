@@ -239,21 +239,36 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Indicador Live + última sincronização */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/40 border border-border/50">
-            <span className="relative flex h-2 w-2">
-              {autoRefresh > 0 && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-              )}
-              <span className={cn(
-                "relative inline-flex rounded-full h-2 w-2",
-                autoRefresh > 0 ? "bg-success" : "bg-muted-foreground/40"
-              )}></span>
-            </span>
-            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-              {autoRefresh > 0 ? "Live" : "Pausado"}
-            </span>
-            <span className="text-[10px] text-muted-foreground/70">· {formatLastSync(lastSync)}</span>
+          {/* Indicador Live + estado da conexão */}
+          <div className={cn(
+            "flex items-center gap-1.5 px-2.5 py-1 rounded-lg border",
+            !isOnline
+              ? "bg-destructive/10 border-destructive/30"
+              : liveError
+                ? "bg-warning/10 border-warning/30"
+                : "bg-muted/40 border-border/50"
+          )}>
+            {!isOnline ? (
+              <>
+                <WifiOff className="h-3 w-3 text-destructive" />
+                <span className="text-[10px] font-bold text-destructive uppercase tracking-wider">Offline</span>
+              </>
+            ) : (
+              <>
+                <span className="relative flex h-2 w-2">
+                  {liveActive && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                  )}
+                  <span className={cn(
+                    "relative inline-flex rounded-full h-2 w-2",
+                    liveActive ? "bg-success" : "bg-muted-foreground/40"
+                  )}></span>
+                </span>
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {liveError ? "Reconectando" : liveActive ? "Live" : "Pausado"}
+                </span>
+              </>
+            )}
           </div>
 
           {/* Auto-refresh selector */}
