@@ -176,6 +176,43 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Indicador Live + última sincronização */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-muted/40 border border-border/50">
+            <span className="relative flex h-2 w-2">
+              {autoRefresh > 0 && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+              )}
+              <span className={cn(
+                "relative inline-flex rounded-full h-2 w-2",
+                autoRefresh > 0 ? "bg-success" : "bg-muted-foreground/40"
+              )}></span>
+            </span>
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              {autoRefresh > 0 ? "Live" : "Pausado"}
+            </span>
+            <span className="text-[10px] text-muted-foreground/70">· {formatLastSync(lastSync)}</span>
+          </div>
+
+          {/* Auto-refresh selector */}
+          <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-0.5">
+            <Radio className="h-3 w-3 text-muted-foreground ml-1.5" />
+            {AUTO_REFRESH_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setAutoRefresh(opt.value)}
+                className={cn(
+                  "px-2 py-1 rounded-md text-[10px] font-bold transition-all",
+                  autoRefresh === opt.value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title={`Atualizar a cada ${opt.label}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
           <Button size="sm" variant="outline" onClick={handleRefresh} disabled={refreshing} className="gap-1.5">
             <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
             Atualizar
