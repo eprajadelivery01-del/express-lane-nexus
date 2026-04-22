@@ -411,64 +411,73 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="space-y-5">
+      <div className={cn(compact ? "space-y-3" : "space-y-5")}>
         {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KPICard icon={<Clock className="h-5 w-5" />} label="Em Trânsito" value={inTransitCount} sub={`Hoje: ${stats?.today ?? 0}`} color="primary" pulse />
-          <KPICard icon={<Bike className="h-5 w-5" />} label="Frota Online" value={onlineCount} sub="Prontos para entrega" color="success" />
-          <KPICard icon={<DollarSign className="h-5 w-5" />} label="Faturamento" value={`R$ ${metrics.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} sub={PERIOD_LABELS[period]} color="info" />
-          <KPICard icon={<Package className="h-5 w-5" />} label="Volume Total" value={metrics.total} sub={`${metrics.delivered} entregues`} color="accent" />
+        <div className={cn("grid grid-cols-2 lg:grid-cols-4", compact ? "gap-2" : "gap-3")}>
+          <KPICard compact={compact} icon={<Clock className="h-5 w-5" />} label="Em Trânsito" value={inTransitCount} sub={`Hoje: ${stats?.today ?? 0}`} color="primary" pulse />
+          <KPICard compact={compact} icon={<Bike className="h-5 w-5" />} label="Frota Online" value={onlineCount} sub="Prontos para entrega" color="success" />
+          <KPICard compact={compact} icon={<DollarSign className="h-5 w-5" />} label="Faturamento" value={`R$ ${metrics.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} sub={PERIOD_LABELS[period]} color="info" />
+          <KPICard compact={compact} icon={<Package className="h-5 w-5" />} label="Volume Total" value={metrics.total} sub={`${metrics.delivered} entregues`} color="accent" />
         </div>
 
         {/* Quick Stats - Operational Status */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <QuickStat icon={<Clock className="h-4 w-4 text-warning" />} label="Pendentes" value={metrics.pending} />
-          <QuickStat icon={<CheckCircle className="h-4 w-4 text-info" />} label="Aceitos" value={metrics.accepted} />
-          <QuickStat icon={<Truck className="h-4 w-4 text-primary" />} label="Coletando" value={metrics.collecting} />
-          <QuickStat icon={<PackageCheck className="h-4 w-4 text-success" />} label="Entregues" value={metrics.delivered} />
-          <QuickStat icon={<XCircle className="h-4 w-4 text-destructive" />} label="Cancelados" value={metrics.cancelled} />
-          <QuickStat icon={<Receipt className="h-4 w-4 text-accent-foreground" />} label="Ticket Médio" value={`R$ ${metrics.avgTicket.toFixed(2)}`} />
+        <div className={cn("grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6", compact ? "gap-2" : "gap-3")}>
+          <QuickStat compact={compact} icon={<Clock className="h-4 w-4 text-warning" />} label="Pendentes" value={metrics.pending} />
+          <QuickStat compact={compact} icon={<CheckCircle className="h-4 w-4 text-info" />} label="Aceitos" value={metrics.accepted} />
+          <QuickStat compact={compact} icon={<Truck className="h-4 w-4 text-primary" />} label="Coletando" value={metrics.collecting} />
+          <QuickStat compact={compact} icon={<PackageCheck className="h-4 w-4 text-success" />} label="Entregues" value={metrics.delivered} />
+          <QuickStat compact={compact} icon={<XCircle className="h-4 w-4 text-destructive" />} label="Cancelados" value={metrics.cancelled} />
+          <QuickStat compact={compact} icon={<Receipt className="h-4 w-4 text-accent-foreground" />} label="Ticket Médio" value={`R$ ${metrics.avgTicket.toFixed(2)}`} />
         </div>
 
         {/* Operational Row - Business KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <QuickStat icon={<Building2 className="h-4 w-4 text-primary" />} label="Empresas Ativas" value={totalCompanies} />
-          <QuickStat icon={<MapPin className="h-4 w-4 text-info" />} label="Cidades Ativas" value={cities.length} />
-          <QuickStat icon={<TrendingUp className="h-4 w-4 text-success" />} label="Taxa Conversão" value={`${metrics.conversionRate.toFixed(0)}%`} />
-          <QuickStat icon={<Timer className="h-4 w-4 text-accent-foreground" />} label="Tempo Médio" value={metrics.avgDeliveryMin > 0 ? `${metrics.avgDeliveryMin.toFixed(0)} min` : "—"} />
+        <div className={cn("grid grid-cols-2 lg:grid-cols-4", compact ? "gap-2" : "gap-3")}>
+          <QuickStat compact={compact} icon={<Building2 className="h-4 w-4 text-primary" />} label="Empresas Ativas" value={totalCompanies} />
+          <QuickStat compact={compact} icon={<MapPin className="h-4 w-4 text-info" />} label="Cidades Ativas" value={cities.length} />
+          <QuickStat compact={compact} icon={<TrendingUp className="h-4 w-4 text-success" />} label="Taxa Conversão" value={`${metrics.conversionRate.toFixed(0)}%`} />
+          <QuickStat compact={compact} icon={<Timer className="h-4 w-4 text-accent-foreground" />} label="Tempo Médio" value={metrics.avgDeliveryMin > 0 ? `${metrics.avgDeliveryMin.toFixed(0)} min` : "—"} />
         </div>
 
         {/* Charts */}
         <DashboardCharts deliveries={periodDeliveries} drivers={allDrivers} period={period} />
 
-      {/* Operational Monitoring — Grid harmônico de altura uniforme */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 auto-rows-fr">
+        {/* ===========================================================
+            Painel Inferior — Grid harmônico, todos os cards padronizados
+            (mesma altura, mesmo header, mesma tipografia, mesmos paddings)
+        =========================================================== */}
+        <div
+          className={cn(
+            "grid grid-cols-1 lg:grid-cols-12 gap-4 auto-rows-fr",
+            compact ? "min-h-[420px]" : "min-h-[560px]",
+          )}
+        >
           {/* COLUNA 1 — Frota (4/12) */}
-          <div className="lg:col-span-4 flex flex-col min-h-[560px]">
+          <div className={cn("lg:col-span-4 flex flex-col", compact ? "min-h-[420px]" : "min-h-[560px]")}>
             <div className="bg-card border border-border/50 rounded-2xl shadow-sm h-full overflow-hidden flex flex-col">
-              <MotoboysSidebar />
+              <MotoboysSidebar compact={compact} />
             </div>
           </div>
 
           {/* COLUNA 2 — Top Empresas + Cidades (4/12) */}
-          <div className="lg:col-span-4 flex flex-col gap-4 min-h-[560px]">
+          <div className={cn("lg:col-span-4 flex flex-col gap-4", compact ? "min-h-[420px]" : "min-h-[560px]")}>
             {/* Top Empresas */}
             <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm flex-1 flex flex-col min-h-0">
               <SectionHeader
                 icon={<Building2 className="h-4 w-4" />}
                 tone="info"
+                compact={compact}
                 title="Top Empresas"
-                subtitle="Volume no período"
+                subtitle="Ranking por volume no período"
                 action={{ label: "Gerenciar", onClick: () => navigate("/admin/companies") }}
               />
-              <div className="flex-1 overflow-y-auto scrollbar-thin">
+              <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0">
                 {(() => {
-                  const counts = new Map<string, { name: string; count: number; revenue: number }>();
+                  const counts = new Map<string, { id: string; name: string; count: number; revenue: number }>();
                   periodDeliveries.forEach((d: any) => {
                     const id = d.company_id;
                     const name = d.companies?.name || "—";
                     if (!id) return;
-                    const cur = counts.get(id) || { name, count: 0, revenue: 0 };
+                    const cur = counts.get(id) || { id, name, count: 0, revenue: 0 };
                     cur.count += 1;
                     if (d.status === "delivered") cur.revenue += Number(d.value ?? 0);
                     counts.set(id, cur);
@@ -476,42 +485,81 @@ export default function DashboardPage() {
                   const top = Array.from(counts.values()).sort((a, b) => b.count - a.count).slice(0, 6);
                   if (top.length === 0) {
                     return (
-                      <div className="flex flex-col items-center justify-center h-full py-10 px-6 text-center">
-                        <div className="w-12 h-12 rounded-2xl bg-muted/40 flex items-center justify-center mb-3 border border-dashed border-border/60">
-                          <Building2 className="h-5 w-5 text-muted-foreground/40" />
-                        </div>
-                        <p className="text-xs font-semibold text-foreground">Sem dados no período</p>
-                      </div>
+                      <EmptyState
+                        icon={<Building2 className="h-6 w-6" />}
+                        title="Sem dados no período"
+                        subtitle="Tente um intervalo maior ou aguarde novos pedidos."
+                        cta={{ label: "Ver empresas", onClick: () => navigate("/admin/companies") }}
+                      />
                     );
                   }
                   const maxCount = Math.max(...top.map(t => t.count), 1);
                   return (
-                    <div className="p-2 space-y-1">
+                    <ul className={cn("space-y-1", compact ? "p-1.5" : "p-2")} role="list">
                       {top.map((c, i) => {
                         const pct = (c.count / maxCount) * 100;
+                        const isSelected = selectedCompanyId === c.id;
+                        const isLeader = i === 0;
                         return (
-                          <div
-                            key={c.name + i}
-                            className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/40 transition-colors cursor-pointer overflow-hidden"
-                            onClick={() => navigate("/admin/companies")}
-                          >
-                            {/* barra de progresso sutil */}
+                          <li key={c.id}>
                             <div
-                              className="absolute inset-y-0 left-0 bg-info/5 rounded-xl pointer-events-none"
-                              style={{ width: `${pct}%` }}
-                            />
-                            <div className="relative w-6 h-6 rounded-lg bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
-                              {i + 1}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => {
+                                setSelectedCompanyId(c.id);
+                                navigate("/admin/companies");
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setSelectedCompanyId(c.id);
+                                  navigate("/admin/companies");
+                                }
+                              }}
+                              className={cn(
+                                "relative flex items-center gap-3 rounded-xl border cursor-pointer overflow-hidden transition-all",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-info/40 active:scale-[0.99]",
+                                compact ? "px-2.5 py-1.5" : "px-3 py-2.5",
+                                isSelected
+                                  ? "bg-info/10 border-info/40 shadow-sm"
+                                  : "border-transparent hover:bg-info/5 hover:border-info/20 hover:-translate-y-px hover:shadow-sm"
+                              )}
+                            >
+                              {/* barra de progresso sutil */}
+                              <div
+                                className={cn(
+                                  "absolute inset-y-0 left-0 rounded-xl pointer-events-none transition-all",
+                                  isSelected ? "bg-info/10" : "bg-info/5"
+                                )}
+                                style={{ width: `${pct}%` }}
+                                aria-hidden
+                              />
+                              <div className={cn(
+                                "relative rounded-lg flex items-center justify-center text-[10px] font-bold shrink-0",
+                                compact ? "w-5 h-5" : "w-6 h-6",
+                                isLeader
+                                  ? "bg-warning/15 text-warning"
+                                  : "bg-muted text-muted-foreground"
+                              )}>
+                                {isLeader ? <Trophy className="h-3 w-3" /> : i + 1}
+                              </div>
+                              <div className="relative flex-1 min-w-0">
+                                <p className="text-xs font-bold text-foreground truncate tracking-tight">{c.name}</p>
+                                {!compact && (
+                                  <p className="text-[10px] font-medium text-muted-foreground/70 uppercase tracking-wider">
+                                    {c.count} {c.count === 1 ? "pedido" : "pedidos"}
+                                  </p>
+                                )}
+                              </div>
+                              <div className="relative text-right shrink-0">
+                                <p className="text-xs font-bold text-foreground leading-none tabular-nums">{c.count}</p>
+                                <p className="text-[10px] font-bold text-success mt-0.5 tabular-nums">R$ {c.revenue.toFixed(0)}</p>
+                              </div>
                             </div>
-                            <p className="relative text-xs font-semibold text-foreground truncate flex-1">{c.name}</p>
-                            <div className="relative text-right shrink-0">
-                              <p className="text-xs font-bold text-foreground leading-none">{c.count}</p>
-                              <p className="text-[10px] font-medium text-success mt-0.5">R$ {c.revenue.toFixed(0)}</p>
-                            </div>
-                          </div>
+                          </li>
                         );
                       })}
-                    </div>
+                    </ul>
                   );
                 })()}
               </div>
@@ -523,34 +571,58 @@ export default function DashboardPage() {
                 <SectionHeader
                   icon={<MapPin className="h-4 w-4" />}
                   tone="primary"
+                  compact={compact}
                   title="Cidades"
                   subtitle={`${cities.length} ${cities.length === 1 ? "cidade ativa" : "cidades ativas"}`}
+                  rightSlot={
+                    selectedCity ? (
+                      <button
+                        onClick={() => setCity(null)}
+                        className="text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider"
+                        title="Limpar filtro"
+                      >
+                        Limpar
+                      </button>
+                    ) : undefined
+                  }
                 />
-                <div className="p-2 max-h-[160px] overflow-y-auto scrollbar-thin space-y-1">
+                <div className={cn(
+                  "overflow-y-auto scrollbar-thin space-y-1",
+                  compact ? "p-1.5 max-h-[120px]" : "p-2 max-h-[160px]",
+                )}>
                   {cities.map(city => {
                     const cityRegions = regions?.filter(r => r.city === city) || [];
                     const isActive = selectedCity === city;
                     return (
                       <button
                         key={city}
-                        onClick={() => setCity(city)}
+                        onClick={() => setCity(isActive ? null : city)}
+                        aria-pressed={isActive}
                         className={cn(
-                          "w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-left",
+                          "w-full flex items-center justify-between rounded-xl transition-all text-left border",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.99]",
+                          compact ? "px-2.5 py-1.5" : "px-3 py-2",
                           isActive
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "hover:bg-muted/40"
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "border-transparent hover:bg-primary/5 hover:border-primary/20 hover:-translate-y-px hover:shadow-sm"
                         )}
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <Navigation className={cn("h-3.5 w-3.5 shrink-0", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
-                          <span className={cn("text-xs font-semibold truncate", isActive ? "text-primary-foreground" : "text-foreground")}>
+                          <span className={cn(
+                            "text-xs font-bold truncate tracking-tight",
+                            isActive ? "text-primary-foreground" : "text-foreground"
+                          )}>
                             {city}
                           </span>
                         </div>
-                        <span className={cn(
-                          "text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0",
-                          isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
-                        )}>
+                        <span
+                          title={`${cityRegions.length} ${cityRegions.length === 1 ? "região" : "regiões"}`}
+                          className={cn(
+                            "text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 tabular-nums tracking-wide",
+                            isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}
+                        >
                           {cityRegions.length} reg.
                         </span>
                       </button>
@@ -562,9 +634,9 @@ export default function DashboardPage() {
           </div>
 
           {/* COLUNA 3 — Atividade Recente (4/12) */}
-          <div className="lg:col-span-4 flex flex-col min-h-[560px]">
+          <div className={cn("lg:col-span-4 flex flex-col", compact ? "min-h-[420px]" : "min-h-[560px]")}>
             <div className="bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm h-full flex flex-col">
-              <NotificationsPanel />
+              <NotificationsPanel compact={compact} />
             </div>
           </div>
         </div>
@@ -573,81 +645,62 @@ export default function DashboardPage() {
   );
 }
 
-/** Cabeçalho unificado para as seções do painel inferior */
-function SectionHeader({
-  icon, title, subtitle, tone, action,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle?: string;
-  tone: "primary" | "info" | "warning" | "accent";
-  action?: { label: string; onClick: () => void };
-}) {
-  const toneStyles: Record<string, string> = {
-    primary: "bg-primary/10 text-primary",
-    info: "bg-info/10 text-info",
-    warning: "bg-warning/10 text-warning",
-    accent: "bg-accent text-accent-foreground",
-  };
-  const actionStyles: Record<string, string> = {
-    primary: "text-primary bg-primary/10 hover:bg-primary/20",
-    info: "text-info bg-info/10 hover:bg-info/20",
-    warning: "text-warning bg-warning/10 hover:bg-warning/20",
-    accent: "text-accent-foreground bg-accent hover:bg-accent/80",
-  };
-  return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-muted/10 shrink-0">
-      <div className="flex items-center gap-2.5 min-w-0">
-        <div className={cn("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", toneStyles[tone])}>
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <h3 className="text-sm font-bold text-foreground leading-tight truncate">{title}</h3>
-          {subtitle && <p className="text-[10px] text-muted-foreground truncate">{subtitle}</p>}
-        </div>
-      </div>
-      {action && (
-        <button
-          onClick={action.onClick}
-          className={cn(
-            "text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider transition-colors shrink-0",
-            actionStyles[tone]
-          )}
-        >
-          {action.label}
-        </button>
-      )}
-    </div>
-  );
-}
-
-function KPICard({ icon, label, value, sub, color, pulse }: {
+function KPICard({ icon, label, value, sub, color, pulse, compact }: {
   icon: React.ReactNode; label: string; value: string | number; sub?: string;
-  color: "primary" | "success" | "info" | "accent"; pulse?: boolean;
+  color: "primary" | "success" | "info" | "accent"; pulse?: boolean; compact?: boolean;
 }) {
   const styles: Record<string, string> = {
     primary: "bg-primary/10 text-primary", success: "bg-success/10 text-success",
     info: "bg-info/10 text-info", accent: "bg-accent text-accent-foreground",
   };
   return (
-    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow group">
-      <div className="flex items-center justify-between mb-3">
-        <div className={cn("w-9 h-9 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110", styles[color], pulse && "animate-pulse")}>{icon}</div>
+    <div className={cn(
+      "bg-card border border-border/50 rounded-xl shadow-sm hover:shadow-md transition-all group hover:-translate-y-px",
+      compact ? "p-2.5" : "p-4",
+    )}>
+      <div className={cn("flex items-center justify-between", compact ? "mb-1.5" : "mb-3")}>
+        <div className={cn(
+          "rounded-lg flex items-center justify-center transition-transform group-hover:scale-110",
+          compact ? "w-8 h-8" : "w-9 h-9",
+          styles[color],
+          pulse && "animate-pulse",
+        )}>{icon}</div>
         <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-foreground/60 transition-colors" />
       </div>
-      <p className="text-2xl font-bold text-foreground tracking-tight leading-none">{value}</p>
-      <p className="text-[11px] font-medium text-muted-foreground mt-1">{label}</p>
-      {sub && <p className="text-[10px] text-muted-foreground/60 mt-0.5">{sub}</p>}
+      <p className={cn(
+        "font-bold text-foreground tracking-tight leading-none tabular-nums",
+        compact ? "text-xl" : "text-2xl",
+      )}>{value}</p>
+      <p className={cn("font-medium text-muted-foreground mt-1", compact ? "text-[10px]" : "text-[11px]")}>{label}</p>
+      {sub && <p className="text-[10px] text-muted-foreground/60 mt-0.5 truncate">{sub}</p>}
     </div>
   );
 }
 
-function QuickStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
+function QuickStat({ icon, label, value, compact }: {
+  icon: React.ReactNode; label: string; value: number | string; compact?: boolean;
+}) {
   return (
-    <div className="bg-card border border-border/50 rounded-xl p-3.5 text-center shadow-sm">
-      <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center mx-auto mb-2">{icon}</div>
-      <p className="text-lg font-bold text-foreground leading-none">{value}</p>
-      <p className="text-[10px] font-medium text-muted-foreground mt-1 uppercase tracking-wide">{label}</p>
+    <div
+      title={typeof value === "string" || typeof value === "number" ? `${label}: ${value}` : undefined}
+      className={cn(
+        "bg-card border border-border/50 rounded-xl text-center shadow-sm transition-all hover:shadow-md hover:-translate-y-px",
+        compact ? "p-2" : "p-3.5",
+      )}
+    >
+      <div className={cn(
+        "rounded-lg bg-muted/50 flex items-center justify-center mx-auto",
+        compact ? "w-7 h-7 mb-1" : "w-8 h-8 mb-2",
+      )}>{icon}</div>
+      <p className={cn(
+        "font-bold text-foreground leading-none tabular-nums",
+        compact ? "text-base" : "text-lg",
+      )}>{value}</p>
+      <p className={cn(
+        "font-medium text-muted-foreground mt-1 uppercase tracking-wider",
+        compact ? "text-[9px] truncate" : "text-[10px]",
+      )}>{label}</p>
     </div>
   );
 }
+
