@@ -45,7 +45,7 @@ function getDateFrom(period: Period): string {
 const PERIOD_LABELS: Record<Period, string> = { today: "Hoje", "7d": "7 dias", "30d": "30 dias" };
 
 export default function DashboardPage() {
-  const [period, setPeriod] = useState<Period>("7d");
+  const [period, setPeriod] = useState<Period>("today");
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState<AutoRefreshOption>(() => {
     try {
