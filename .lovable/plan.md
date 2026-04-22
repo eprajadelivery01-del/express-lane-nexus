@@ -1,144 +1,98 @@
-# Plano: Melhorias de Arquitetura, Integração e UX
 
-Este plano cobre 5 blocos de trabalho, priorizados por impacto.
 
----
+## Reformulação do Painel Admin – Dashboard
 
-## Bloco 1: Camada de Serviços Centralizada
-
-Criar `src/services/` com módulos que encapsulam todas as queries Supabase, eliminando chamadas diretas espalhadas pelos componentes.
-
-**Arquivos a criar:**
-
-- `src/services/deliveries.ts` — CRUD de entregas, filtros, realtime subscription
-- `src/services/users.ts` — profiles, roles, convites
-- `src/services/regions.ts` — CRUD de regiões com GeoJSON
-- `src/services/drivers.ts` — status online/offline, localização
-- `src/services/companies.ts` — CRUD empresas
-- `src/services/realtime.ts` — setup centralizado de channels realtime
-
-**Padrão:** cada service exporta funções assíncronas + hooks React Query (`useDeliveries`, `useRegions`, etc.) para cache e refetch automático.
-
-**Eventos realtime padronizados:** um único channel `deliveries` e `delivery_drivers` com listeners centralizados em `realtime.ts`, consumidos via hooks nos componentes.
+### Objetivo
+Remover o mapa hero do Dashboard, reorganizar a hierarquia de informações, e adicionar funções administrativas que faltam para tornar o painel verdadeiramente operacional como o admin central de todo o ecossistema (Marketplace, Lojista, Entregador, Cliente).
 
 ---
 
-## Bloco 2: Sistema de Convites e Cadastro
+### 1. Limpeza e Reorganização do Dashboard (`src/pages/DashboardPage.tsx`)
 
-### Rota `/invite/:token`
+**Remover:**
+- `<HeroMapSection />` e o card que o envolve (responsável pelo mapa enorme com botões "Explorar Estabelecimentos", "DRIVERS ONLINE" duplicado, etc.)
+- Texto duplicado "DRIVERS ONLINE / REGIONS ACTIVE" (já está no painel de status)
 
-Nova página pública de onboarding onde o convidado completa o cadastro:
-
-- Valida token contra tabela `invitations`
-- Formulário: nome, telefone, documento, senha, upload de avatar
-- Cria conta via `supabase.auth.signUp`, insere role e profile
-- Marca convite como `accepted`
-
-### Admin: Tela de Convites
-
-Em `/admin/users`, adicionar botão "Convidar Usuário" que abre modal:
-
-- Email, role (empresa/entregador)
-- Gera token e mostra link copiável
-
-### Tela de Perfil `/profile`
-
-- Foto, nome, telefone, documento
-- Upload de avatar para bucket `avatars`
-- Acessível por todos os roles
-
----
-
-## Bloco 3: Sistema de Regiões com Polígonos no Mapa
-
-### Refatorar `/admin/regions`
-
-Substituir a listagem atual por uma tela split: **mapa à esquerda + painel à direita**.
-
-**Mapa MapLibre:**
-
-- Renderizar regiões existentes como `fill` + `line` layers usando GeoJSON da coluna `geometry`
-- Cada região com sua cor (`color`) e transparência
-- Popup ao clicar: nome, preço
-
-**Editor de polígonos:**
-
-- Usar `@mapbox/mapbox-gl-draw` (compatível com MapLibre) para desenhar/editar polígonos
-- Ao salvar: converter coordenadas para GeoJSON e gravar na tabela `regions`
-- Botões: Criar Região, Editar, Excluir
-
-**Painel lateral:**
-
-- Lista de regiões com cor, nome, preço
-- Form para editar nome/cor/preço da região selecionada
-
-**Associação automática de endereço para região**
-
-- Criar função SQL `find_region_for_point(lat, lng)` que faz point-in-polygon usando os GeoJSON armazenados
-- Chamar ao criar/editar endereço
-
-### Migração SQL necessária
-
-- Função `find_region_for_point` que itera `regions` e verifica se o ponto está dentro do polígono
-
----
-
-## Bloco 4: Dashboard Admin com Dados Reais + Realtime
-
-Refatorar `DashboardPage.tsx` para usar os services ao invés de mockData:
-
-- `useDeliveries()` para contagens e lista
-- `useDrivers()` para motoboys online
-- `useCompanies()` para locais ativos
-- Realtime: subscrever `deliveries` e `delivery_drivers` para atualizar automaticamente
-
-**MapView melhorado:**
-
-- Mostrar entregadores com posição real (lat/lng da tabela `delivery_drivers`)
-- Mostrar corridas ativas com markers
-- Mostrar regiões como polígonos coloridos (reusar layer do Bloco 3)
-
----
-
-## Bloco 5: Tabela de Entregas Melhorada
-
-Refatorar `DeliveriesPage.tsx`:
-
-- Buscar dados reais via `useDeliveries()` com filtros server-side
-- Adicionar filtros: por empresa (select), por entregador (select), por data (date range)
-- Ações rápidas em cada linha: Editar, Cancelar, Reatribuir (dropdowns/modals)
-- Loading skeleton enquanto carrega
-- Paginação
-
----
-
-## Detalhes Técnicos
-
-**Dependências a adicionar:** `@mapbox/mapbox-gl-draw` para editor de polígonos
-
-**Estrutura de pastas final:**
+**Nova hierarquia visual (de cima para baixo):**
 
 ```text
-src/
-  services/        ← NOVO: camada de dados
-  hooks/           ← hooks existentes + novos React Query hooks
-  components/
-    admin/
-    auth/
-    business/
-    driver/
-    shared/        ← NOVO: componentes reutilizáveis entre módulos
-  pages/
-    admin/         ← NOVO: mover páginas admin para subpasta
-    driver/
-    business/
-    marketplace/
+┌──────────────────────────────────────────────────────────────┐
+│ Header: Período (Hoje/7d/30d) + Resumo + Exportar + Atualizar│
+├──────────────────────────────────────────────────────────────┤
+│ KPIs (4 cards): Em Trânsito | Frota Online | Faturamento |   │
+│                  Volume Total                                  │
+├──────────────────────────────────────────────────────────────┤
+│ Faixa de Quick Stats (6 mini-cards):                         │
+│  Pendentes | Aceitos | Coletando | Entregues | Cancelados |  │
+│  Ticket Médio                                                 │
+├──────────────────────────────────────────────────────────────┤
+│ Faixa Operacional (3 cards):                                 │
+│  Empresas Ativas | Cidades Ativas | Taxa Conversão           │
+├──────────────────────────────────────────────────────────────┤
+│ Charts row 1 (2 col): Tendência Receita | Pizza Status       │
+├──────────────────────────────────────────────────────────────┤
+│ Charts row 2 (2 col): Volume por Hora | Ranking Motoboys     │
+├──────────────────────────────────────────────────────────────┤
+│ Operacional (3 col):                                         │
+│  Status Frota (motoboys) | Lojistas Ativos | Atividade Recente│
+└──────────────────────────────────────────────────────────────┘
 ```
 
-**Ordem de implementação:**
+---
 
-1. Camada de serviços (base para tudo)
-2. Sistema de convites + perfil
-3. Regiões com polígonos no mapa
-4. Dashboard com dados reais
-5. Tabela de entregas melhorada
+### 2. Funções Administrativas Faltantes (a implementar)
+
+**a) Cards de KPI adicionais** com dados reais já existentes na DB:
+- Ticket médio (`periodRevenue / periodDelivered`)
+- Taxa de cancelamento (`cancelled / total`)
+- Tempo médio de entrega (calcular `delivered_at - accepted_at`)
+
+**b) Botão "Atualizar Dados"** no header (refetch React Query global) com feedback visual.
+
+**c) Painel de Alertas Críticos** (novo card no topo se houver):
+- Entregas pendentes há > 30 min sem motoboy aceitar
+- Motoboys offline com entrega ativa
+- Empresas com 0 motoboy disponível na cidade
+
+**d) Atalhos rápidos** (botões no header):
+- "Nova Empresa" → abre `CreateCompanyDialog`
+- "Convidar Entregador" → abre `GenerateInviteDialog`
+- "Ver Mapa Completo" → navega para `/admin/regions`
+
+**e) Validação de funções existentes do admin** (verificar se rotas funcionam):
+- `/admin/deliveries` (Corridas) ✓ existente
+- `/admin/companies` ✓ existente
+- `/admin/drivers` ✓ existente
+- `/admin/regions` ✓ existente
+- `/admin/reports` (Financeiro) ✓ existente
+- `/admin/chat` ✓ existente
+- `/admin/profile` ✓ existente
+- `/admin/reviews` ⚠️ atualmente é placeholder "Em construção" — **manter como está** (escopo separado)
+
+---
+
+### 3. Detalhes Técnicos
+
+**Arquivos a editar:**
+- `src/pages/DashboardPage.tsx` — remover Hero, reorganizar grids, adicionar novos KPIs, atalhos rápidos e painel de alertas
+- Não criar novos componentes pesados — reutilizar `CreateCompanyDialog`, `GenerateInviteDialog` já existentes
+- `src/components/admin/DashboardCharts.tsx` — manter, apenas ajustar a grid do grid pai
+
+**Cálculos derivados (memoizados):**
+- `avgTicket = periodRevenue / Math.max(periodDelivered, 1)`
+- `cancelRate = cancelled / Math.max(total, 1) * 100`
+- `avgDeliveryTime = média de (delivered_at - accepted_at) em min`
+- `criticalAlerts = pendentes há > 30min sem motoboy`
+
+**Layout responsivo:**
+- Mobile: cards empilhados (1 col)
+- Tablet: 2 col
+- Desktop (≥lg): grids 4-col / 3-col conforme seção
+
+**Sem mudanças de DB** — todas as métricas usam tabelas e hooks existentes (`useDeliveries`, `useDrivers`, `useCompanies`, `useDeliveryStats`, `useRegions`).
+
+---
+
+### Resultado Final
+Dashboard limpo, denso de informação útil, com hierarquia clara: **KPIs principais → métricas operacionais → gráficos → listas de monitoramento**, sem o mapa "hero" decorativo que ocupava espaço sem valor analítico, e com atalhos rápidos para as ações administrativas mais frequentes.
+
