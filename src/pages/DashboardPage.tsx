@@ -17,6 +17,7 @@ import {
   Map as MapIcon, WifiOff, Truck, ChevronRight
 } from "lucide-react";
 import { useRealtimeDeliveries } from "@/hooks/useRealtimeDeliveries";
+import { useUniqueDeliveries } from "@/hooks/useUniqueDeliveries";
 import { DashboardExport } from "@/components/admin/DashboardExport";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 import { Button } from "@/components/ui/button";
@@ -131,7 +132,8 @@ export default function DashboardPage() {
   const onlineCount = onlineDrivers?.length ?? 0;
   const cities = Array.from(new Set(regions?.map(r => r.city) || [])).sort();
 
-  const periodDeliveries = allDeliveries?.data ?? [];
+  const rawPeriodDeliveries = allDeliveries?.data ?? [];
+  const periodDeliveries = useUniqueDeliveries(rawPeriodDeliveries);
   const isLoadingMain = loadingDeliveries || loadingTransit || loadingDriversOnline;
 
   const metrics = useMemo(() => {

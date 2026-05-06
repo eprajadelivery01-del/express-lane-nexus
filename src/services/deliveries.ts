@@ -160,10 +160,24 @@ export async function createDeliveryRequest(orderId: string) {
 
   const dropoff = address ? `${address.street}, ${address.number} - ${address.neighborhood}` : "Endereço não cadastrado";
 
+  // VERIFICAÇÃO DE DUPLICIDADE
+  const { data: existingDelivery } = await supabase
+    .from("deliveries")
+    .select("*")
+    .eq("order_id", orderId)
+    .not("status", "eq", "cancelled")
+    .maybeSingle();
+
+  if (existingDelivery) {
+    console.log(`[Deliveries] Entrega já existe para o pedido ${orderId}. Retornando existente.`);
+    return existingDelivery;
+  }
+
   const { data: delivery, error: deliveryError } = await supabase
     .from("deliveries")
     .insert({
       company_id: order.company_id,
+      order_id: orderId,
       customer_name: "Cliente",
       address: dropoff,
       value: order.total || 0,

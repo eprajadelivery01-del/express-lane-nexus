@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { useUniqueDeliveries } from "@/hooks/useUniqueDeliveries";
 import type { DeliveryStatus } from "@/types/models";
 
 const statusFilters = [
@@ -67,7 +68,8 @@ export default function DeliveriesPage() {
   const updateStatus = useUpdateDeliveryStatus();
   const reassignMut = useReassignDelivery();
 
-  const deliveries = data?.data ?? [];
+  const rawDeliveries = data?.data ?? [];
+  const deliveries = useUniqueDeliveries(rawDeliveries);
   const totalCount = data?.count ?? 0;
   const totalPages = Math.ceil(totalCount / pageSize);
 
