@@ -3,6 +3,7 @@ import { Search, Bike, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDrivers } from "@/services/drivers";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function MotoboysSidebar() {
   const [search, setSearch] = useState("");
