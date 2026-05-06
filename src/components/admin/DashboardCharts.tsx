@@ -24,8 +24,12 @@ const STATUS_COLORS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   pending: "Pendente", broadcasted: "Enviado", accepted: "Aceito",
-  collecting: "Coletando", in_transit: "Em Trânsito", delivered: "Entregue",
-  cancelled: "Cancelado", returned: "Devolvido",
+  collecting: "Coletando",
+  in_transit: "Em Trânsito",
+  delivered: "Entregue",
+  completed: "Entregue",
+  cancelled: "Cancelado",
+  returned: "Devolvido",
 };
 
 export function DashboardCharts({ deliveries, period, isLoading }: Props) {
@@ -43,7 +47,7 @@ export function DashboardCharts({ deliveries, period, isLoading }: Props) {
       map.set(key, { date: label, revenue: 0, count: 0 });
     }
     deliveries.forEach((d) => {
-      if (d.status !== "delivered") return;
+      if (d.status !== "delivered" && d.status !== "completed") return;
       const key = (d.delivered_at || d.created_at)?.split("T")[0];
       if (key && map.has(key)) {
         const e = map.get(key)!;

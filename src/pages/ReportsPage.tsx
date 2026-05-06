@@ -254,6 +254,7 @@ export default function ReportsPage() {
                 <Tooltip 
                   contentStyle={{ backgroundColor: "hsl(var(--card))", borderRadius: "16px", border: "1px solid hsl(var(--border))", boxShadow: "0 10px 30px rgba(0,0,0,0.1)" }}
                   itemStyle={{ fontSize: "12px", fontWeight: "bold" }}
+                  formatter={(val: any) => [`R$ ${Number(val).toFixed(2)}`, ""]}
                 />
                 <Area type="monotone" dataKey="total" name="Faturamento" stroke="hsl(var(--primary))" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
                 <Area type="monotone" dataKey="commission" name="Comissão" stroke="hsl(var(--primary))" strokeWidth={1} strokeDasharray="4 4" fill="transparent" />
@@ -466,6 +467,7 @@ const STATUS_COLORS = {
   collecting: "hsl(var(--accent))",
   in_transit: "hsl(var(--primary))",
   delivered: "#22c55e",
+  completed: "#22c55e",
   cancelled: "#ef4444",
   returned: "#6b7280",
 };
@@ -477,6 +479,7 @@ const STATUS_LABELS = {
   collecting: "Coletando",
   in_transit: "Em Trânsito",
   delivered: "Finalizada",
+  completed: "Finalizada",
   cancelled: "Cancelada",
   returned: "Devolvida",
 };

@@ -12,14 +12,17 @@ interface Props {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: "Pendente", broadcasted: "Enviado", accepted: "Aceito",
-  collecting: "Coletando", in_transit: "Em Trânsito", delivered: "Entregue",
-  cancelled: "Cancelado", returned: "Devolvido",
+  collecting: "Coletando",
+  in_transit: "Em Trânsito",
+  delivered: "Entregue",
+  completed: "Entregue",
+  cancelled: "Cancelado",
+  returned: "Devolvido",
 };
 
 function computeKpis(deliveries: DeliveryWithRelations[]) {
   const total = deliveries.length;
-  const delivered = deliveries.filter(d => d.status === "delivered");
+  const delivered = deliveries.filter(d => d.status === "delivered" || d.status === "completed");
   const cancelled = deliveries.filter(d => d.status === "cancelled").length;
   const pending = deliveries.filter(d => d.status === "pending" || d.status === "broadcasted").length;
   const inTransit = deliveries.filter(d => d.status === "in_transit" || d.status === "collecting" || d.status === "accepted").length;
@@ -178,7 +181,7 @@ function exportPDF(deliveries: DeliveryWithRelations[], period: string) {
       .data-table .date { white-space: nowrap; color: #4b5563; }
       .data-table .mono { font-family: "SF Mono", Menlo, monospace; color: #4b5563; }
       .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 9px; font-weight: 700; }
-      .badge-delivered { background: #d1fae5; color: #065f46; }
+      .badge-delivered, .badge-completed { background: #d1fae5; color: #065f46; }
       .badge-cancelled { background: #fee2e2; color: #991b1b; }
       .badge-pending, .badge-broadcasted { background: #fef3c7; color: #92400e; }
       .badge-accepted, .badge-collecting, .badge-in_transit { background: #dbeafe; color: #1e40af; }

@@ -98,10 +98,10 @@ export function useDeliveryStats() {
         today: data.length,
         total: totalRes.count ?? 0,
         pending: data.filter((d) => d.status === "pending").length,
-        inTransit: data.filter((d) => d.status === "in_transit").length,
-        delivered: data.filter((d) => d.status === "delivered").length,
+        inTransit: data.filter((d) => d.status === "in_transit" || d.status === "collecting").length,
+        delivered: data.filter((d) => d.status === "delivered" || d.status === "completed").length,
         cancelled: data.filter((d) => d.status === "cancelled").length,
-        todayRevenue: data.filter((d) => d.status === "delivered").reduce((sum, d) => sum + Number(d.price ?? 0), 0),
+        todayRevenue: data.filter((d) => d.status === "delivered" || d.status === "completed").reduce((sum, d) => sum + Number(d.price ?? 0), 0),
       };
     },
     refetchInterval: 30000,
