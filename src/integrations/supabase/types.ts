@@ -62,6 +62,48 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          error_code: string | null
+          error_message: string | null
+          event: string
+          http_status: number | null
+          id: string
+          payload: Json | null
+          request_id: string
+          source: string | null
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          event: string
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          request_id: string
+          source?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          event?: string
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          request_id?: string
+          source?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       chat_message_logs: {
         Row: {
           created_at: string | null
@@ -1194,6 +1236,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
