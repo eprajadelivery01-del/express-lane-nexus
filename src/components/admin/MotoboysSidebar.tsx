@@ -9,7 +9,7 @@ export function MotoboysSidebar() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"online" | "offline">("online");
   const navigate = useNavigate();
-  const { data: drivers } = useDrivers();
+  const { data: drivers, isLoading } = useDrivers();
 
   const allDrivers = drivers ?? [];
   const online = allDrivers.filter((d) => d.is_online);
