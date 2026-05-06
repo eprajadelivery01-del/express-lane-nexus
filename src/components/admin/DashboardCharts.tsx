@@ -5,11 +5,14 @@ import {
 } from "recharts";
 import type { DeliveryWithRelations } from "@/services/deliveries";
 import type { DriverWithProfile } from "@/services/drivers";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Package, TrendingUp } from "lucide-react";
 
 interface Props {
   deliveries: DeliveryWithRelations[];
   drivers?: DriverWithProfile[];
   period: "today" | "7d" | "30d";
+  isLoading?: boolean;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -25,7 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelado", returned: "Devolvido",
 };
 
-export function DashboardCharts({ deliveries, period }: Props) {
+export function DashboardCharts({ deliveries, period, isLoading }: Props) {
   const revenueTrend = useMemo(() => {
     const map = new Map<string, { date: string; revenue: number; count: number }>();
     const now = new Date();
@@ -59,11 +62,29 @@ export function DashboardCharts({ deliveries, period }: Props) {
       .sort((a, b) => b.value - a.value);
   }, [deliveries]);
 
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+          <Skeleton className="w-36 h-4 rounded mb-4" />
+          <Skeleton className="w-full h-[200px] rounded-xl" />
+        </div>
+        <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
+          <Skeleton className="w-28 h-4 rounded mb-4" />
+          <Skeleton className="w-full h-[200px] rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {/* Revenue Trend */}
       <div className="lg:col-span-2 bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-foreground mb-4">Tendência de Receita</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp className="h-4 w-4 text-success" />
+          <h3 className="text-sm font-bold text-foreground">Receita</h3>
+        </div>
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={revenueTrend}>
             <defs>
@@ -83,7 +104,10 @@ export function DashboardCharts({ deliveries, period }: Props) {
 
       {/* Status Distribution */}
       <div className="bg-card border border-border/50 rounded-2xl p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-foreground mb-4">Distribuição</h3>
+        <div className="flex items-center gap-2 mb-4">
+          <Package className="h-4 w-4 text-info" />
+          <h3 className="text-sm font-bold text-foreground">Status</h3>
+        </div>
         {statusDist.length > 0 ? (
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
@@ -95,7 +119,11 @@ export function DashboardCharts({ deliveries, period }: Props) {
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <div className="flex items-center justify-center h-[200px] text-sm text-muted-foreground">Sem dados</div>
+          <div className="flex flex-col items-center justify-center h-[200px] text-center">
+            <Package className="h-8 w-8 text-muted-foreground/20 mb-2" />
+            <p className="text-xs font-medium text-muted-foreground">Sem entregas no período</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-0.5">Selecione outro intervalo</p>
+          </div>
         )}
       </div>
     </div>

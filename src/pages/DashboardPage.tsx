@@ -12,14 +12,15 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import {
-  Package, Bike, Building2, DollarSign, TrendingUp,
-  RefreshCw, AlertTriangle, Clock, CheckCircle,
-  Map as MapIcon, WifiOff, Truck
+  Package, Bike, DollarSign,
+  RefreshCw, AlertTriangle,
+  Map as MapIcon, WifiOff, Truck, ChevronRight
 } from "lucide-react";
 import { useRealtimeDeliveries } from "@/hooks/useRealtimeDeliveries";
 import { DashboardExport } from "@/components/admin/DashboardExport";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 type Period = "today" | "7d" | "30d";
@@ -116,11 +117,11 @@ export default function DashboardPage() {
   }, [refreshScopedQueries]);
 
   const { data: stats } = useDeliveryStats();
-  const { data: onlineDrivers } = useOnlineDrivers();
+  const { data: onlineDrivers, isLoading: loadingDriversOnline } = useOnlineDrivers();
   const { data: allDrivers } = useDrivers();
   const { data: companies } = useCompanies();
-  const { data: allDeliveries } = useDeliveries({ dateFrom, pageSize: 500 });
-  const { data: inTransitData } = useDeliveries({ status: "in_transit" });
+  const { data: allDeliveries, isLoading: loadingDeliveries } = useDeliveries({ dateFrom, pageSize: 500 });
+  const { data: inTransitData, isLoading: loadingTransit } = useDeliveries({ status: "in_transit" });
 
   const { selectedCity } = useCity();
   const { data: regions } = useRegions(selectedCity || undefined);
@@ -131,6 +132,7 @@ export default function DashboardPage() {
   const cities = Array.from(new Set(regions?.map(r => r.city) || [])).sort();
 
   const periodDeliveries = allDeliveries?.data ?? [];
+  const isLoadingMain = loadingDeliveries || loadingTransit || loadingDriversOnline;
 
   const metrics = useMemo(() => {
     const total = periodDeliveries.length;
@@ -180,8 +182,7 @@ export default function DashboardPage() {
   return (
     <AdminLayout title="Dashboard">
       {/* ── TOOLBAR ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
-        {/* Left: Period + Live indicator */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex bg-muted/60 rounded-lg p-0.5 gap-0.5">
             {(["today", "7d", "30d"] as Period[]).map(p => (
@@ -222,7 +223,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Auto-refresh selector (compact) */}
+          {/* Auto-refresh selector */}
           <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5">
             {AUTO_REFRESH_OPTIONS.map((opt) => (
               <button
@@ -241,9 +242,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right: Actions */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Button size="sm" variant="ghost" onClick={handleRefresh} disabled={refreshing} className="gap-1.5">
+          <Button size="sm" variant="ghost" onClick={handleRefresh} disabled={refreshing} className="h-8 w-8 p-0">
             <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
           </Button>
           <GenerateInviteDialog fixedRole="driver" triggerLabel="Convidar" />
@@ -255,10 +255,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ── OFFLINE BANNER ── */}
+      {/* ── OFFLINE / ERROR BANNER ── */}
       {(!isOnline || liveError) && (
         <div className={cn(
-          "mb-4 rounded-xl p-3 flex items-center gap-3 border",
+          "mb-5 rounded-xl p-3 flex items-center gap-3 border",
           !isOnline ? "bg-destructive/5 border-destructive/30" : "bg-warning/5 border-warning/30"
         )}>
           {!isOnline ? <WifiOff className="h-4 w-4 text-destructive shrink-0" /> : <AlertTriangle className="h-4 w-4 text-warning shrink-0" />}
@@ -273,7 +273,7 @@ export default function DashboardPage() {
 
       {/* ── CRITICAL ALERT ── */}
       {metrics.criticalAlerts.length > 0 && (
-        <div className="mb-4 bg-destructive/5 border border-destructive/30 rounded-xl p-3 flex items-center gap-3">
+        <div className="mb-5 bg-destructive/5 border border-destructive/30 rounded-xl p-3 flex items-center gap-3">
           <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
           <p className="text-xs text-muted-foreground flex-1">
             <strong className="text-destructive">{metrics.criticalAlerts.length}</strong> entrega{metrics.criticalAlerts.length > 1 ? "s" : ""} sem motoboy há +30min
@@ -284,61 +284,93 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="space-y-5">
-        {/* ── KPI CARDS ── 4 essential metrics only */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KPICard
-            icon={<Truck className="h-5 w-5" />}
-            label="Em Trânsito"
-            value={inTransitCount}
-            sub={`${metrics.pending} pendentes`}
-            color="primary"
-            pulse={inTransitCount > 0}
-          />
-          <KPICard
-            icon={<DollarSign className="h-5 w-5" />}
-            label="Faturamento"
-            value={`R$ ${metrics.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
-            sub={`${metrics.delivered} entregues`}
-            color="success"
-          />
-          <KPICard
-            icon={<Package className="h-5 w-5" />}
-            label="Pedidos"
-            value={metrics.total}
-            sub={`${metrics.conversionRate.toFixed(0)}% conversão`}
-            color="info"
-          />
-          <KPICard
-            icon={<Bike className="h-5 w-5" />}
-            label="Frota Online"
-            value={onlineCount}
-            sub={`${totalCompanies} empresa${totalCompanies !== 1 ? "s" : ""} · ${cities.length} cidade${cities.length !== 1 ? "s" : ""}`}
-            color="accent"
-          />
-        </div>
-
-        {/* ── CHARTS ── */}
-        <DashboardCharts deliveries={periodDeliveries} drivers={allDrivers} period={period} />
-
-        {/* ── BOTTOM PANEL ── 2 columns: Fleet + Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-            <MotoboysSidebar />
+      <div className="space-y-6">
+        {/* ═══════════════════════════════════════════
+            SEÇÃO 1 — KPIs (clicáveis)
+        ═══════════════════════════════════════════ */}
+        <section>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {isLoadingMain ? (
+              <>
+                <KPISkeleton />
+                <KPISkeleton />
+                <KPISkeleton />
+                <KPISkeleton />
+              </>
+            ) : (
+              <>
+                <KPICard
+                  icon={<Truck className="h-5 w-5" />}
+                  label="Em Trânsito"
+                  value={inTransitCount}
+                  sub={`${metrics.pending} pendentes`}
+                  color="primary"
+                  pulse={inTransitCount > 0}
+                  onClick={() => navigate("/admin/deliveries?status=in_transit")}
+                />
+                <KPICard
+                  icon={<DollarSign className="h-5 w-5" />}
+                  label="Faturamento"
+                  value={`R$ ${metrics.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`}
+                  sub={`${metrics.delivered} entregues`}
+                  color="success"
+                />
+                <KPICard
+                  icon={<Package className="h-5 w-5" />}
+                  label="Pedidos"
+                  value={metrics.total}
+                  sub={`${metrics.conversionRate.toFixed(0)}% conversão`}
+                  color="info"
+                  onClick={() => navigate("/admin/deliveries")}
+                />
+                <KPICard
+                  icon={<Bike className="h-5 w-5" />}
+                  label="Frota Online"
+                  value={onlineCount}
+                  sub={`${totalCompanies} empresa${totalCompanies !== 1 ? "s" : ""} · ${cities.length} cidade${cities.length !== 1 ? "s" : ""}`}
+                  color="accent"
+                  onClick={() => navigate("/admin/drivers")}
+                />
+              </>
+            )}
           </div>
-          <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[400px]">
-            <NotificationsPanel />
+        </section>
+
+        {/* ═══════════════════════════════════════════
+            SEÇÃO 2 — Gráficos
+        ═══════════════════════════════════════════ */}
+        <section>
+          <DashboardCharts
+            deliveries={periodDeliveries}
+            drivers={allDrivers}
+            period={period}
+            isLoading={loadingDeliveries}
+          />
+        </section>
+
+        {/* ═══════════════════════════════════════════
+            SEÇÃO 3 — Painel operacional (Frota + Atividade)
+        ═══════════════════════════════════════════ */}
+        <section>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[420px]">
+              <MotoboysSidebar />
+            </div>
+            <div className="bg-card border border-border/50 rounded-2xl shadow-sm overflow-hidden flex flex-col min-h-[420px]">
+              <NotificationsPanel />
+            </div>
           </div>
-        </div>
+        </section>
       </div>
     </AdminLayout>
   );
 }
 
-/* ── KPI Card ── */
-function KPICard({ icon, label, value, sub, color, pulse }: {
+/* ── KPI Card (clicável) ── */
+function KPICard({ icon, label, value, sub, color, pulse, onClick }: {
   icon: React.ReactNode; label: string; value: string | number; sub?: string;
   color: "primary" | "success" | "info" | "accent"; pulse?: boolean;
+  onClick?: () => void;
 }) {
   const iconBg: Record<string, string> = {
     primary: "bg-primary/10 text-primary",
@@ -346,18 +378,42 @@ function KPICard({ icon, label, value, sub, color, pulse }: {
     info: "bg-info/10 text-info",
     accent: "bg-accent text-accent-foreground",
   };
+  const Wrapper = onClick ? "button" : "div";
   return (
-    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-sm hover:shadow-md transition-all group">
+    <Wrapper
+      onClick={onClick}
+      className={cn(
+        "bg-card border border-border/50 rounded-xl p-4 shadow-sm transition-all group text-left w-full",
+        onClick && "cursor-pointer hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 active:scale-[0.98]",
+      )}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className={cn(
           "w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105",
           iconBg[color],
           pulse && "animate-pulse",
         )}>{icon}</div>
-        <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+          {onClick && <ChevronRight className="h-3 w-3 text-muted-foreground/50 group-hover:text-primary transition-colors" />}
+        </div>
       </div>
       <p className="text-2xl font-bold text-foreground tracking-tight tabular-nums leading-none">{value}</p>
       {sub && <p className="text-[11px] text-muted-foreground mt-1.5">{sub}</p>}
+    </Wrapper>
+  );
+}
+
+/* ── KPI Skeleton ── */
+function KPISkeleton() {
+  return (
+    <div className="bg-card border border-border/50 rounded-xl p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3">
+        <Skeleton className="w-10 h-10 rounded-xl" />
+        <Skeleton className="w-16 h-3 rounded" />
+      </div>
+      <Skeleton className="w-20 h-7 rounded mb-1.5" />
+      <Skeleton className="w-24 h-3 rounded" />
     </div>
   );
 }

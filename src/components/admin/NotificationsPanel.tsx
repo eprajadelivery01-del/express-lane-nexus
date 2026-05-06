@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 8;
 
@@ -59,7 +60,18 @@ export function NotificationsPanel() {
       {/* List */}
       <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-border/20 min-h-0">
         {isLoading ? (
-          <div className="py-12 text-center text-xs text-muted-foreground">Carregando...</div>
+          <div className="p-4 space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3">
+                <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="w-3/4 h-3 rounded" />
+                  <Skeleton className="w-1/2 h-2.5 rounded" />
+                </div>
+                <Skeleton className="w-10 h-3 rounded" />
+              </div>
+            ))}
+          </div>
         ) : deliveries.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full min-h-[120px] text-center py-8">
             <Bell className="h-6 w-6 text-muted-foreground/30 mb-2" />
