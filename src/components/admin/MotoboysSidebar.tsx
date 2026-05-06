@@ -75,7 +75,19 @@ export function MotoboysSidebar() {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto scrollbar-thin min-h-0 px-2 pb-2">
-        {list.length === 0 ? (
+        {isLoading ? (
+          <div className="p-2 space-y-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-2.5 px-2.5 py-2">
+                <Skeleton className="w-9 h-9 rounded-xl shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="w-28 h-3 rounded" />
+                  <Skeleton className="w-16 h-2.5 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : list.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full min-h-[120px] text-center py-8">
             <Bike className="h-6 w-6 text-muted-foreground/30 mb-2" />
             <p className="text-xs font-medium text-muted-foreground">
