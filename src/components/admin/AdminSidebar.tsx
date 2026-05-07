@@ -63,7 +63,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
         collapsed ? "w-[68px]" : "w-64"
       )}>
         {/* Brand */}
-        <div className={cn("flex items-center px-5 py-5 border-b border-sidebar-border transition-all relative", collapsed ? "justify-center px-0" : "justify-between")}>
+        <div className={cn("flex-none flex items-center px-5 py-5 border-b border-sidebar-border transition-all relative", collapsed ? "justify-center px-0" : "justify-between")}>
           <div className="flex items-center gap-3 overflow-hidden">
             <img src="/logo.png" alt="É Pra Já" className="h-10 w-auto rounded-lg" />
             {!collapsed && (
@@ -90,7 +90,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href ||
               (item.href !== "/admin" && location.pathname.startsWith(item.href));
@@ -116,7 +116,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
         </nav>
 
         {/* User */}
-        <div className="border-t border-border p-4">
+        <div className="flex-none border-t border-border p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
