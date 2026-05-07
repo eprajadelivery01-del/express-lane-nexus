@@ -2,11 +2,10 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Truck, Map, Building2, Bike, ShoppingBag,
-  MapPin, DollarSign, AlertTriangle, Settings, Menu, X, LogOut, User, MessageSquare, ChevronRight
+  MapPin, DollarSign, AlertTriangle, Settings, Menu, X, LogOut, User, MessageSquare, ChevronRight, ExternalLink
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-
 
 const navItems = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
@@ -16,6 +15,8 @@ const navItems = [
   { label: "Entregadores", icon: Bike, href: "/admin/drivers" },
   { label: "Regiões / Mapa", icon: MapPin, href: "/admin/regions" },
   { label: "Financeiro", icon: DollarSign, href: "/admin/reports" },
+  { label: "Meu Perfil", icon: User, href: "/admin/profile" },
+  { label: "Suporte", icon: MessageSquare, href: "https://wa.me/5565996112999", external: true },
 ];
 
 interface AdminSidebarProps {
@@ -90,11 +91,28 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href ||
               (item.href !== "/admin" && location.pathname.startsWith(item.href));
-            return (
+            
+            return item.external ? (
+              <a
+                key={item.label}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-muted-foreground hover:bg-muted hover:text-foreground",
+                  collapsed && "justify-center px-0"
+                )}
+                title={collapsed ? item.label : ""}
+              >
+                <item.icon className="h-4 w-4 shrink-0" />
+                {!collapsed && <span className="animate-in fade-in slide-in-from-left-2 duration-300 flex-1">{item.label}</span>}
+                {!collapsed && <ExternalLink className="h-3 w-3 opacity-30" />}
+              </a>
+            ) : (
               <Link
                 key={item.href}
                 to={item.href}

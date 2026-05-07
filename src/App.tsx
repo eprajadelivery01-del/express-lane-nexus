@@ -39,6 +39,8 @@ const App = () => (
               <Routes>
                  <Route path="/" element={<Navigate to="/admin" replace />} />
                  <Route path="/login" element={<LoginPage />} />
+                 <Route path="/terms" element={<TermsPage />} />
+                 <Route path="/privacy" element={<PrivacyPage />} />
                  
                  <Route path="/admin" element={<PageTransition><ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute></PageTransition>} />
                  <Route path="/admin/deliveries" element={<PageTransition><ProtectedRoute requiredRole="admin"><DeliveriesPage /></ProtectedRoute></PageTransition>} />

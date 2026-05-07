@@ -3,7 +3,8 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile, uploadAvatar } from "@/services/users";
 import { useToast } from "@/hooks/use-toast";
-import { Camera, Save, Loader2, User, Phone, AlertTriangle } from "lucide-react";
+import { Camera, Save, Loader2, User, Phone, AlertTriangle, FileText, ShieldCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,6 +20,7 @@ import {
 export default function ProfilePage() {
   const { user, profile, deleteAccount, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [fullName, setFullName] = useState(profile?.full_name || "");
@@ -112,6 +114,28 @@ export default function ProfilePage() {
             {saving ? "Salvando..." : "Salvar alterações"}
           </button>
         </form>
+
+        {/* Legal Links */}
+        <div className="grid grid-cols-2 gap-3 mt-8">
+          <button 
+            onClick={() => navigate("/terms")}
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:bg-muted transition-colors group"
+          >
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <FileText className="h-5 w-5 text-primary" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Termos de Uso</span>
+          </button>
+          <button 
+            onClick={() => navigate("/privacy")}
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-card border border-border hover:bg-muted transition-colors group"
+          >
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Privacidade</span>
+          </button>
+        </div>
 
         {/* Danger Zone */}
         <div className="pt-8 border-t border-border mt-8">
