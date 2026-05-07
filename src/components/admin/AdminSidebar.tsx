@@ -129,7 +129,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span className="animate-in fade-in slide-in-from-left-2 duration-300">{item.label}</span>}
               </Link>
-            );
+            )
           })}
         </nav>
 
