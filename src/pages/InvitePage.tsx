@@ -1,25 +1,302 @@
-import { useNavigate } from "react-router-dom";
-import { Truck } from "lucide-react";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, CheckCircle2, AlertCircle, User, Mail, Lock, Phone, Truck, Store } from "lucide-react";
+import { toast } from "sonner";
 
 export default function InvitePage() {
+  const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
+  
+  const [loading, setLoading] = useState(true);
+  const [validating, setValidating] = useState(true);
+  const [invitation, setInvitation] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    password: "",
+    phone: "",
+    companyName: "" // Only for lojistas
+  });
 
   useEffect(() => {
-    // Invitations system not yet implemented
-    const timer = setTimeout(() => navigate("/login"), 3000);
-    return () => clearTimeout(timer);
-  }, [navigate]);
+    const validateToken = async () => {
+      if (!token) {
+        setError("Token não fornecido");
+        setValidating(false);
+        return;
+      }
+
+      try {
+        const { data, error: fetchError } = await supabase
+          .from("invitations")
+          .select("*")
+          .eq("token", token)
+          .is("used_at", null)
+          .maybeSingle();
+
+        if (fetchError) throw fetchError;
+        
+        if (!data) {
+          setError("Este link de convite é inválido ou já foi utilizado.");
+        } else {
+          const expiresAt = new Date(data.expires_at);
+          if (expiresAt < new Date()) {
+            setError("Este link de convite expirou.");
+          } else {
+            setInvitation(data);
+          }
+        }
+      } catch (err: any) {
+        setError("Erro ao validar convite: " + err.message);
+      } finally {
+        setValidating(false);
+      }
+    };
+
+    validateToken();
+  }, [token]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // 1. Sign up user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            phone: formData.phone,
+          }
+        }
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Falha ao criar usuário");
+
+      const userId = authData.user.id;
+
+      // 2. Create Profile
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: userId,
+        user_id: userId, // Some apps use id, some use user_id
+        full_name: formData.fullName,
+        phone: formData.phone,
+        role: invitation.role,
+        updated_at: new Date().toISOString(),
+      } as any);
+
+      if (profileError) throw profileError;
+
+      // 3. Assign Role
+      const { error: roleError } = await supabase.from("user_roles").insert({
+        user_id: userId,
+        role: invitation.role,
+      });
+
+      if (roleError) throw roleError;
+
+      // 4. Handle specific roles
+      if (invitation.role === "company") {
+        const { error: companyError } = await supabase.from("companies").insert({
+          user_id: userId,
+          name: formData.companyName || formData.fullName,
+          phone: formData.phone,
+        });
+        if (companyError) throw companyError;
+      } else if (invitation.role === "driver") {
+        const { error: driverError } = await supabase.from("delivery_drivers").insert({
+          id: userId,
+          user_id: userId,
+          online: false,
+          is_online: false,
+          rating: 5,
+        } as any);
+        if (driverError) throw driverError;
+      }
+
+      // 5. Mark invitation as used
+      await supabase
+        .from("invitations")
+        .update({ used_at: new Date().toISOString(), used_by: userId })
+        .eq("id", invitation.id);
+
+      toast.success("Cadastro realizado com sucesso!");
+      
+      // 6. Redirect to appropriate app
+      const redirectUrl = invitation.role === "company" 
+        ? "https://hub.epraja.com.br" 
+        : "https://motoboy.epraja.com.br";
+      
+      setTimeout(() => {
+        window.location.href = redirectUrl;
+      }, 2000);
+
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao realizar cadastro");
+      setLoading(false);
+    }
+  };
+
+  if (validating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-sm font-medium text-muted-foreground tracking-widest uppercase">Validando Convite...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-md border-destructive/20 shadow-2xl">
+          <CardHeader className="text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <CardTitle className="text-2xl font-black">Link Inválido</CardTitle>
+            <CardDescription className="text-base mt-2">{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button className="w-full h-12 rounded-xl" onClick={() => navigate("/login")}>
+              Ir para o Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const isCompany = invitation.role === "company";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="text-center max-w-sm">
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted">
-          <Truck className="h-7 w-7 text-muted-foreground" />
-        </div>
-        <h1 className="text-xl font-bold text-foreground mb-2">Sistema de convites</h1>
-        <p className="text-sm text-muted-foreground">O sistema de convites ainda não foi implementado. Redirecionando para o login...</p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 py-12">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
+      
+      <Card className="w-full max-w-xl border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.1)] relative overflow-hidden">
+        <div className="absolute top-0 inset-x-0 h-2 bg-gradient-to-r from-primary via-primary/50 to-primary" />
+        
+        <CardHeader className="text-center pb-8 pt-10">
+          <div className="mx-auto w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-6 shadow-inner">
+            {isCompany ? (
+              <Store className="h-10 w-10 text-primary" />
+            ) : (
+              <Truck className="h-10 w-10 text-primary" />
+            )}
+          </div>
+          <CardTitle className="text-3xl font-black tracking-tight mb-2">Seja bem-vindo!</CardTitle>
+          <CardDescription className="text-base">
+            Você foi convidado para se tornar um {isCompany ? "Lojista Parceiro" : "Entregador Parceiro"}.
+            Complete seu cadastro abaixo.
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Nome Completo</Label>
+                <div className="relative">
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    className="pl-10 h-12 rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-all" 
+                    placeholder="João Silva"
+                    value={formData.fullName}
+                    onChange={e => setFormData({...formData, fullName: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Telefone</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    className="pl-10 h-12 rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-all" 
+                    placeholder="(00) 00000-0000"
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {isCompany && (
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Nome da Empresa / Loja</Label>
+                <div className="relative">
+                  <Store className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    className="pl-10 h-12 rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-all" 
+                    placeholder="Nome Fantasia"
+                    value={formData.companyName}
+                    onChange={e => setFormData({...formData, companyName: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Email de Acesso</Label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  type="email"
+                  className="pl-10 h-12 rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-all" 
+                  placeholder="exemplo@email.com"
+                  value={formData.email}
+                  onChange={e => setFormData({...formData, email: e.target.value})}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Criar Senha</Label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  type="password"
+                  className="pl-10 h-12 rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-all" 
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={e => setFormData({...formData, password: e.target.value})}
+                  required
+                  minLength={6}
+                />
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <Button type="submit" className="w-full h-14 rounded-2xl text-base font-black shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all" disabled={loading}>
+                {loading ? (
+                  <><Loader2 className="h-5 w-5 animate-spin mr-2" /> Realizando Cadastro...</>
+                ) : (
+                  <><CheckCircle2 className="h-5 w-5 mr-2" /> Finalizar Cadastro e Entrar</>
+                )}
+              </Button>
+              <p className="text-center text-[10px] text-muted-foreground uppercase tracking-widest mt-6 opacity-50">
+                Ao se cadastrar, você concorda com nossos Termos de Uso.
+              </p>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
