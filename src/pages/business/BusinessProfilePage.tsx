@@ -19,6 +19,7 @@ export default function BusinessProfilePage() {
   const [address, setAddress] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
   const [coverUrl, setCoverUrl] = useState("");
+  const [gallery, setGallery] = useState<string[]>([]);
 
   useEffect(() => {
     fetchCompanyData();
@@ -51,6 +52,7 @@ export default function BusinessProfilePage() {
         } catch {
           // logo_url is a plain string
         }
+        setGallery(company.gallery || []);
       }
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
@@ -75,6 +77,7 @@ export default function BusinessProfilePage() {
           phone,
           address,
           logo_url: logoPayload,
+          gallery: gallery,
         })
         .eq("id", companyId);
 
@@ -84,6 +87,59 @@ export default function BusinessProfilePage() {
       toast.error(err.message || "Erro ao salvar");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
+    const file = event.target.files?.[0];
+    if (!file || !companyId) return;
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${type}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${companyId}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('store-assets')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('store-assets')
+        .getPublicUrl(filePath);
+
+      if (type === 'logo') setLogoUrl(data.publicUrl);
+      else setCoverUrl(data.publicUrl);
+
+      toast.success("Imagem carregada!");
+    } catch (error: any) {
+      toast.error("Erro no upload");
+    }
+  };
+
+  const handleGalleryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !companyId) return;
+
+    try {
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `gallery-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${companyId}/gallery/${fileName}`;
+
+        const { error } = await supabase.storage.from('store-assets').upload(filePath, file);
+        if (!error) {
+          const { data } = supabase.storage.from('store-assets').getPublicUrl(filePath);
+          newUrls.push(data.publicUrl);
+        }
+      }
+      setGallery(prev => [...prev, ...newUrls]);
+      toast.success("Galeria atualizada!");
+    } catch (error) {
+      toast.error("Erro na galeria");
     }
   };
 
@@ -206,12 +262,18 @@ export default function BusinessProfilePage() {
                     </div>
                   )}
                 </div>
-                <input
-                  value={logoUrl}
-                  onChange={(e) => setLogoUrl(e.target.value)}
-                  placeholder="Cole a URL do logo/foto de perfil aqui..."
-                  className="flex-1 px-4 py-3.5 rounded-2xl border border-border bg-background/50 font-medium outline-none focus:border-primary transition-all text-sm"
-                />
+                <div className="flex-1 space-y-2">
+                  <input
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    placeholder="URL da foto de perfil..."
+                    className="w-full px-4 py-3.5 rounded-2xl border border-border bg-background/50 font-medium outline-none focus:border-primary transition-all text-sm"
+                  />
+                  <label className="inline-block cursor-pointer px-4 py-2 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all">
+                    Escolher Arquivo
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
+                  </label>
+                </div>
               </div>
             </div>
 
@@ -230,14 +292,54 @@ export default function BusinessProfilePage() {
                     </div>
                   )}
                 </div>
-                <input
-                  value={coverUrl}
-                  onChange={(e) => setCoverUrl(e.target.value)}
-                  placeholder="Cole a URL do banner/capa aqui..."
-                  className="flex-1 px-4 py-3.5 rounded-2xl border border-border bg-background/50 font-medium outline-none focus:border-primary transition-all text-sm"
-                />
+                <div className="flex-1 space-y-2">
+                  <input
+                    value={coverUrl}
+                    onChange={(e) => setCoverUrl(e.target.value)}
+                    placeholder="URL da imagem de capa..."
+                    className="w-full px-4 py-3.5 rounded-2xl border border-border bg-background/50 font-medium outline-none focus:border-primary transition-all text-sm"
+                  />
+                  <label className="inline-block cursor-pointer px-4 py-2 rounded-xl bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all">
+                    Escolher Banner
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'cover')} />
+                  </label>
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">Recomendação: 1200×400 pixels. Essa imagem será exibida no topo da sua página no marketplace.</p>
+            </div>
+
+            {/* Gallery Section */}
+            <div className="border-t border-border pt-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-black text-foreground flex items-center gap-2">
+                  <ImagePlus className="h-5 w-5 text-primary" />
+                  Galeria do Marketplace
+                </h3>
+                <label className="cursor-pointer px-4 py-2 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20">
+                  Adicionar Fotos
+                  <input type="file" multiple accept="image/*" className="hidden" onChange={handleGalleryUpload} />
+                </label>
+              </div>
+              
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+                {gallery.map((url, idx) => (
+                  <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden group/item border border-border shadow-sm">
+                    <img src={url} className="w-full h-full object-cover" />
+                    <button 
+                      type="button"
+                      onClick={() => setGallery(prev => prev.filter(u => u !== url))}
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover/item:opacity-100 transition-opacity shadow-lg"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {gallery.length === 0 && (
+                  <div className="col-span-full py-12 border-2 border-dashed border-border rounded-[2.5rem] flex flex-col items-center justify-center text-muted-foreground/30">
+                    <ImagePlus className="h-10 w-10 mb-2" />
+                    <p className="text-xs font-black uppercase tracking-widest">Sua galeria está vazia</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

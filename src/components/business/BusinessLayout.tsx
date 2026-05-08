@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 const tabs = [
   { label: "Painel de Entregas", icon: Truck, href: "/business", category: "Operacional" },
   { label: "Novos Pedidos", icon: Bell, href: "/business/orders", category: "Operacional" },
+  { label: "Editar Perfil", icon: User, href: "/business/profile", category: "Marketplace" },
   { label: "Cardápio/Produtos", icon: Package, href: "/business/products", category: "Marketplace" },
   { label: "Meus Clientes", icon: Users, href: "/business/customers", category: "Marketplace" },
   { label: "Financeiro", icon: DollarSign, href: "/business/finance", category: "Gestão" },
@@ -118,8 +119,14 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
           <div className="flex items-center gap-4">
             <div className="relative group shrink-0">
               <div className="absolute -inset-1 bg-gradient-to-tr from-primary to-primary-foreground/20 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-              <div className="relative w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-2 border border-border shadow-md overflow-hidden">
-                <img src={getLogo()} alt="Logo" className="w-full h-full object-contain" />
+              <div className="relative w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-0.5 border border-border shadow-md overflow-hidden shrink-0">
+                {company?.logo_url ? (
+                  <img src={getLogo()} alt="Logo" className="w-full h-full object-cover rounded-xl" />
+                ) : (
+                  <div className="w-full h-full gradient-primary flex items-center justify-center rounded-xl">
+                    <Store className="h-6 w-6 text-white" />
+                  </div>
+                )}
               </div>
             </div>
             {!collapsed && (

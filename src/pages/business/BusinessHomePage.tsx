@@ -9,6 +9,7 @@ import { CustomerSelector } from "@/components/business/CustomerSelector";
 import { useCity } from "@/contexts/CityContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDeliveries } from "@/services/deliveries";
+import { useCompany } from "@/services/companies";
 import { format } from "date-fns";
 import { DeliveryStatusBadge } from "@/components/admin/DeliveryStatusBadge";
 import type { DeliveryStatus } from "@/types/models";
@@ -22,14 +23,7 @@ export default function BusinessHomePage() {
   const [editingDelivery, setEditingDelivery] = useState<any>(null);
   const qc = useQueryClient();
   
-  const { data: companyData } = useQuery({
-    queryKey: ["company-info", user?.id],
-    queryFn: async () => {
-      const { data } = await supabase.from("companies").select("id").eq("user_id", user!.id).maybeSingle();
-      return data;
-    },
-    enabled: !!user?.id
-  });
+  const { data: companyData } = useCompany(user?.id);
 
   const companyId = companyData?.id;
 
@@ -99,7 +93,7 @@ export default function BusinessHomePage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h2 className="text-3xl font-black text-foreground tracking-tight">
-                Olá, {profile?.full_name?.split(" ")[0] || "Lojista"} 👋
+                Olá, {companyData?.name || profile?.full_name?.split(" ")[0] || "Lojista"} 👋
               </h2>
               <p className="text-muted-foreground font-medium">Gerencie suas solicitações de entrega em tempo real.</p>
             </div>
