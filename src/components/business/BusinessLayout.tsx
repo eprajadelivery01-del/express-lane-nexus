@@ -121,7 +121,7 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
               <div className="absolute -inset-1 bg-gradient-to-tr from-primary to-primary-foreground/20 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
               <div className="relative w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-0.5 border border-border shadow-md overflow-hidden shrink-0">
                 {company?.logo_url ? (
-                  <img src={getLogo()} alt="Logo" className="w-full h-full object-cover rounded-xl" />
+                  <img src={typeof company.logo_url === 'string' && company.logo_url.startsWith('{') ? JSON.parse(company.logo_url).logo : company.logo_url} alt="Logo" className="w-full h-full object-cover rounded-xl" />
                 ) : (
                   <div className="w-full h-full gradient-primary flex items-center justify-center rounded-xl">
                     <Store className="h-6 w-6 text-white" />
