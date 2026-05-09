@@ -1112,6 +1112,7 @@ export type Database = {
         Row: {
           id: string
           notes: string | null
+          options: Json | null
           order_id: string
           price: number | null
           product_id: string
@@ -1123,6 +1124,7 @@ export type Database = {
         Insert: {
           id?: string
           notes?: string | null
+          options?: Json | null
           order_id: string
           price?: number | null
           product_id: string
@@ -1134,6 +1136,7 @@ export type Database = {
         Update: {
           id?: string
           notes?: string | null
+          options?: Json | null
           order_id?: string
           price?: number | null
           product_id?: string
