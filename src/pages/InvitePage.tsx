@@ -127,7 +127,7 @@ export default function InvitePage() {
       // 5. Mark invitation as used
       await supabase
         .from("invitations")
-        .update({ used_at: new Date().toISOString(), used_by: userId })
+        .update({ accepted_at: new Date().toISOString(), status: "accepted" } as any)
         .eq("id", invitation.id);
 
       toast.success("Cadastro realizado com sucesso!");

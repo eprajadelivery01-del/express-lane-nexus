@@ -138,11 +138,11 @@ export default function DashboardPage() {
 
   const metrics = useMemo(() => {
     const total = periodDeliveries.length;
-    const delivered = periodDeliveries.filter(d => d.status === "delivered" || d.status === "completed").length;
+    const delivered = periodDeliveries.filter(d => d.status === "delivered").length;
     const pending = periodDeliveries.filter(d => d.status === "pending" || d.status === "broadcasted").length;
     const cancelled = periodDeliveries.filter(d => d.status === "cancelled").length;
     const revenue = periodDeliveries
-      .filter(d => d.status === "delivered" || d.status === "completed")
+      .filter(d => d.status === "delivered")
       .reduce((sum, d) => sum + Number(d.value ?? 0), 0);
     const conversionRate = total > 0 ? (delivered / total) * 100 : 0;
 

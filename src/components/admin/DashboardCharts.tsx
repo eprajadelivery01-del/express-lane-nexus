@@ -47,7 +47,7 @@ export function DashboardCharts({ deliveries, period, isLoading }: Props) {
       map.set(key, { date: label, revenue: 0, count: 0 });
     }
     deliveries.forEach((d) => {
-      if (d.status !== "delivered" && d.status !== "completed") return;
+      if (d.status !== "delivered") return;
       const key = (d.delivered_at || d.created_at)?.split("T")[0];
       if (key && map.has(key)) {
         const e = map.get(key)!;
