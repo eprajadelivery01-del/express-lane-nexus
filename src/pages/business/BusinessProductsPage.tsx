@@ -21,6 +21,8 @@ interface Product {
   created_at: string;
 }
 
+import { ProductOptionsManager } from "@/components/business/ProductOptionsManager";
+
 export default function BusinessProductsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -29,6 +31,7 @@ export default function BusinessProductsPage() {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [managingOptions, setManagingOptions] = useState<Product | null>(null);
 
   useEffect(() => {
     fetchCompanyAndProducts();
@@ -83,6 +86,23 @@ export default function BusinessProductsPage() {
       fetchCompanyAndProducts();
     }
   };
+
+  if (managingOptions) {
+    return (
+      <BusinessLayout title="Complementos">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <button onClick={() => setManagingOptions(null)} className="group flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Voltar ao Catálogo
+          </button>
+          <ProductOptionsManager 
+            productId={managingOptions.id} 
+            productName={managingOptions.name}
+            onClose={() => setManagingOptions(null)}
+          />
+        </div>
+      </BusinessLayout>
+    );
+  }
 
   if (showForm || editingProduct) {
     return (
@@ -145,6 +165,7 @@ export default function BusinessProductsPage() {
                 key={product.id}
                 product={product}
                 onEdit={() => setEditingProduct(product)}
+                onManageOptions={() => setManagingOptions(product)}
                 onDelete={() => deleteProduct(product.id)}
                 onToggle={() => toggleActive(product)}
               />
@@ -157,9 +178,10 @@ export default function BusinessProductsPage() {
 }
 
 // ─── Product Card ────────────────────────────────────────────
-function ProductCard({ product, onEdit, onDelete, onToggle }: {
+function ProductCard({ product, onEdit, onManageOptions, onDelete, onToggle }: {
   product: Product;
   onEdit: () => void;
+  onManageOptions: () => void;
   onDelete: () => void;
   onToggle: () => void;
 }) {
@@ -206,25 +228,31 @@ function ProductCard({ product, onEdit, onDelete, onToggle }: {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-2 pt-2 border-t border-border">
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
           <button
             onClick={onEdit}
-            className="flex-1 py-2.5 text-sm font-bold rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center justify-center gap-1.5"
+            className="py-2.5 text-sm font-bold rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center justify-center gap-1.5"
           >
             <Edit3 className="h-4 w-4" /> Editar
           </button>
           <button
-            onClick={onToggle}
-            className="p-2.5 rounded-xl border border-border hover:bg-muted transition-colors"
-            title={product.is_active ? "Desativar" : "Ativar"}
+            onClick={onManageOptions}
+            className="py-2.5 text-sm font-bold rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center justify-center gap-1.5"
           >
-            {product.is_active ? <EyeOff className="h-4 w-4 text-muted-foreground" /> : <Eye className="h-4 w-4 text-success" />}
+            <ListPlus className="h-4 w-4" /> Opções
+          </button>
+          <button
+            onClick={onToggle}
+            className="flex-1 py-2.5 rounded-xl border border-border hover:bg-muted transition-colors flex items-center justify-center gap-2 text-xs font-bold text-muted-foreground"
+          >
+            {product.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-success" />}
+            {product.is_active ? "Ocultar" : "Mostrar"}
           </button>
           <button
             onClick={onDelete}
-            className="p-2.5 rounded-xl border border-border hover:bg-destructive/10 hover:border-destructive/30 transition-colors"
+            className="flex-1 py-2.5 rounded-xl border border-border hover:bg-destructive/10 hover:border-destructive/30 transition-colors flex items-center justify-center gap-2 text-xs font-bold text-destructive"
           >
-            <Trash2 className="h-4 w-4 text-destructive" />
+            <Trash2 className="h-4 w-4" /> Excluir
           </button>
         </div>
       </div>
