@@ -258,6 +258,7 @@ export type Database = {
           description: string | null
           document: string | null
           email: string | null
+          gallery: Json | null
           id: string
           is_active: boolean | null
           is_open: boolean | null
@@ -288,6 +289,7 @@ export type Database = {
           description?: string | null
           document?: string | null
           email?: string | null
+          gallery?: Json | null
           id?: string
           is_active?: boolean | null
           is_open?: boolean | null
@@ -318,6 +320,7 @@ export type Database = {
           description?: string | null
           document?: string | null
           email?: string | null
+          gallery?: Json | null
           id?: string
           is_active?: boolean | null
           is_open?: boolean | null
@@ -1318,6 +1321,85 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      product_option_groups: {
+        Row: {
+          created_at: string
+          id: string
+          max_options: number
+          min_options: number
+          name: string
+          product_id: string
+          required: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_options?: number
+          min_options?: number
+          name: string
+          product_id: string
+          required?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_options?: number
+          min_options?: number
+          name?: string
+          product_id?: string
+          required?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_option_groups_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_options: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_options_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "product_option_groups"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
