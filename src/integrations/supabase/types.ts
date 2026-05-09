@@ -1766,6 +1766,17 @@ export type Database = {
         Returns: number
       }
       get_driver_id: { Args: { _user_id: string }; Returns: string }
+      get_invitation_by_token: {
+        Args: { _token: string }
+        Returns: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          role: string
+          status: string
+        }[]
+      }
       has_profile_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
