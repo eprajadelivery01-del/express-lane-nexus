@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { OrderCard } from "@/components/business/OrderCard";
 import { useCompanyOrders, useUpdateOrderStatus } from "@/services/orders";
+import { cn } from "@/lib/utils";
 
 export default function BusinessOrdersPage() {
   const { user } = useAuth();

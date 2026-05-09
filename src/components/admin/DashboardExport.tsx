@@ -22,7 +22,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function computeKpis(deliveries: DeliveryWithRelations[]) {
   const total = deliveries.length;
-  const delivered = deliveries.filter(d => d.status === "delivered" || d.status === "completed");
+  const delivered = deliveries.filter(d => d.status === "delivered");
   const cancelled = deliveries.filter(d => d.status === "cancelled").length;
   const pending = deliveries.filter(d => d.status === "pending" || d.status === "broadcasted").length;
   const inTransit = deliveries.filter(d => d.status === "in_transit" || d.status === "collecting" || d.status === "accepted").length;

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus, Trash2, Edit3, Loader2, ImagePlus, Package,
-  DollarSign, X, Check, Eye, EyeOff, ArrowLeft
+  DollarSign, X, Check, Eye, EyeOff, ArrowLeft, ListPlus
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 

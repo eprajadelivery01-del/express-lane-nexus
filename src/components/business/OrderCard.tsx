@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { 
   Clock, Package, MapPin, ChevronRight, MessageSquare, 
-  CheckCircle2, AlertCircle, ShoppingBag, Note
+  CheckCircle2, AlertCircle, ShoppingBag, StickyNote
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
