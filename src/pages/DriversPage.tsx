@@ -16,10 +16,10 @@ export default function DriversPage() {
   const qc = useQueryClient();
   const [editingDriver, setEditingDriver] = useState<any>(null);
 
-  const toggleOnline = async (id: string, online: boolean) => {
-    await supabase.from("delivery_drivers").update({ online: !online } as any).eq("id", id);
+  const toggleOnline = async (id: string, isOnline: boolean) => {
+    await supabase.from("delivery_drivers").update({ is_online: !isOnline } as any).eq("id", id);
     qc.invalidateQueries({ queryKey: ["drivers"] });
-    toast.success(online ? "Entregador ficou offline" : "Entregador ficou online");
+    toast.success(isOnline ? "Entregador ficou offline" : "Entregador ficou online");
   };
 
   const toggleStatus = async (id: string, status: string) => {
@@ -89,9 +89,9 @@ export default function DriversPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${d.online ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
-                        <span className={`w-2 h-2 rounded-full ${d.online ? "bg-success animate-pulse" : "bg-muted-foreground"}`} />
-                        {d.online ? "Online" : "Offline"}
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${d.is_online ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
+                        <span className={`w-2 h-2 rounded-full ${d.is_online ? "bg-success animate-pulse" : "bg-muted-foreground"}`} />
+                        {d.is_online ? "Online" : "Offline"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -103,8 +103,8 @@ export default function DriversPage() {
                           <DropdownMenuItem onClick={() => setEditingDriver(d)}>
                             <Edit2 className="h-4 w-4 mr-2" />Editar Informações
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => toggleOnline(d.id, !!d.online)}>
-                            <Power className="h-4 w-4 mr-2" />{d.online ? "Colocar Offline" : "Colocar Online"}
+                          <DropdownMenuItem onClick={() => toggleOnline(d.id, !!d.is_online)}>
+                            <Power className="h-4 w-4 mr-2" />{d.is_online ? "Colocar Offline" : "Colocar Online"}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => toggleStatus(d.id, d.status || "active")}>
                             {d.status === "active" ? <><UserX className="h-4 w-4 mr-2" />Suspender</> : <><UserCheck className="h-4 w-4 mr-2" />Ativar</>}
