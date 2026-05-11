@@ -152,7 +152,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
               min-width: 60px;
               pointer-events: none;
             ">
-              <p style="margin:0; font-size: 10px; font-weight: 800; color: #444; border-bottom: 1px solid #eee; padding-bottom: 2px; margin-bottom: 2px;">${region.name}</p>
+              <p style="margin:0; font-size: 10px; font-weight: 800; color: #444; border-bottom: 1px solid #eee; padding-bottom: 2px; margin-bottom: 2px;">${escapeHtml(region.name)}</p>
               <p style="margin:0; font-size: 11px; font-weight: 900; color: ${region.color};">R$ ${Number(region.price).toFixed(2)}</p>
             </div>
           `;
