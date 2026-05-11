@@ -49,6 +49,7 @@ export function NotificationsPopover() {
       case "pending": return "text-warning";
       case "in_transit": return "text-primary";
       case "delivered": return "text-success";
+      case "completed": return "text-success";
       case "cancelled": return "text-destructive";
       default: return "text-primary";
     }
@@ -61,6 +62,7 @@ export function NotificationsPopover() {
       case "collecting": return "Coletando";
       case "in_transit": return "Em Rota";
       case "delivered": return "Finalizado";
+      case "completed": return "Finalizado";
       case "cancelled": return "Cancelado";
       default: return status.toUpperCase();
     }
@@ -86,7 +88,7 @@ export function NotificationsPopover() {
           <div className="flex items-center justify-between p-4 border-b border-border">
             <h4 className="font-bold text-sm">Central de Alertas</h4>
             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              Real-Time Activity
+              Atividade ao Vivo
             </span>
           </div>
           
