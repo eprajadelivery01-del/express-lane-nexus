@@ -165,7 +165,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
             .setLngLat(e.lngLat)
             .setHTML(`
               <div style="padding: 12px; min-width: 160px; font-family: sans-serif;">
-                <h4 style="margin: 0 0 8px 0; font-size: 13px;">Preço: ${region.name}</h4>
+                <h4 style="margin: 0 0 8px 0; font-size: 13px;">Preço: ${escapeHtml(region.name)}</h4>
                 <input id="edit-price-${region.id}" type="number" step="0.50" value="${region.price}" 
                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin-bottom: 10px; box-sizing: border-box;"
                 />
