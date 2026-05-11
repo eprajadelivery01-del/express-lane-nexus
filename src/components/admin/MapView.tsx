@@ -316,7 +316,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
           </div>
           
           <div style="display: grid; grid-template-cols: 1fr; gap: 8px;">
-            <a href="https://wa.me/${driver.profiles?.phone?.replace(/\D/g, "")}" target="_blank" style="
+            <a href="https://wa.me/${encodeURIComponent(driver.profiles?.phone?.replace(/\D/g, "") || "")}" target="_blank" style="
               text-decoration: none;
               background: #25D366;
               color: white;
