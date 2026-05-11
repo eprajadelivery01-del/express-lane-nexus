@@ -8,7 +8,7 @@ const statusConfig: Record<DeliveryStatus, { label: string; className: string }>
   collecting: { label: "Em Coleta", className: "bg-accent/10 text-accent" },
   in_transit: { label: "Em Rota", className: "bg-violet-500/10 text-violet-600" },
   delivered: { label: "Finalizada", className: "bg-success/10 text-success" },
-  completed: { label: "Finalizada", className: "bg-success/10 text-success" },
+  
   cancelled: { label: "Cancelada", className: "bg-destructive/10 text-destructive" },
   returned: { label: "Devolvida", className: "bg-muted text-muted-foreground" },
 };

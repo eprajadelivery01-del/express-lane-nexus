@@ -8,16 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 8;
 
-export function NotificationsPanel() {
-  const [page, setPage] = useState(0);
-  const { data, isLoading } = useDeliveries({ pageSize: PAGE_SIZE, page });
-  const deliveries = data?.data ?? [];
-  const totalCount = data?.count ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const navigate = useNavigate();
-
-const PAGE_SIZE = 8;
-
 const statusConfig: Record<string, { icon: string; label: string; colorClass: string; bgClass: string }> = {
   pending: { icon: "📦", label: "Novo pedido", colorClass: "text-warning", bgClass: "bg-warning/10" },
   broadcasted: { icon: "📡", label: "Enviado p/ motoboys", colorClass: "text-info", bgClass: "bg-info/10" },
