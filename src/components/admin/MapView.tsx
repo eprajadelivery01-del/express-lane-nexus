@@ -7,6 +7,14 @@ import { useDeliveries } from "@/services/deliveries";
 import { useCompanies } from "@/services/companies";
 import { useToast } from "@/hooks/use-toast";
 
+const escapeHtml = (s: unknown): string =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 interface MapViewProps {
   centerCity?: { name: string; lat: number; lng: number } | null;
   darkTheme?: boolean;
