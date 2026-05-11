@@ -8,6 +8,14 @@ import type { RegionRow } from "@/services/regions";
 import { Search, Loader2, X, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const escapeHtml = (s: unknown): string =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 interface UnifiedMapProps {
   regions: RegionRow[];
   centerCity?: { name: string; lat: number; lng: number } | null;
