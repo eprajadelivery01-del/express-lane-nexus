@@ -283,7 +283,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
             white-space: nowrap;
             z-index: 3;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-          ">${driver.profiles?.full_name?.split(" ")[0] || "Entregador"}</div>
+          ">${escapeHtml(driver.profiles?.full_name?.split(" ")[0] || "Entregador")}</div>
         </div>
         
         <style>
