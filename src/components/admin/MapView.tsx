@@ -7,6 +7,14 @@ import { useDeliveries } from "@/services/deliveries";
 import { useCompanies } from "@/services/companies";
 import { useToast } from "@/hooks/use-toast";
 
+const escapeHtml = (s: unknown): string =>
+  String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 interface MapViewProps {
   centerCity?: { name: string; lat: number; lng: number } | null;
   darkTheme?: boolean;
@@ -144,7 +152,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
               min-width: 60px;
               pointer-events: none;
             ">
-              <p style="margin:0; font-size: 10px; font-weight: 800; color: #444; border-bottom: 1px solid #eee; padding-bottom: 2px; margin-bottom: 2px;">${region.name}</p>
+              <p style="margin:0; font-size: 10px; font-weight: 800; color: #444; border-bottom: 1px solid #eee; padding-bottom: 2px; margin-bottom: 2px;">${escapeHtml(region.name)}</p>
               <p style="margin:0; font-size: 11px; font-weight: 900; color: ${region.color};">R$ ${Number(region.price).toFixed(2)}</p>
             </div>
           `;
@@ -157,7 +165,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
             .setLngLat(e.lngLat)
             .setHTML(`
               <div style="padding: 12px; min-width: 160px; font-family: sans-serif;">
-                <h4 style="margin: 0 0 8px 0; font-size: 13px;">Preço: ${region.name}</h4>
+                <h4 style="margin: 0 0 8px 0; font-size: 13px;">Preço: ${escapeHtml(region.name)}</h4>
                 <input id="edit-price-${region.id}" type="number" step="0.50" value="${region.price}" 
                   style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; margin-bottom: 10px; box-sizing: border-box;"
                 />
@@ -275,7 +283,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
             white-space: nowrap;
             z-index: 3;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-          ">${driver.profiles?.full_name?.split(" ")[0] || "Entregador"}</div>
+          ">${escapeHtml(driver.profiles?.full_name?.split(" ")[0] || "Entregador")}</div>
         </div>
         
         <style>
@@ -299,7 +307,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
               <img src="/logo.png" style="width: 28px; height: 28px; object-fit: contain;" />
             </div>
             <div>
-              <div style="font-size: 15px; font-weight: 800; color: #111827;">${driver.profiles?.full_name || "Entregador"}</div>
+              <div style="font-size: 15px; font-weight: 800; color: #111827;">${escapeHtml(driver.profiles?.full_name || "Entregador")}</div>
               <div style="font-size: 12px; color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 4px;">
                 <div style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e;"></div>
                 Em Rota de Entrega
@@ -308,7 +316,7 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
           </div>
           
           <div style="display: grid; grid-template-cols: 1fr; gap: 8px;">
-            <a href="https://wa.me/${driver.profiles?.phone?.replace(/\D/g, "")}" target="_blank" style="
+            <a href="https://wa.me/${encodeURIComponent(driver.profiles?.phone?.replace(/\D/g, "") || "")}" target="_blank" style="
               text-decoration: none;
               background: #25D366;
               color: white;
@@ -362,9 +370,9 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
         .setPopup(
           new maplibregl.Popup({ offset: 20 }).setHTML(`
             <div style="font-family: sans-serif; padding: 4px; min-width: 120px;">
-              <strong style="font-size: 14px;">${company.name}</strong><br/>
+              <strong style="font-size: 14px;">${escapeHtml(company.name)}</strong><br/>
               <div style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px;">
-                <small style="color: #666;">${company.address || "Sem endereço"}</small><br/>
+                <small style="color: #666;">${escapeHtml(company.address || "Sem endereço")}</small><br/>
                 <span style="display: inline-block; margin-top: 4px; color: ${company.is_active ? "#22c55e" : "#ef4444"}; font-weight: 600; font-size: 11px;">
                   ● ${company.is_active ? "Aberta" : "Fechada"}
                 </span>
