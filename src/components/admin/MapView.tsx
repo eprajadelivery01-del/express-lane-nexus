@@ -370,9 +370,9 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
         .setPopup(
           new maplibregl.Popup({ offset: 20 }).setHTML(`
             <div style="font-family: sans-serif; padding: 4px; min-width: 120px;">
-              <strong style="font-size: 14px;">${company.name}</strong><br/>
+              <strong style="font-size: 14px;">${escapeHtml(company.name)}</strong><br/>
               <div style="margin-top: 4px; border-top: 1px solid #eee; padding-top: 4px;">
-                <small style="color: #666;">${company.address || "Sem endereço"}</small><br/>
+                <small style="color: #666;">${escapeHtml(company.address || "Sem endereço")}</small><br/>
                 <span style="display: inline-block; margin-top: 4px; color: ${company.is_active ? "#22c55e" : "#ef4444"}; font-weight: 600; font-size: 11px;">
                   ● ${company.is_active ? "Aberta" : "Fechada"}
                 </span>
