@@ -36,7 +36,7 @@ export default function InvitePage() {
       try {
         const { data, error: fetchError } = await supabase
           .from("invitations")
-          .select("*")
+          .select("id, email, role, token, status, expires_at, accepted_at")
           .eq("token", token)
           .is("accepted_at", null)
           .maybeSingle();
