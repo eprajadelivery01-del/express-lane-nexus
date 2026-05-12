@@ -53,6 +53,7 @@ const App = () => (
                  <Route path="/login" element={<LoginPage />} />
                  <Route path="/terms" element={<TermsPage />} />
                  <Route path="/privacy" element={<PrivacyPage />} />
+                 <Route path="/invite/:id" element={<InvitePage />} />
                  
                  {/* Admin Routes */}
                  <Route path="/admin" element={<PageTransition><ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute></PageTransition>} />
