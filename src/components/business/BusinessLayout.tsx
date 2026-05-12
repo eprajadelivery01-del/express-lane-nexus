@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // Navigation tabs
 const tabs = [
@@ -54,7 +55,7 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
       if (!user) return;
       const { data } = await supabase
         .from("companies")
-        .select("name, logo_url")
+        .select("name, logo_url, is_open")
         .eq("user_id", user.id)
         .maybeSingle();
       if (data) setCompany(data);
@@ -73,15 +74,34 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
     return location.pathname.startsWith(href);
   };
 
+  const toggleStatus = async () => {
+    if (!user || !company) return;
+    const newStatus = !company.is_open;
+    const { error } = await supabase
+      .from("companies")
+      .update({ is_open: newStatus })
+      .eq("user_id", user.id);
+    
+    if (!error) {
+      setCompany({ ...company, is_open: newStatus });
+      toast.success(newStatus ? "Loja aberta!" : "Loja fechada!");
+    } else {
+      toast.error("Erro ao atualizar status");
+    }
+  };
+
   // Helper to parse logo
   const getLogo = () => {
     if (!company?.logo_url) return "/logo.png";
-    try {
-      const parsed = JSON.parse(company.logo_url);
-      return parsed.logo || "/logo.png";
-    } catch {
-      return company.logo_url;
+    const url = company.logo_url;
+    if (typeof url === 'string' && url.startsWith('{')) {
+      try {
+        return JSON.parse(url).logo || "/logo.png";
+      } catch {
+        return "/logo.png";
+      }
     }
+    return url;
   };
 
   return (
@@ -120,13 +140,12 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
             <div className="relative group shrink-0">
               <div className="absolute -inset-1 bg-gradient-to-tr from-primary to-primary-foreground/20 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
               <div className="relative w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-0.5 border border-border shadow-md overflow-hidden shrink-0">
-                {company?.logo_url ? (
-                  <img src={typeof company.logo_url === 'string' && company.logo_url.startsWith('{') ? JSON.parse(company.logo_url).logo : company.logo_url} alt="Logo" className="w-full h-full object-cover rounded-xl" />
-                ) : (
-                  <div className="w-full h-full gradient-primary flex items-center justify-center rounded-xl">
-                    <Store className="h-6 w-6 text-white" />
-                  </div>
-                )}
+                <img 
+                  src={getLogo()} 
+                  alt="Logo" 
+                  className="w-full h-full object-cover rounded-xl" 
+                  onError={(e) => { e.currentTarget.src = "/logo.png"; }}
+                />
               </div>
             </div>
             {!collapsed && (
@@ -224,7 +243,16 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
           <div className="flex items-center gap-3">
              <div className="hidden sm:flex flex-col items-end mr-2">
                 <span className="text-xs font-black text-foreground leading-none">{profile?.full_name?.split(" ")[0]}</span>
-                <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Status: Online</span>
+                <button 
+                  onClick={toggleStatus}
+                  className={cn(
+                    "text-[10px] font-black uppercase tracking-tighter flex items-center gap-1.5 transition-colors",
+                    company?.is_open ? "text-green-500" : "text-red-500"
+                  )}
+                >
+                  <div className={cn("w-1.5 h-1.5 rounded-full", company?.is_open ? "bg-green-500 animate-pulse" : "bg-red-500")} />
+                  Status: {company?.is_open ? "Online" : "Offline"}
+                </button>
              </div>
              <button className="relative p-2.5 rounded-2xl bg-muted/50 hover:bg-muted transition-colors lg:hidden">
                 <Bell className="h-5 w-5" />
