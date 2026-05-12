@@ -69,8 +69,6 @@ export default function InvitePage() {
 
     try {
       // 1. Sign up user
-      // We pass the invitation details in metadata so the database trigger can handle 
-      // role assignment and company/driver creation server-side (bypassing RLS).
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -84,14 +82,18 @@ export default function InvitePage() {
         }
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Falha ao criar usuário");
+      if (authError) {
+        console.error("Erro no Auth:", authError);
+        throw authError;
+      }
+      
+      if (!authData.user) {
+        throw new Error("Não foi possível criar sua conta. Tente um email diferente.");
+      }
 
       toast.success("Cadastro realizado com sucesso!");
       
       // 2. Redirect to appropriate dashboard after a short delay
-      // For companies, we redirect to the internal business panel.
-      // For drivers, we redirect to the specialized driver app.
       const redirectUrl = invitation.role === "company" 
         ? "/business" 
         : "https://motoboy.epraja.com.br";
@@ -101,7 +103,8 @@ export default function InvitePage() {
       }, 3000);
 
     } catch (err: any) {
-      toast.error(err.message || "Erro ao realizar cadastro");
+      console.error("Erro no cadastro:", err);
+      toast.error(err.message || "Erro ao realizar cadastro. Verifique os dados.");
       setLoading(false);
     }
   };
