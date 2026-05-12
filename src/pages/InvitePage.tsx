@@ -89,15 +89,16 @@ export default function InvitePage() {
 
       toast.success("Cadastro realizado com sucesso!");
       
-      // 2. Redirect to appropriate app after a short delay
-      // If email confirmation is required, they'll see the instruction in the login page
+      // 2. Redirect to appropriate dashboard after a short delay
+      // For companies, we redirect to the internal business panel.
+      // For drivers, we redirect to the specialized driver app.
       const redirectUrl = invitation.role === "company" 
-        ? "https://hub.epraja.com.br" 
+        ? "/business" 
         : "https://motoboy.epraja.com.br";
       
       setTimeout(() => {
         window.location.href = redirectUrl;
-      }, 2500);
+      }, 3000);
 
     } catch (err: any) {
       toast.error(err.message || "Erro ao realizar cadastro");
