@@ -36,16 +36,14 @@ export default function InvitePage() {
       }
 
       try {
-        const { data, error: fetchError } = await supabase
-          .from("invitations")
-          .select("id, email, role, token, status, expires_at, accepted_at")
-          .eq("token", token)
-          .is("accepted_at", null)
-          .maybeSingle();
+        const { data: rows, error: fetchError } = await (supabase as any)
+          .rpc("get_invitation_by_token", { _token: token });
 
         if (fetchError) throw fetchError;
-        
-        if (!data) {
+
+        const data = Array.isArray(rows) ? rows[0] : rows;
+
+        if (!data || data.status !== "pending") {
           setError("Este link de convite é inválido ou já foi utilizado.");
         } else {
           const expiresAt = new Date(data.expires_at);
