@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, CheckCircle2, AlertCircle, User, Mail, Lock, Phone, Truck, Store } from "lucide-react";
+import { Loader2, CheckCircle2, AlertCircle, User, Mail, Lock, Phone, Truck, Store, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export default function InvitePage() {
@@ -22,9 +22,12 @@ export default function InvitePage() {
     fullName: "",
     email: "",
     password: "",
+    confirmPassword: "",
     phone: "",
     companyName: "" // Only for lojistas
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     const validateToken = async () => {
@@ -71,6 +74,13 @@ export default function InvitePage() {
     
     setLoading(true);
     setFormError(null);
+    if (formData.password !== formData.confirmPassword) {
+      setFormError("As senhas não coincidem.");
+      toast.error("As senhas não coincidem.");
+      setLoading(false);
+      return;
+    }
+
     console.log("Iniciando processo de cadastro para:", formData.email);
 
     try {
@@ -245,19 +255,51 @@ export default function InvitePage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Criar Senha</Label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  type="password"
-                  className="pl-10 h-12 rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-all" 
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={e => setFormData({...formData, password: e.target.value})}
-                  required
-                  minLength={6}
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Criar Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    type={showPassword ? "text" : "password"}
+                    className="pl-10 pr-10 h-12 rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-all" 
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={e => setFormData({...formData, password: e.target.value})}
+                    required
+                    minLength={6}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Confirmar Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    type={showConfirmPassword ? "text" : "password"}
+                    className="pl-10 pr-10 h-12 rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-all" 
+                    placeholder="••••••••"
+                    value={formData.confirmPassword}
+                    onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
+                    required
+                    minLength={6}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
             </div>
 
