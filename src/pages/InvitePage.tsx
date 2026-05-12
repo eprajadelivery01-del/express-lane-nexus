@@ -38,7 +38,7 @@ export default function InvitePage() {
           .from("invitations")
           .select("*")
           .eq("token", token)
-          .is("used_at", null)
+          .is("accepted_at", null)
           .maybeSingle();
 
         if (fetchError) throw fetchError;
