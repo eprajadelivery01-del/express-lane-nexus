@@ -69,6 +69,8 @@ export default function InvitePage() {
 
     try {
       // 1. Sign up user
+      // We pass the invitation details in metadata so the database trigger can handle 
+      // role assignment and company/driver creation server-side (bypassing RLS).
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -76,6 +78,8 @@ export default function InvitePage() {
           data: {
             full_name: formData.fullName,
             phone: formData.phone,
+            invitation_id: invitation.id,
+            company_name: formData.companyName
           }
         }
       });
@@ -83,63 +87,17 @@ export default function InvitePage() {
       if (authError) throw authError;
       if (!authData.user) throw new Error("Falha ao criar usuário");
 
-      const userId = authData.user.id;
-
-      // 2. Create Profile
-      const { error: profileError } = await supabase.from("profiles").upsert({
-        id: userId,
-        user_id: userId, // Some apps use id, some use user_id
-        full_name: formData.fullName,
-        phone: formData.phone,
-        role: invitation.role,
-        updated_at: new Date().toISOString(),
-      } as any);
-
-      if (profileError) throw profileError;
-
-      // 3. Assign Role
-      const { error: roleError } = await supabase.from("user_roles").insert({
-        user_id: userId,
-        role: invitation.role,
-      });
-
-      if (roleError) throw roleError;
-
-      // 4. Handle specific roles
-      if (invitation.role === "company") {
-        const { error: companyError } = await supabase.from("companies").insert({
-          user_id: userId,
-          name: formData.companyName || formData.fullName,
-          phone: formData.phone,
-        });
-        if (companyError) throw companyError;
-      } else if (invitation.role === "driver") {
-        const { error: driverError } = await supabase.from("delivery_drivers").insert({
-          id: userId,
-          user_id: userId,
-          online: false,
-          is_online: false,
-          rating: 5,
-        } as any);
-        if (driverError) throw driverError;
-      }
-
-      // 5. Mark invitation as used
-      await supabase
-        .from("invitations")
-        .update({ accepted_at: new Date().toISOString(), status: "accepted" } as any)
-        .eq("id", invitation.id);
-
       toast.success("Cadastro realizado com sucesso!");
       
-      // 6. Redirect to appropriate app
+      // 2. Redirect to appropriate app after a short delay
+      // If email confirmation is required, they'll see the instruction in the login page
       const redirectUrl = invitation.role === "company" 
         ? "https://hub.epraja.com.br" 
         : "https://motoboy.epraja.com.br";
       
       setTimeout(() => {
         window.location.href = redirectUrl;
-      }, 2000);
+      }, 2500);
 
     } catch (err: any) {
       toast.error(err.message || "Erro ao realizar cadastro");
