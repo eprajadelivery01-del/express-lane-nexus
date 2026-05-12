@@ -12,10 +12,11 @@ export default function InvitePage() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [validating, setValidating] = useState(true);
   const [invitation, setInvitation] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -27,6 +28,7 @@ export default function InvitePage() {
 
   useEffect(() => {
     const validateToken = async () => {
+      console.log("Validando token:", token);
       if (!token) {
         setError("Token não fornecido");
         setValidating(false);
@@ -50,10 +52,12 @@ export default function InvitePage() {
           if (expiresAt < new Date()) {
             setError("Este link de convite expirou.");
           } else {
+            console.log("Convite válido:", data);
             setInvitation(data);
           }
         }
       } catch (err: any) {
+        console.error("Erro na validação:", err);
         setError("Erro ao validar convite: " + err.message);
       } finally {
         setValidating(false);
@@ -65,7 +69,11 @@ export default function InvitePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    
     setLoading(true);
+    setFormError(null);
+    console.log("Iniciando processo de cadastro para:", formData.email);
 
     try {
       // 1. Sign up user
@@ -83,14 +91,16 @@ export default function InvitePage() {
       });
 
       if (authError) {
-        console.error("Erro no Auth:", authError);
+        console.error("Erro retornado pelo Supabase Auth:", authError);
         throw authError;
       }
       
       if (!authData.user) {
-        throw new Error("Não foi possível criar sua conta. Tente um email diferente.");
+        console.warn("Auth concluído mas sem objeto user retornado");
+        throw new Error("Não foi possível criar sua conta. Verifique se este email já está em uso.");
       }
 
+      console.log("Cadastro realizado com sucesso, redirecionando...");
       toast.success("Cadastro realizado com sucesso!");
       
       // 2. Redirect to appropriate dashboard after a short delay
@@ -103,8 +113,10 @@ export default function InvitePage() {
       }, 3000);
 
     } catch (err: any) {
-      console.error("Erro no cadastro:", err);
-      toast.error(err.message || "Erro ao realizar cadastro. Verifique os dados.");
+      console.error("Erro capturado no handleSubmit:", err);
+      const errorMessage = err.message || "Erro ao realizar cadastro. Tente novamente.";
+      setFormError(errorMessage);
+      toast.error(errorMessage);
       setLoading(false);
     }
   };
@@ -167,6 +179,13 @@ export default function InvitePage() {
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
+            {formError && (
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                <p>{formError}</p>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Nome Completo</Label>
