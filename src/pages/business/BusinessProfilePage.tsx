@@ -1,4 +1,4 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import { useState, useEffect } from "react";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,7 +70,7 @@ export default function BusinessProfilePage() {
         if (company.business_hours && company.business_hours.includes("{")) {
           try {
             setWorkingDays(JSON.parse(company.business_hours));
-          } catch (e) { console.error("Erro ao parsear horários"); }
+          } catch (e) { console.error("Erro ao parsear horÃ¡rios"); }
         }
       }
     } catch (err) {
@@ -191,7 +191,7 @@ export default function BusinessProfilePage() {
                 <label className="cursor-pointer px-6 py-2.5 bg-white/20 backdrop-blur-md border border-white/30 text-white rounded-full font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white/30 transition-all shadow-2xl">
                   {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
                   Alterar Banner
-                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'cover')} />
+                  <input type="file" capture="environment" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'cover')} />
                 </label>
               </div>
 
@@ -206,7 +206,7 @@ export default function BusinessProfilePage() {
                     )}
                     <label className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                       <Camera className="h-8 w-8 text-white" />
-                      <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
+                      <input type="file" capture="environment" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'logo')} />
                     </label>
                   </div>
                 </div>
@@ -222,11 +222,11 @@ export default function BusinessProfilePage() {
                   <div className="flex items-center gap-2 mt-1">
                     <div className={cn("h-2.5 w-2.5 rounded-full", isOpen ? "bg-green-500 animate-pulse" : "bg-red-500")} />
                     <span className={cn("text-[11px] font-black uppercase tracking-widest", isOpen ? "text-green-600" : "text-red-600")}>
-                      {isOpen ? "Sua Loja está aberta" : "Sua Loja está fechada"}
+                      {isOpen ? "Sua Loja estÃ¡ aberta" : "Sua Loja estÃ¡ fechada"}
                     </span>
                   </div>
                   {description && <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">{description}</p>}
-                  {address && <p className="text-xs text-muted-foreground mt-1">📍 {address}</p>}
+                  {address && <p className="text-xs text-muted-foreground mt-1">ðŸ“ {address}</p>}
                 </div>
                 <button
                   onClick={handleSave}
@@ -257,7 +257,7 @@ export default function BusinessProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/50">
                 <div className="space-y-5">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                    <Info className="h-3 w-3" /> Sobre o Negócio
+                    <Info className="h-3 w-3" /> Sobre o NegÃ³cio
                   </p>
                   {[
                     { label: "Nome da Loja", value: storeName, onChange: setStoreName },
@@ -268,8 +268,8 @@ export default function BusinessProfilePage() {
                     </div>
                   ))}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bio / Descrição</label>
-                    <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Fale sobre seu negócio..." className="w-full px-4 py-3.5 rounded-2xl border border-border bg-background outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 font-medium text-sm resize-none transition-all" />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bio / DescriÃ§Ã£o</label>
+                    <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Fale sobre seu negÃ³cio..." className="w-full px-4 py-3.5 rounded-2xl border border-border bg-background outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 font-medium text-sm resize-none transition-all" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Categoria</label>
@@ -281,7 +281,7 @@ export default function BusinessProfilePage() {
                   </div>
                   <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                      <Clock3 className="h-3 w-3" /> Horário de Funcionamento
+                      <Clock3 className="h-3 w-3" /> HorÃ¡rio de Funcionamento
                     </label>
                     <div className="space-y-2 p-4 bg-muted/30 rounded-2xl border border-border/40">
                       {workingDays.map((wd, idx) => (
@@ -304,7 +304,7 @@ export default function BusinessProfilePage() {
                               className="w-14 px-1.5 py-1 text-[11px] font-black bg-background border border-border rounded-lg text-center outline-none focus:border-primary"
                               placeholder="00:00"
                             />
-                            <span className="text-[10px] text-muted-foreground">às</span>
+                            <span className="text-[10px] text-muted-foreground">Ã s</span>
                             <input 
                               type="text" 
                               value={wd.end} 
@@ -331,7 +331,7 @@ export default function BusinessProfilePage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Endereço</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">EndereÃ§o</label>
                     <div className="relative">
                       <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Av. Brasil, 123 - Centro" className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-border bg-background outline-none font-medium text-sm transition-all" />
@@ -346,7 +346,7 @@ export default function BusinessProfilePage() {
                       </p>
                       <label className="cursor-pointer px-4 py-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider hover:opacity-90 transition-all shadow-md shadow-primary/20">
                         + Adicionar
-                        <input type="file" multiple accept="image/*" className="hidden" onChange={handleGalleryUpload} />
+                        <input type="file" capture="environment" multiple accept="image/*" className="hidden" onChange={handleGalleryUpload} />
                       </label>
                     </div>
                     <div className="grid grid-cols-4 gap-2">
@@ -395,9 +395,9 @@ export default function BusinessProfilePage() {
                 <div className="mt-5 px-3 space-y-3 flex-1">
                   <div>
                     <p className="text-[10px] font-black text-foreground truncate">{storeName || "Sua Loja"}</p>
-                    <p className="text-[7px] text-muted-foreground">📍 {address?.split(" - ")[0] || "Endereço"}</p>
+                    <p className="text-[7px] text-muted-foreground">ðŸ“ {address?.split(" - ")[0] || "EndereÃ§o"}</p>
                   </div>
-                  <p className="text-[7px] text-muted-foreground line-clamp-3 italic leading-relaxed">{description || "Sua descrição aparecerá aqui."}</p>
+                  <p className="text-[7px] text-muted-foreground line-clamp-3 italic leading-relaxed">{description || "Sua descriÃ§Ã£o aparecerÃ¡ aqui."}</p>
                   {gallery.length > 0 && (
                     <div className="grid grid-cols-3 gap-1">
                       {gallery.slice(0, 3).map((url, i) => (
@@ -416,3 +416,4 @@ export default function BusinessProfilePage() {
     </BusinessLayout>
   );
 }
+

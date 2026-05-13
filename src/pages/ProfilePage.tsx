@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { updateProfile, uploadAvatar } from "@/services/users";
@@ -78,7 +78,7 @@ export default function ProfilePage() {
             >
               {uploading ? <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> : <Camera className="h-4 w-4 text-primary-foreground" />}
             </button>
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
+            <input ref={fileInputRef} type="file" capture="environment" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
           </div>
           <p className="text-sm text-muted-foreground">{user?.email}</p>
         </div>
@@ -111,7 +111,7 @@ export default function ProfilePage() {
 
           <button type="submit" disabled={saving} className="w-full flex items-center justify-center gap-2 gradient-primary text-primary-foreground py-2.5 rounded-xl font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            {saving ? "Salvando..." : "Salvar alterações"}
+            {saving ? "Salvando..." : "Salvar alteraÃ§Ãµes"}
           </button>
         </form>
 
@@ -145,7 +145,7 @@ export default function ProfilePage() {
               <p className="text-base font-bold">Zona de Perigo</p>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              Ao excluir sua conta, todo o seu histórico de pedidos, endereços salvos e dados de perfil serão permanentemente removidos. Esta ação não pode ser desfeita.
+              Ao excluir sua conta, todo o seu histÃ³rico de pedidos, endereÃ§os salvos e dados de perfil serÃ£o permanentemente removidos. Esta aÃ§Ã£o nÃ£o pode ser desfeita.
             </p>
             
             <AlertDialog>
@@ -156,9 +156,9 @@ export default function ProfilePage() {
               </AlertDialogTrigger>
               <AlertDialogContent className="rounded-3xl border-border bg-card mx-4">
                 <AlertDialogHeader>
-                  <AlertDialogTitle className="text-foreground">Você tem certeza absoluta?</AlertDialogTitle>
+                  <AlertDialogTitle className="text-foreground">VocÃª tem certeza absoluta?</AlertDialogTitle>
                   <AlertDialogDescription className="text-muted-foreground">
-                    Esta ação é irreversível. Todas as suas informações de cliente serão deletadas imediatamente de nossos sistemas.
+                    Esta aÃ§Ã£o Ã© irreversÃ­vel. Todas as suas informaÃ§Ãµes de cliente serÃ£o deletadas imediatamente de nossos sistemas.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter className="gap-3">
@@ -167,9 +167,9 @@ export default function ProfilePage() {
                     onClick={async () => {
                       try {
                         await deleteAccount();
-                        toast({ title: "Conta excluída", description: "Sentiremos sua falta!" });
+                        toast({ title: "Conta excluÃ­da", description: "Sentiremos sua falta!" });
                       } catch (err) {
-                        toast({ title: "Erro na exclusão", description: "Não foi possível remover sua conta agora.", variant: "destructive" });
+                        toast({ title: "Erro na exclusÃ£o", description: "NÃ£o foi possÃ­vel remover sua conta agora.", variant: "destructive" });
                       }
                     }}
                     className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -185,3 +185,4 @@ export default function ProfilePage() {
     </AdminLayout>
   );
 }
+
