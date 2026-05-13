@@ -16,7 +16,7 @@ export function useGlobalChatNotifications() {
 
     const sessionId = Math.random().toString(36).substring(2, 10);
     const channel = supabase
-      .channel(`global-chat-notifications-${sessionId}`)
+      .channel(`global-notifications-${sessionId}`)
       .on(
         "postgres_changes",
         {
@@ -24,12 +24,11 @@ export function useGlobalChatNotifications() {
           schema: "public",
           table: "messages",
         },
-        (payload) => {
+        async (payload) => {
           const newMessage = payload.new as any;
-          
           if (newMessage.sender_id === user.id) return;
 
-          const isChatPage = location.pathname.includes("/chat");
+          const isChatPage = window.location.pathname.includes("/chat");
           
           try {
              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
@@ -39,7 +38,13 @@ export function useGlobalChatNotifications() {
              console.error("[Audio] Erro ao reproduzir som:", err);
           }
 
-          toast.info("Nova mensagem recebida!", {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("user_id", newMessage.sender_id)
+            .single();
+
+          toast.info(profile?.full_name || "Nova mensagem recebida!", {
             description: newMessage.content,
             duration: 8000,
             action: isChatPage ? undefined : {
@@ -58,7 +63,7 @@ export function useGlobalChatNotifications() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, location.pathname, navigate, qc]);
+  }, [user?.id, navigate, qc]);
 }
 
 export function GlobalChatListener() {

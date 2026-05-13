@@ -95,11 +95,22 @@ export default function AdminChatPage() {
   const { data: profilesMap } = useQuery({
     queryKey: ["profiles-map-admin"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("user_id, full_name, avatar_url, role");
-      return (data ?? []).reduce((acc: Record<string, any>, p) => {
-        if (p.user_id) acc[p.user_id] = p;
-        return acc;
-      }, {});
+      const [{ data: profiles }, { data: companies }] = await Promise.all([
+        supabase.from("profiles").select("user_id, full_name, avatar_url, role"),
+        supabase.from("companies").select("user_id, name, logo_url").not("user_id", "is", null),
+      ]);
+      
+      const map: Record<string, any> = {};
+      profiles?.forEach(p => {
+        if (p.user_id) map[p.user_id] = p;
+      });
+      companies?.forEach(c => {
+        if (c.user_id && map[c.user_id]) {
+          map[c.user_id].full_name = c.name;
+          map[c.user_id].avatar_url = c.logo_url;
+        }
+      });
+      return map;
     },
   });
 
