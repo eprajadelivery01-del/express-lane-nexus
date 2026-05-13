@@ -7,13 +7,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Power, Trash2, UserCheck, UserX, Edit2 } from "lucide-react";
+import { MoreHorizontal, Power, Trash2, UserCheck, UserX, Edit2, Plus } from "lucide-react";
 import { useState } from "react";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 
 export default function DriversPage() {
   const { data: drivers, isLoading } = useDrivers();
   const qc = useQueryClient();
+  const [showNewForm, setShowNewForm] = useState(false);
   const [editingDriver, setEditingDriver] = useState<any>(null);
 
   const toggleOnline = async (id: string, isOnline: boolean) => {
@@ -44,10 +45,17 @@ export default function DriversPage() {
 
   return (
     <AdminLayout title="Entregadores" subtitle="Gerenciamento de motoboys">
-      <div className="flex justify-end gap-3 mb-4">
-        <GenerateInviteDialog />
-        <CreateDriverDialog />
-      </div>
+      {showNewForm ? (
+        <CreateDriverDialog onClose={() => setShowNewForm(false)} />
+      ) : (
+        <>
+          <div className="flex justify-end gap-3 mb-4">
+            <GenerateInviteDialog />
+            <Button onClick={() => setShowNewForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Entregador
+            </Button>
+          </div>
       <div className="rounded-2xl bg-card shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -82,7 +90,7 @@ export default function DriversPage() {
                     <td className="px-4 py-3">{vehicleLabel[d.vehicle_type || "motorcycle"] || d.vehicle_type}</td>
                     <td className="px-4 py-3 font-mono text-xs">{d.vehicle_plate || "—"}</td>
                     <td className="px-4 py-3">{d.phone || "—"}</td>
-                    <td className="px-4 py-3">⭐ {Number(d.rating).toFixed(1)}</td>
+                    <td className="px-4 py-3">⭐ {Number(d.rating || 0).toFixed(1)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${d.status === "active" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>
                         {d.status === "active" ? "Ativo" : d.status === "suspended" ? "Suspenso" : d.status}
@@ -128,6 +136,8 @@ export default function DriversPage() {
           open={!!editingDriver}
           onOpenChange={(open) => !open && setEditingDriver(null)}
         />
+      )}
+        </>
       )}
     </AdminLayout>
   );

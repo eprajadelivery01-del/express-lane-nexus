@@ -248,7 +248,7 @@ export default function DashboardPage() {
           <Button size="sm" variant="ghost" onClick={handleRefresh} disabled={refreshing} className="h-8 w-8 p-0">
             <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
           </Button>
-          <GenerateInviteDialog fixedRole="driver" triggerLabel="Convidar" />
+          <GenerateInviteDialog triggerLabel="Convidar Parceiro" />
           <Button size="sm" variant="outline" onClick={() => navigate("/admin/regions")} className="gap-1.5">
             <MapIcon className="h-3.5 w-3.5" />
             Mapa

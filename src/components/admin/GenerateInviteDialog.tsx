@@ -39,8 +39,12 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
 
       if (error) throw error;
 
-      const baseUrl = window.location.origin;
-      const link = `${baseUrl}/invite/${token}`;
+      const currentRole = fixedRole || role;
+      const baseUrl = currentRole === "driver" 
+        ? "https://entregador.eprajadelivery.com/driver"
+        : "https://lojista.eprajadelivery.com/invite";
+        
+      const link = `${baseUrl}/${token}`;
       setInviteLink(link);
       toast.success("Link de convite gerado!");
     } catch (err: any) {
@@ -75,7 +79,7 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
       </DialogTrigger>
       <DialogContent className="sm:max-w-xl w-[95vw]">
         <DialogHeader>
-          <DialogTitle>Gerar Link de Convite</DialogTitle>
+          <DialogTitle>Gerar Link de Convite (VERSÃO NOVA)</DialogTitle>
         </DialogHeader>
 
         {!inviteLink ? (
