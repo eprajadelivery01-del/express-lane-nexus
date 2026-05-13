@@ -39,7 +39,12 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/invite/${token}`;
+      const selectedRole = fixedRole || role;
+      const baseUrl =
+        selectedRole === "driver"
+          ? "https://entregador.eprajadelivery.com"
+          : "https://lojista.eprajadelivery.com";
+      const link = `${baseUrl}/invite/${token}`;
       setInviteLink(link);
       toast.success("Link de convite gerado!");
     } catch (err: any) {
