@@ -86,16 +86,16 @@ export async function fetchInvitations() {
 }
 
 export async function validateInvitation(token: string) {
-  const { data, error } = await supabase
-    .from("invitations")
-    .select("*")
-    .eq("token", token)
-    .eq("status", "pending")
-    .single();
+  const { data, error } = await (supabase as any).rpc(
+    "get_invitation_by_token",
+    { _token: token }
+  );
   if (error) throw error;
-  if (!data) throw new Error("Convite não encontrado");
-  if (new Date(data.expires_at) < new Date()) throw new Error("Convite expirado");
-  return data;
+  const inv = data as InvitationRow | null;
+  if (!inv) throw new Error("Convite não encontrado");
+  if (inv.status !== "pending") throw new Error("Este convite já foi utilizado ou está expirado.");
+  if (new Date(inv.expires_at) < new Date()) throw new Error("Convite expirado");
+  return inv;
 }
 
 export async function acceptInvitation(token: string, userData: { email: string; password: string; fullName: string; phone: string; document: string }) {
