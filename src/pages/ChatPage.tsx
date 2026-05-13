@@ -34,7 +34,7 @@ export default function ChatPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("conversations")
-        .select("*, messages(content, created_at)")
+        .select("*")
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -157,11 +157,11 @@ export default function ChatPage() {
                     <div className="flex justify-between items-center mb-0.5">
                       <span className="text-[0.95rem] font-semibold text-foreground truncate ">{getConvTitle(conv)}</span>
                       <span className="text-[0.65rem] text-muted-foreground whitespace-nowrap">
-                        {conv.messages?.[0] ? format(new Date(conv.messages[0].created_at), "HH:mm") : ""}
+                        {lastMsg ? format(new Date(lastMsg.created_at), "HH:mm") : ""}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground truncate leading-snug">
-                      {conv.messages?.[0]?.content || "Inicie a conversa agora"}
+                      {lastMsg?.content || "Inicie a conversa agora"}
                     </p>
                   </div>
                 </button>
