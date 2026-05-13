@@ -39,12 +39,10 @@ export default function InvitePage() {
       }
 
       try {
-        const { data: rows, error: fetchError } = await (supabase as any)
-          .rpc("get_invitation_by_token", { _token: token });
+        const { data, error: fetchError } = await (supabase as any)
+          .rpc("get_invitation_official", { _token: token });
 
         if (fetchError) throw fetchError;
-
-        const data = Array.isArray(rows) ? rows[0] : rows;
 
         if (!data || data.status !== "pending") {
           setError("Este link de convite é inválido ou já foi utilizado.");
@@ -131,7 +129,7 @@ export default function InvitePage() {
 
   if (validating) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-slate-900">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
           <p className="text-sm font-medium text-muted-foreground tracking-widest uppercase">Validando Convite...</p>
@@ -142,7 +140,7 @@ export default function InvitePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
         <Card className="w-full max-w-md border-destructive/20 shadow-2xl">
           <CardHeader className="text-center">
             <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
@@ -164,7 +162,7 @@ export default function InvitePage() {
   const isCompany = invitation.role === "company";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 py-12">
+    <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4 py-12">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
       
       <Card className="w-full max-w-xl border-border/50 shadow-[0_20px_50px_rgba(0,0,0,0.1)] relative overflow-hidden">
