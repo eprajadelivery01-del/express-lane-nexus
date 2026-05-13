@@ -46,7 +46,7 @@ export default function DriversPage() {
   return (
     <AdminLayout title="Entregadores" subtitle="Gerenciamento de motoboys">
       {showNewForm ? (
-        <CreateDriverDialog onClose={() => setShowNewForm(false)} />
+        <CreateDriverDialog />
       ) : (
         <>
           <div className="flex justify-end gap-3 mb-4">
