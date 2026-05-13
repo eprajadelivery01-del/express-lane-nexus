@@ -31,16 +31,22 @@ export function useGlobalChatNotifications() {
 
           const isChatPage = location.pathname.includes("/chat");
           
-          if (!isChatPage) {
-            toast.info("Nova mensagem recebida!", {
-              description: newMessage.content,
-              duration: 8000,
-              action: {
-                label: "Abrir Chat",
-                onClick: () => navigate("/chat")
-              }
-            });
+          try {
+             const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+             audio.volume = 0.5;
+             audio.play().catch(e => console.warn("[Audio] Bloqueio de auto-play pelo navegador:", e)); 
+          } catch (err) {
+             console.error("[Audio] Erro ao reproduzir som:", err);
           }
+
+          toast.info("Nova mensagem recebida!", {
+            description: newMessage.content,
+            duration: 8000,
+            action: isChatPage ? undefined : {
+              label: "Abrir Chat",
+              onClick: () => navigate("/chat")
+            }
+          });
 
           qc.invalidateQueries({ queryKey: ["conversations"] });
           qc.invalidateQueries({ queryKey: ["admin-conversations"] });
