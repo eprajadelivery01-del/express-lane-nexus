@@ -45,6 +45,7 @@ export default function InvitePage() {
         if (fetchError) throw fetchError;
 
         const inv = Array.isArray(data) ? data[0] : data;
+        // function now returns jsonb single object, but keep array fallback for safety
 
         if (!inv || inv.status !== "pending") {
           setError("Este link de convite é inválido ou já foi utilizado.");

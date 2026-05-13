@@ -1955,25 +1955,7 @@ export type Database = {
         Returns: number
       }
       get_driver_id: { Args: { _user_id: string }; Returns: string }
-      get_invitation_by_token: {
-        Args: { _token: string }
-        Returns: {
-          created_at: string
-          email: string
-          expires_at: string
-          id: string
-          invited_by: string
-          role: Database["public"]["Enums"]["app_role"]
-          status: Database["public"]["Enums"]["invitation_status"]
-          token: string
-        }[]
-        SetofOptions: {
-          from: "*"
-          to: "invitations"
-          isOneToOne: false
-          isSetofReturn: true
-        }
-      }
+      get_invitation_by_token: { Args: { _token: string }; Returns: Json }
       has_profile_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
