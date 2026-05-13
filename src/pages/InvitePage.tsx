@@ -40,19 +40,21 @@ export default function InvitePage() {
 
       try {
         const { data, error: fetchError } = await (supabase as any)
-          .rpc("get_invitation_official", { _token: token });
+          .rpc("get_invitation_by_token", { _token: token });
 
         if (fetchError) throw fetchError;
 
-        if (!data || data.status !== "pending") {
+        const inv = Array.isArray(data) ? data[0] : data;
+
+        if (!inv || inv.status !== "pending") {
           setError("Este link de convite é inválido ou já foi utilizado.");
         } else {
-          const expiresAt = new Date(data.expires_at);
+          const expiresAt = new Date(inv.expires_at);
           if (expiresAt < new Date()) {
             setError("Este link de convite expirou.");
           } else {
-            console.log("Convite válido:", data);
-            setInvitation(data);
+            console.log("Convite válido:", inv);
+            setInvitation(inv);
           }
         }
       } catch (err: any) {

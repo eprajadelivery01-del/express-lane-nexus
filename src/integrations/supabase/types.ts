@@ -172,6 +172,13 @@ export type Database = {
             foreignKeyName: "chat_messages_delivery_id_fkey"
             columns: ["delivery_id"]
             isOneToOne: false
+            referencedRelation: "available_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
             referencedRelation: "deliveries"
             referencedColumns: ["id"]
           },
@@ -211,6 +218,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_sessions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
             referencedColumns: ["id"]
           },
         ]
@@ -421,6 +435,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "coupons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
+            referencedColumns: ["id"]
+          },
         ]
       }
       customers: {
@@ -589,6 +610,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deliveries_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
@@ -705,6 +733,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "delivery_drivers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
+            referencedColumns: ["id"]
+          },
         ]
       }
       delivery_occurrences: {
@@ -749,6 +784,13 @@ export type Database = {
             foreignKeyName: "delivery_occurrences_delivery_id_fkey"
             columns: ["delivery_id"]
             isOneToOne: false
+            referencedRelation: "available_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_occurrences_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
             referencedRelation: "deliveries"
             referencedColumns: ["id"]
           },
@@ -787,6 +829,13 @@ export type Database = {
           rating?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "delivery_ratings_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: true
+            referencedRelation: "available_deliveries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "delivery_ratings_delivery_id_fkey"
             columns: ["delivery_id"]
@@ -842,6 +891,13 @@ export type Database = {
             foreignKeyName: "driver_earnings_delivery_id_fkey"
             columns: ["delivery_id"]
             isOneToOne: false
+            referencedRelation: "available_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_earnings_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
             referencedRelation: "deliveries"
             referencedColumns: ["id"]
           },
@@ -893,6 +949,13 @@ export type Database = {
             foreignKeyName: "driver_location_history_delivery_id_fkey"
             columns: ["delivery_id"]
             isOneToOne: false
+            referencedRelation: "available_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_location_history_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
             referencedRelation: "deliveries"
             referencedColumns: ["id"]
           },
@@ -940,36 +1003,33 @@ export type Database = {
       }
       invitations: {
         Row: {
-          accepted_at: string | null
           created_at: string
           email: string
           expires_at: string
           id: string
-          invited_by: string | null
-          role: string
-          status: string
+          invited_by: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
           token: string
         }
         Insert: {
-          accepted_at?: string | null
           created_at?: string
           email: string
           expires_at?: string
           id?: string
-          invited_by?: string | null
-          role?: string
-          status?: string
+          invited_by: string
+          role: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
         }
         Update: {
-          accepted_at?: string | null
           created_at?: string
           email?: string
           expires_at?: string
           id?: string
-          invited_by?: string | null
-          role?: string
-          status?: string
+          invited_by?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
         }
         Relationships: []
@@ -1095,6 +1155,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "occurrences_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "available_deliveries"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "occurrences_delivery_id_fkey"
             columns: ["delivery_id"]
@@ -1242,6 +1309,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
             referencedColumns: ["id"]
           },
           {
@@ -1452,6 +1526,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -1575,6 +1656,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
             referencedColumns: ["id"]
           },
           {
@@ -1748,7 +1836,108 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      available_deliveries: {
+        Row: {
+          commission: number | null
+          company_id: string | null
+          created_at: string | null
+          customer_cpf: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          delivery_address: string | null
+          delivery_latitude: number | null
+          delivery_longitude: number | null
+          id: string | null
+          notes: string | null
+          status: Database["public"]["Enums"]["delivery_status"] | null
+          value: number | null
+        }
+        Insert: {
+          commission?: number | null
+          company_id?: string | null
+          created_at?: string | null
+          customer_cpf?: never
+          customer_name?: never
+          customer_phone?: never
+          delivery_address?: string | null
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
+          id?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["delivery_status"] | null
+          value?: number | null
+        }
+        Update: {
+          commission?: number | null
+          company_id?: string | null
+          created_at?: string | null
+          customer_cpf?: never
+          customer_name?: never
+          customer_phone?: never
+          delivery_address?: string | null
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
+          id?: string | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["delivery_status"] | null
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_public_info: {
+        Row: {
+          address: string | null
+          cover_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          name: string | null
+        }
+        Insert: {
+          address?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          name?: string | null
+        }
+        Update: {
+          address?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       find_region_for_point: {
@@ -1773,9 +1962,17 @@ export type Database = {
           email: string
           expires_at: string
           id: string
-          role: string
-          status: string
+          invited_by: string
+          role: Database["public"]["Enums"]["app_role"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          token: string
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "invitations"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       has_profile_role: {
         Args: { _role: string; _user_id: string }
