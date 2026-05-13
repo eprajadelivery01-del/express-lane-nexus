@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+// @ts-nocheck
 import { useState, useEffect } from "react";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,7 +70,7 @@ export default function BusinessProfilePage() {
         if (company.business_hours && company.business_hours.includes("{")) {
           try {
             setWorkingDays(JSON.parse(company.business_hours));
-          } catch (e) { console.error("Erro ao parsear horÃ¡rios"); }
+          } catch (e) { console.error("Erro ao parsear horários"); }
         }
       }
     } catch (err) {
@@ -222,7 +222,7 @@ export default function BusinessProfilePage() {
                   <div className="flex items-center gap-2 mt-1">
                     <div className={cn("h-2.5 w-2.5 rounded-full", isOpen ? "bg-green-500 animate-pulse" : "bg-red-500")} />
                     <span className={cn("text-[11px] font-black uppercase tracking-widest", isOpen ? "text-green-600" : "text-red-600")}>
-                      {isOpen ? "Sua Loja estÃ¡ aberta" : "Sua Loja estÃ¡ fechada"}
+                      {isOpen ? "Sua Loja está aberta" : "Sua Loja está fechada"}
                     </span>
                   </div>
                   {description && <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">{description}</p>}
@@ -257,7 +257,7 @@ export default function BusinessProfilePage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border/50">
                 <div className="space-y-5">
                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                    <Info className="h-3 w-3" /> Sobre o NegÃ³cio
+                    <Info className="h-3 w-3" /> Sobre o Negócio
                   </p>
                   {[
                     { label: "Nome da Loja", value: storeName, onChange: setStoreName },
@@ -268,8 +268,8 @@ export default function BusinessProfilePage() {
                     </div>
                   ))}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bio / DescriÃ§Ã£o</label>
-                    <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Fale sobre seu negÃ³cio..." className="w-full px-4 py-3.5 rounded-2xl border border-border bg-background outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 font-medium text-sm resize-none transition-all" />
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Bio / Descrição</label>
+                    <textarea value={description} onChange={e => setDescription(e.target.value)} rows={3} placeholder="Fale sobre seu negócio..." className="w-full px-4 py-3.5 rounded-2xl border border-border bg-background outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 font-medium text-sm resize-none transition-all" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Categoria</label>
@@ -281,7 +281,7 @@ export default function BusinessProfilePage() {
                   </div>
                   <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                      <Clock3 className="h-3 w-3" /> HorÃ¡rio de Funcionamento
+                      <Clock3 className="h-3 w-3" /> Horário de Funcionamento
                     </label>
                     <div className="space-y-2 p-4 bg-muted/30 rounded-2xl border border-border/40">
                       {workingDays.map((wd, idx) => (
@@ -331,7 +331,7 @@ export default function BusinessProfilePage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">EndereÃ§o</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Endereço</label>
                     <div className="relative">
                       <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Av. Brasil, 123 - Centro" className="w-full pl-11 pr-4 py-3.5 rounded-2xl border border-border bg-background outline-none font-medium text-sm transition-all" />
@@ -395,9 +395,9 @@ export default function BusinessProfilePage() {
                 <div className="mt-5 px-3 space-y-3 flex-1">
                   <div>
                     <p className="text-[10px] font-black text-foreground truncate">{storeName || "Sua Loja"}</p>
-                    <p className="text-[7px] text-muted-foreground">ðŸ“ {address?.split(" - ")[0] || "EndereÃ§o"}</p>
+                    <p className="text-[7px] text-muted-foreground">ðŸ“ {address?.split(" - ")[0] || "Endereço"}</p>
                   </div>
-                  <p className="text-[7px] text-muted-foreground line-clamp-3 italic leading-relaxed">{description || "Sua descriÃ§Ã£o aparecerÃ¡ aqui."}</p>
+                  <p className="text-[7px] text-muted-foreground line-clamp-3 italic leading-relaxed">{description || "Sua descrição aparecerá aqui."}</p>
                   {gallery.length > 0 && (
                     <div className="grid grid-cols-3 gap-1">
                       {gallery.slice(0, 3).map((url, i) => (

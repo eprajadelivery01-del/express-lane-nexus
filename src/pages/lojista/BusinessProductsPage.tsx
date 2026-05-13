@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProductsManager } from "@/services/stores-products";
@@ -63,7 +63,7 @@ export default function BusinessProductsPage() {
   };
 
   return (
-    <BusinessLayout title="CardÃ¡pio">
+    <BusinessLayout title="Cardápio">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header tools */}
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card p-4 rounded-3xl shadow-card">
@@ -99,7 +99,7 @@ export default function BusinessProductsPage() {
             </div>
             <h3 className="text-xl font-bold text-foreground">Nenhum produto encontrado</h3>
             <p className="text-sm text-muted-foreground mt-2 max-w-sm mx-auto">
-              {search ? "NÃ£o encontramos produtos para sua busca." : "Comece a vender adicionando seu primeiro produto ao cardÃ¡pio."}
+              {search ? "Não encontramos produtos para sua busca." : "Comece a vender adicionando seu primeiro produto ao cardápio."}
             </p>
           </div>
         ) : (
@@ -159,7 +159,7 @@ export default function BusinessProductsPage() {
                     <span className="font-black text-primary text-lg">R$ {product.price?.toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed h-8">
-                    {product.description || "Sem descriÃ§Ã£o informada."}
+                    {product.description || "Sem descrição informada."}
                   </p>
                   
                   <div className="pt-2 flex items-center gap-2">
@@ -239,7 +239,7 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
     
     // Check limit
     if (form.image_urls.length + files.length > 10) {
-      toast({ title: "Limite excedido", description: "VocÃª pode adicionar atÃ© 10 imagens por produto.", variant: "destructive" });
+      toast({ title: "Limite excedido", description: "Você pode adicionar até 10 imagens por produto.", variant: "destructive" });
       return;
     }
 
@@ -271,7 +271,7 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
         image_url: newUrls[0] // Primary image is first one
       }));
       
-      toast({ title: "Upload concluÃ­do", description: `${files.length} imagens adicionadas.` });
+      toast({ title: "Upload concluído", description: `${files.length} imagens adicionadas.` });
     } catch (err: any) {
       toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
     } finally {
@@ -295,7 +295,7 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
 
     // VALIDATION
     if (form.image_urls.length === 0) {
-       toast({ title: "Imagem obrigatÃ³ria", description: "Adicione pelo menos 1 imagem ao seu produto.", variant: "destructive" });
+       toast({ title: "Imagem obrigatória", description: "Adicione pelo menos 1 imagem ao seu produto.", variant: "destructive" });
        return;
     }
 
@@ -311,7 +311,7 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
         toast({ title: "Sucesso", description: "Produto atualizado!" });
       } else {
         await createProduct.mutateAsync(payload);
-        toast({ title: "Sucesso", description: "Produto criado no cardÃ¡pio!" });
+        toast({ title: "Sucesso", description: "Produto criado no cardápio!" });
       }
       onSuccess();
     } catch (err: any) {
@@ -333,14 +333,14 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
               required
               value={form.name}
               onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))}
-              placeholder="Ex: HambÃºrger Duplo Bacon"
+              placeholder="Ex: Hambúrger Duplo Bacon"
               className="w-full px-4 py-2.5 rounded-2xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-bold text-foreground mb-1.5 block">PreÃ§o (R$) *</label>
+              <label className="text-sm font-bold text-foreground mb-1.5 block">Preço (R$) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -369,7 +369,7 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
           </div>
 
           <div>
-            <label className="text-sm font-bold text-foreground mb-1.5 block">DescriÃ§Ã£o</label>
+            <label className="text-sm font-bold text-foreground mb-1.5 block">Descrição</label>
             <textarea
               value={form.description}
               onChange={(e) => setForm(p => ({ ...p, description: e.target.value }))}
@@ -384,8 +384,8 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
                {form.is_active ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
             </div>
             <div className="flex-1">
-               <p className="text-sm font-bold text-foreground">DisponÃ­vel no App</p>
-               <p className="text-[10px] text-muted-foreground">Ocultar produto temporariamente sem excluÃ­-lo.</p>
+               <p className="text-sm font-bold text-foreground">Disponível no App</p>
+               <p className="text-[10px] text-muted-foreground">Ocultar produto temporariamente sem excluí-lo.</p>
             </div>
             <input 
                type="checkbox" 
@@ -400,7 +400,7 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
         <div className="space-y-4">
           <div>
             <div className="flex items-center justify-between mb-2">
-               <label className="text-sm font-bold text-foreground block">Imagens (MÃ­n: 1, MÃ¡x: 10) *</label>
+               <label className="text-sm font-bold text-foreground block">Imagens (Mín: 1, Máx: 10) *</label>
                <span className="text-[10px] font-black text-muted-foreground uppercase">{form.image_urls.length}/10</span>
             </div>
             
@@ -444,13 +444,13 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
                <div className="p-4 rounded-2xl bg-destructive/5 border border-destructive/10 flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
                   <p className="text-xs text-destructive-foreground leading-relaxed">
-                     VocÃª precisa adicionar pelo menos 1 imagem para salvar este produto.
+                     Você precisa adicionar pelo menos 1 imagem para salvar este produto.
                   </p>
                </div>
             )}
             
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-               Dica: Arraste os arquivos ou selecione mÃºltiplos de uma vez. A primeira foto serÃ¡ a capa principal no marketplace.
+               Dica: Arraste os arquivos ou selecione múltiplos de uma vez. A primeira foto será a capa principal no marketplace.
             </p>
           </div>
         </div>
@@ -463,7 +463,7 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
             className="flex-1 py-4 rounded-2xl gradient-primary text-primary-foreground text-sm font-bold disabled:opacity-50 shadow-glow hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
          >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {initialData ? "Salvar AlteraÃ§Ãµes" : "Adicionar ao CardÃ¡pio"}
+            {initialData ? "Salvar Alterações" : "Adicionar ao Cardápio"}
          </button>
       </div>
     </form>
