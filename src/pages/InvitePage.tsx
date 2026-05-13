@@ -179,7 +179,7 @@ export default function InvitePage() {
               <Truck className="h-10 w-10 text-primary" />
             )}
           </div>
-          <CardTitle className="text-3xl font-black tracking-tight mb-2">CONVITE (BANCO OFICIAL)</CardTitle>
+          <CardTitle className="text-3xl font-black tracking-tight mb-2">Seja bem-vindo!</CardTitle>
           <CardDescription className="text-base">
             Você foi convidado para se tornar um {isCompany ? "Lojista Parceiro" : "Entregador Parceiro"}.
             Complete seu cadastro abaixo.
