@@ -34,7 +34,7 @@ export default function CompaniesPage() {
   return (
     <AdminLayout title="Empresas" subtitle="Gerenciamento de empresas parceiras">
       <div className="flex justify-end gap-3 mb-4">
-        <GenerateInviteDialog />
+        <GenerateInviteDialog fixedRole="company" />
         <CreateCompanyDialog />
       </div>
       <div className="rounded-2xl bg-card shadow-card overflow-hidden">
