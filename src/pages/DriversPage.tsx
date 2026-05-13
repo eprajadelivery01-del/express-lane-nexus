@@ -50,7 +50,7 @@ export default function DriversPage() {
       ) : (
         <>
           <div className="flex justify-end gap-3 mb-4">
-            <GenerateInviteDialog />
+            <GenerateInviteDialog fixedRole="driver" />
             <Button onClick={() => setShowNewForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Novo Entregador
