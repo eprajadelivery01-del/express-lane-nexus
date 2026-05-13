@@ -35,6 +35,7 @@ import LojistaCustPage from "./pages/lojista/BusinessCustomersPage";
 import LojistaFinancePage from "./pages/lojista/BusinessFinancePage";
 import LojistaHistoryPage from "./pages/lojista/BusinessHistoryPage";
 import LojistaOrdersPage from "./pages/lojista/BusinessHomePage";
+import { GlobalChatListener } from "@/hooks/useGlobalChatNotifications";
 
 const ReviewsPage = () => <div>Reviews - Em construção</div>;
 
@@ -48,7 +49,8 @@ const App = () => (
       <BrowserRouter>
         <CityProvider>
           <AuthProvider>
-              <Routes>
+            <GlobalChatListener />
+            <Routes>
                  <Route path="/" element={<Navigate to="/admin" replace />} />
                  <Route path="/login" element={<LoginPage />} />
                  <Route path="/terms" element={<TermsPage />} />
