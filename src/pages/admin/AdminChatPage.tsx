@@ -95,19 +95,30 @@ export default function AdminChatPage() {
   const { data: profilesMap } = useQuery({
     queryKey: ["profiles-map-admin"],
     queryFn: async () => {
-      const [{ data: profiles }, { data: companies }] = await Promise.all([
+      const [{ data: profiles }, { data: companies }, { data: drivers }] = await Promise.all([
         supabase.from("profiles").select("user_id, full_name, avatar_url, role"),
         supabase.from("companies").select("user_id, name, logo_url").not("user_id", "is", null),
+        supabase.from("delivery_drivers").select("user_id, full_name, avatar_url"),
       ]);
       
       const map: Record<string, any> = {};
       profiles?.forEach(p => {
-        if (p.user_id) map[p.user_id] = p;
+        if (p.user_id) map[p.user_id] = { ...p };
       });
       companies?.forEach(c => {
-        if (c.user_id && map[c.user_id]) {
+        if (c.user_id) {
+          if (!map[c.user_id]) map[c.user_id] = { user_id: c.user_id };
           map[c.user_id].full_name = c.name;
           map[c.user_id].avatar_url = c.logo_url;
+          map[c.user_id].role = 'company';
+        }
+      });
+      drivers?.forEach(d => {
+        if (d.user_id) {
+          if (!map[d.user_id]) map[d.user_id] = { user_id: d.user_id };
+          map[d.user_id].full_name = d.full_name;
+          map[d.user_id].avatar_url = d.avatar_url;
+          map[d.user_id].role = 'driver';
         }
       });
       return map;
