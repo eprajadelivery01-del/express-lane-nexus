@@ -11,12 +11,8 @@ export function useAdminRealtime() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    console.log("[Realtime] Iniciando canais administrativos...");
-
-    // Unique ID for this session to identify channels in Supabase logs
-    const sessionId = typeof crypto !== 'undefined' && crypto.randomUUID 
-      ? crypto.randomUUID().substring(0, 8) 
-      : Math.random().toString(36).substring(2, 10);
+    // Unique ID for this session
+    const sessionId = Math.random().toString(36).substring(2, 10);
 
     const deliverablesChannel = supabase
       .channel(`admin-deliveries-${sessionId}`)
@@ -24,7 +20,6 @@ export function useAdminRealtime() {
         "postgres_changes",
         { event: "*", schema: "public", table: "deliveries" },
         (payload) => {
-          console.log("[Realtime] Mudança em deliveries:", payload.eventType);
           qc.invalidateQueries({ queryKey: ["deliveries"] });
           qc.invalidateQueries({ queryKey: ["delivery-stats"] });
         }
@@ -58,7 +53,7 @@ export function useAdminRealtime() {
       supabase.removeChannel(driversChannel);
       supabase.removeChannel(notificationsChannel);
     };
-  }, [qc]);
+  }, []); // Run only once on mount
 }
 
 // Deprecated individual hooks
