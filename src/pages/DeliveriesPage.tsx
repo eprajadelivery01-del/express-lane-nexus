@@ -219,7 +219,7 @@ export default function DeliveriesPage() {
           >
             <option value="">Todos entregadores</option>
             {(drivers ?? []).map((d) => (
-              <option key={d.id} value={d.id}>{d.profiles?.full_name || "—"}</option>
+              <option key={d.id} value={d.id}>{d.full_name || "—"}</option>
             ))}
           </select>
         </div>
@@ -495,16 +495,16 @@ export default function DeliveriesPage() {
                       </div>
                       <div>
                         <p className="text-base font-black text-foreground">
-                          {detailDelivery.delivery_drivers?.profiles?.full_name || "Entregador Atribuído"}
+                          {detailDelivery.delivery_drivers?.full_name || "Entregador Atribuído"}
                         </p>
                         <p className="text-xs text-muted-foreground font-bold uppercase tracking-wide">
-                          {detailDelivery.delivery_drivers?.vehicle || "Veículo não inf."}
+                          {detailDelivery.delivery_drivers?.vehicle_type || "Veículo não inf."}
                         </p>
                       </div>
                     </div>
-                    {detailDelivery.delivery_drivers?.profiles?.phone && (
+                    {detailDelivery.delivery_drivers?.phone && (
                       <a
-                        href={`https://wa.me/55${detailDelivery.delivery_drivers.profiles.phone.replace(/\D/g, "")}`}
+                        href={`https://wa.me/55${detailDelivery.delivery_drivers.phone.replace(/\D/g, "")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-black hover:scale-105 active:scale-95 transition-all shadow-lg shadow-green-500/20"
@@ -577,7 +577,7 @@ export default function DeliveriesPage() {
               <option value="">Sem entregador</option>
               {(drivers ?? []).map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.profiles?.full_name || "—"} {d.is_online ? "● Online" : ""}
+                  {d.full_name || "—"} {d.is_online ? "● Online" : ""}
                 </option>
               ))}
             </select>
@@ -641,11 +641,11 @@ export default function DeliveriesPage() {
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                                 <span className="text-xs font-bold text-primary">
-                                  {(driver.profiles?.full_name || "?")[0]}
+                                  {(driver.full_name || "?")[0]}
                                 </span>
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-foreground">{driver.profiles?.full_name || "—"}</p>
+                                <p className="text-sm font-medium text-foreground">{driver.full_name || "—"}</p>
                                 <p className="text-xs text-muted-foreground">{driver.vehicle_type}</p>
                               </div>
                             </div>

@@ -16,7 +16,6 @@ export type DriverWithProfile = {
   avatar_url?: string | null;
   status?: string | null;
   created_at?: string;
-  profiles?: { full_name: string; phone: string | null; avatar_url: string | null } | null;
 };
 
 export async function fetchDrivers() {
@@ -98,10 +97,15 @@ export function useOnlineDrivers() {
         return drivers as unknown as DriverWithProfile[];
       }
 
-      return drivers.map(driver => ({
-        ...driver,
-        profiles: profiles?.find(p => p.user_id === driver.user_id) || null
-      })) as unknown as DriverWithProfile[];
+      return (drivers || []).map(driver => {
+        const profile = profiles?.find(p => p.user_id === driver.user_id);
+        return {
+          ...driver,
+          full_name: profile?.full_name || driver.full_name || "—",
+          avatar_url: profile?.avatar_url || driver.avatar_url,
+          phone: profile?.phone || driver.phone,
+        };
+      }) as unknown as DriverWithProfile[];
     },
   });
 }

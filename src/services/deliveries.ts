@@ -38,8 +38,10 @@ export interface DeliveryWithRelations {
   delivery_drivers?: { 
     id: string; 
     user_id: string; 
-    vehicle: string;
-    profiles?: { full_name: string; phone: string | null } | null;
+    full_name: string;
+    phone: string | null;
+    vehicle_type: string | null;
+    vehicle_plate: string | null;
   } | null;
   pickup_latitude?: number | null;
   pickup_longitude?: number | null;
@@ -76,7 +78,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
         .select(`
           *,
           companies(name, phone),
-          delivery_drivers(id, user_id, vehicle, profiles(full_name, phone))
+          delivery_drivers(id, user_id, full_name, phone, vehicle_type, vehicle_plate)
         `, { count: "exact" })
         .order("created_at", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
