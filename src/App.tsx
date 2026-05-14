@@ -60,6 +60,7 @@ const App = () => (
                  {/* Admin Routes */}
                  <Route path="/admin" element={<PageTransition><ProtectedRoute requiredRole="admin"><DashboardPage /></ProtectedRoute></PageTransition>} />
                  <Route path="/admin/deliveries" element={<PageTransition><ProtectedRoute requiredRole="admin"><DeliveriesPage /></ProtectedRoute></PageTransition>} />
+                 <Route path="/admin/corridas" element={<Navigate to="/admin/deliveries" replace />} />
                  <Route path="/admin/map" element={<Navigate to="/admin/regions" replace />} />
                  <Route path="/admin/companies" element={<PageTransition><ProtectedRoute requiredRole="admin"><CompaniesPage /></ProtectedRoute></PageTransition>} />
                  <Route path="/admin/drivers" element={<PageTransition><ProtectedRoute requiredRole="admin"><DriversPage /></ProtectedRoute></PageTransition>} />
