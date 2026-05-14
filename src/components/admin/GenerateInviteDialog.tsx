@@ -19,6 +19,14 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const getInviteBaseUrl = (inviteRole: "driver" | "company") => {
+    if (inviteRole === "driver") {
+      return "https://entregador.eprajadelivery.com";
+    }
+
+    return window.location.origin;
+  };
+
   const generateLink = async () => {
     setLoading(true);
     try {
@@ -39,7 +47,8 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/invite/${token}`;
+      const inviteRole = fixedRole || role;
+      const link = `${getInviteBaseUrl(inviteRole)}/invite/${token}`;
       setInviteLink(link);
       toast.success("Link de convite gerado!");
     } catch (err: any) {
