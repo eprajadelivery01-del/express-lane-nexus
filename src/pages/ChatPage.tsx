@@ -135,6 +135,7 @@ export default function ChatPage() {
               <div className="p-8 text-center text-sm text-muted-foreground italic">Nenhuma conversa ativa</div>
             ) : conversations?.map((conv) => {
               const profile = profiles?.[conv.participants.find((p: string) => p !== user?.id)];
+              const lastMsg = (conv as any).last_message;
               return (
                 <button
                   key={conv.id}
