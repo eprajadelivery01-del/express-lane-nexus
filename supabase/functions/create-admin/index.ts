@@ -134,6 +134,8 @@ Deno.serve(async (req) => {
     if (role === "driver") {
       await supabase.from("delivery_drivers").insert({
         user_id: userId,
+        full_name: fullName || "",
+        phone: phone || null,
         vehicle: vehicle || "motorcycle",
         license_plate: licensePlate || null,
         commission_rate: commissionRate ?? 15,
