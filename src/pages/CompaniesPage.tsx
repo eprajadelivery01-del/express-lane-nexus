@@ -33,9 +33,15 @@ export default function CompaniesPage() {
 
   return (
     <AdminLayout title="Empresas" subtitle="Gerenciamento de empresas parceiras">
-      <div className="flex justify-end gap-3 mb-4">
-        <GenerateInviteDialog fixedRole="company" />
-        <CreateCompanyDialog />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-card/50 p-4 rounded-2xl border border-border/50">
+        <div className="space-y-1">
+          <h2 className="text-lg font-bold text-foreground">Gerenciamento</h2>
+          <p className="text-xs text-muted-foreground">Convide novas empresas ou cadastre manualmente</p>
+        </div>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <GenerateInviteDialog fixedRole="company" triggerLabel="Gerar Link de Convite" />
+          <CreateCompanyDialog />
+        </div>
       </div>
       <div className="rounded-2xl bg-card shadow-card overflow-hidden">
         <div className="overflow-x-auto">
