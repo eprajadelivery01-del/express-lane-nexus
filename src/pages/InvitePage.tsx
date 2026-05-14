@@ -111,13 +111,10 @@ export default function InvitePage() {
       console.log("Cadastro realizado com sucesso, redirecionando...");
       toast.success("Cadastro realizado com sucesso!");
       
-      // 2. Redirect to appropriate dashboard after a short delay
-      const redirectUrl = invitation.role === "company" 
-        ? "https://lojista.eprajadelivery.com/business" 
-        : "https://entregador.eprajadelivery.com";
-      
+      // 2. Redirect to appropriate dashboard (same origin) after a short delay
+      const redirectPath = invitation.role === "company" ? "/business" : "/";
       setTimeout(() => {
-        window.location.href = redirectUrl;
+        window.location.href = redirectPath;
       }, 3000);
 
     } catch (err: any) {
