@@ -39,7 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserData = async (userId: string, forceEmail?: string) => {
     if (fetchingRef.current === userId) return;
     fetchingRef.current = userId;
-    setRolesLoaded(false);
+    // Only reset rolesLoaded if it's the very first time we are fetching
+    if (!rolesLoaded) {
+      setRolesLoaded(false);
+    }
     
     try {
       const userEmail = forceEmail?.toLowerCase();
@@ -133,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log(`[Auth] event: ${event}`);
         }
 
-        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "USER_UPDATED") {
+        if (event === "SIGNED_IN" || event === "USER_UPDATED") {
           const currentUser = session?.user;
           setSession(session);
           setUser(currentUser ?? null);
@@ -145,6 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setRolesLoaded(true);
             setLoading(false);
           }
+        } else if (event === "TOKEN_REFRESHED") {
+          // Ignore token refreshed events to prevent infinite reload loops
+          return;
         } else if (event === "SIGNED_OUT") {
           setSession(null);
           setUser(null);
