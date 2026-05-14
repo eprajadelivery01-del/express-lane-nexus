@@ -45,10 +45,7 @@ export default function DriversPage() {
 
   return (
     <AdminLayout title="Entregadores" subtitle="Gerenciamento de motoboys">
-      {showNewForm ? (
-        <CreateDriverDialog />
-      ) : (
-        <>
+      <>
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 bg-card/50 p-4 rounded-2xl border border-border/50">
         <div className="space-y-1">
           <h2 className="text-lg font-bold text-foreground">Gerenciamento</h2>
@@ -56,6 +53,10 @@ export default function DriversPage() {
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <GenerateInviteDialog fixedRole="driver" triggerLabel="Gerar Link de Convite" />
+          <CreateDriverDialog 
+            open={showNewForm} 
+            onOpenChange={setShowNewForm} 
+          />
           <Button onClick={() => setShowNewForm(true)} className="flex-1 sm:flex-none">
             <Plus className="w-4 h-4 mr-2" />
             Novo Entregador
