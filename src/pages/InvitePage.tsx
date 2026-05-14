@@ -113,8 +113,8 @@ export default function InvitePage() {
       
       // 2. Redirect to appropriate dashboard after a short delay
       const redirectUrl = invitation.role === "company" 
-        ? "/business" 
-        : "https://motoboy.epraja.com.br";
+        ? "https://lojista.eprajadelivery.com/business" 
+        : "https://entregador.eprajadelivery.com";
       
       setTimeout(() => {
         window.location.href = redirectUrl;
