@@ -144,8 +144,7 @@ export default function DriversPage() {
           onOpenChange={(open) => !open && setEditingDriver(null)}
         />
       )}
-        </>
-      )}
+      </>
     </AdminLayout>
   );
 }
