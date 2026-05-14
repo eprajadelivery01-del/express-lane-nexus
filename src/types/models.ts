@@ -1,6 +1,6 @@
 export type DeliveryStatus = "pending" | "broadcasted" | "accepted" | "collecting" | "in_transit" | "delivered" | "cancelled" | "returned";
 
-export type OccurrenceType = "delay" | "damage" | "absence" | "other";
+export type OccurrenceType = "motorcycle_issue" | "accident" | "robbery" | "delay" | "damage" | "absence" | "other";
 
 export type UserRole = "admin" | "company" | "driver" | "customer";
 

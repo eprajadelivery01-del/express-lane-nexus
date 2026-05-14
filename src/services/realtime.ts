@@ -56,6 +56,43 @@ export function useAdminRealtime() {
   }, []); // Run only once on mount
 }
 
+/**
+ * useDriverRealtime
+ * Notification system for the Driver App.
+ */
+export function useDriverRealtime() {
+  const qc = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`driver-deliveries-${Math.random()}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "deliveries" },
+        (payload) => {
+          const newDel = payload.new as any;
+          if (newDel.status === "pending" || newDel.status === "broadcasted") {
+            // Play sound if enabled
+            if (sessionStorage.getItem("sound_enabled") === "true") {
+              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+              audio.volume = 0.8;
+              audio.play().catch(e => console.warn("Erro ao tocar áudio:", e));
+            }
+          }
+          qc.invalidateQueries({ queryKey: ["deliveries"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "deliveries" },
+        () => qc.invalidateQueries({ queryKey: ["deliveries"] })
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
+}
+
 // Deprecated individual hooks
 export function useDeliveriesRealtime() {}
 export function useDriversRealtime() {}

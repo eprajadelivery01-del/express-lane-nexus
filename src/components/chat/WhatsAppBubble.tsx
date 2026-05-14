@@ -1,6 +1,6 @@
+import React from "react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
-import { CheckCheck } from "lucide-react";
 
 interface WhatsAppBubbleProps {
   content: string;
@@ -12,25 +12,36 @@ interface WhatsAppBubbleProps {
 export function WhatsAppBubble({ content, timestamp, isMe, showTail = true }: WhatsAppBubbleProps) {
   return (
     <div className={cn(
-      "flex w-full mb-1",
+      "flex w-full mb-1 animate-in fade-in slide-in-from-bottom-1 duration-300",
       isMe ? "justify-end" : "justify-start"
     )}>
       <div className={cn(
-        "relative max-w-[85%] px-3 py-1.5 shadow-sm min-w-[80px]",
+        "relative max-w-[85%] md:max-w-[70%] px-3 py-1.5 rounded-xl shadow-sm",
         isMe 
-          ? "bg-[#dcf8c6] dark:bg-[#005c4b] text-foreground rounded-2xl rounded-tr-none" 
-          : "bg-white dark:bg-[#202c33] text-foreground rounded-2xl rounded-tl-none",
-        showTail && isMe && "after:content-[''] after:absolute after:top-0 after:-right-2 after:border-[10px] after:border-t-[#dcf8c6] dark:after:border-t-[#005c4b] after:border-r-transparent after:border-b-transparent after:border-l-transparent",
-        showTail && !isMe && "before:content-[''] before:absolute before:top-0 before:-left-2 before:border-[10px] before:border-t-white dark:before:border-t-[#202c33] after:border-r-transparent after:border-b-transparent after:border-l-transparent"
+          ? "bg-[#d9fdd3] dark:bg-[#005c4b] rounded-tr-none text-[#111b21] dark:text-[#e9edef]" 
+          : "bg-white dark:bg-[#202c33] rounded-tl-none text-[#111b21] dark:text-[#e9edef]",
+        !showTail && (isMe ? "rounded-tr-xl" : "rounded-tl-xl")
       )}>
-        <p className="text-[0.9rem] leading-snug whitespace-pre-wrap pb-1 pr-12">{content}</p>
+        {showTail && (
+          <div className={cn(
+            "absolute top-0 w-3 h-3",
+            isMe 
+              ? "-right-2 bg-[#d9fdd3] dark:bg-[#005c4b] [clip-path:polygon(0_0,0_100%,100%_0)]" 
+              : "-left-2 bg-white dark:bg-[#202c33] [clip-path:polygon(100%_0,100%_100%,0_0)]"
+          )} />
+        )}
         
-        <div className="absolute bottom-1 right-2 flex items-center gap-1">
-          <span className="text-[0.65rem] opacity-50 font-medium">
+        <p className="text-[13.5px] leading-relaxed whitespace-pre-wrap break-words">{content}</p>
+        
+        <div className="flex justify-end items-center gap-1 mt-0.5">
+          <span className="text-[10px] opacity-50 font-medium">
             {format(new Date(timestamp), "HH:mm")}
           </span>
           {isMe && (
-            <CheckCheck className="h-3 w-3 text-sky-500" />
+            <div className="flex -space-x-1">
+              <span className="text-[10px] text-blue-500 font-bold">✓</span>
+              <span className="text-[10px] text-blue-500 font-bold">✓</span>
+            </div>
           )}
         </div>
       </div>

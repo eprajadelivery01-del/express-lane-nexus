@@ -3,7 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import { Home, Truck, AlertTriangle, User, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
-import { useAllRealtime } from "@/services/realtime";
+import { useDriverRealtime } from "@/services/realtime";
+import { SoundEnabler } from "@/components/shared/SoundEnabler";
 
 const tabs = [
   { label: "Início", icon: Home, href: "/driver" },
@@ -18,8 +19,8 @@ interface DriverLayoutProps {
 }
 
 export function DriverLayout({ children, title }: DriverLayoutProps) {
-  // Activate global realtime listeners
-  useAllRealtime();
+  // Activate driver realtime listeners
+  useDriverRealtime();
 
   const location = useLocation();
   const { signOut, profile } = useAuth();
@@ -42,6 +43,7 @@ export function DriverLayout({ children, title }: DriverLayoutProps) {
       {/* Content */}
       <main className="flex-1 p-4 pb-20">
         {children}
+        <SoundEnabler />
       </main>
 
       {/* Bottom nav - mobile */}

@@ -103,3 +103,46 @@ export function useSendMessage() {
     },
   });
 }
+
+/**
+ * Funções Adicionais para Chat Direto (Entregador/Admin)
+ */
+export async function getAdminId() {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("role", "admin")
+    .limit(1)
+    .single();
+  
+  if (error) {
+    console.error("Erro ao buscar Admin ID:", error);
+    return null;
+  }
+  return data.user_id;
+}
+
+export async function getDirectConversation(user1: string, user2: string) {
+  // Tenta encontrar conversa existente
+  const { data: existing } = await supabase
+    .from("conversations")
+    .select("*")
+    .contains("participants", [user1, user2])
+    .is("order_id", null)
+    .maybeSingle();
+  
+  if (existing) return existing;
+
+  // Cria nova
+  const { data: created, error } = await supabase
+    .from("conversations")
+    .insert({
+      participants: [user1, user2],
+      updated_at: new Date().toISOString()
+    })
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return created;
+}

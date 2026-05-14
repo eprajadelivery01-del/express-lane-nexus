@@ -24,6 +24,12 @@ import { PageTransition } from "@/components/shared/PageTransition";
 import AdminChatPage from "./pages/admin/AdminChatPage";
 import CompaniesPage from "./pages/CompaniesPage";
 
+// Driver (Entregador) pages
+import DriverHomePage from "./pages/driver/DriverHomePage";
+import DriverDeliveriesPage from "./pages/driver/DriverDeliveriesPage";
+import DriverOccurrencesPage from "./pages/driver/DriverOccurrencesPage";
+import DriverChatPage from "./pages/driver/DriverChatPage";
+
 // Lojista (business) pages
 import BusinessHomePage from "./pages/business/BusinessHomePage";
 import BusinessProductsPage from "./pages/business/BusinessProductsPage";
@@ -80,6 +86,12 @@ const App = () => (
                  <Route path="/business/customers" element={<PageTransition><ProtectedRoute requiredRole="company"><LojistaCustPage /></ProtectedRoute></PageTransition>} />
                  <Route path="/business/finance" element={<PageTransition><ProtectedRoute requiredRole="company"><LojistaFinancePage /></ProtectedRoute></PageTransition>} />
                  <Route path="/business/history" element={<PageTransition><ProtectedRoute requiredRole="company"><LojistaHistoryPage /></ProtectedRoute></PageTransition>} />
+
+                 {/* Driver (Entregador) Routes */}
+                 <Route path="/driver" element={<PageTransition><ProtectedRoute requiredRole="driver"><DriverHomePage /></ProtectedRoute></PageTransition>} />
+                 <Route path="/driver/deliveries" element={<PageTransition><ProtectedRoute requiredRole="driver"><DriverDeliveriesPage /></ProtectedRoute></PageTransition>} />
+                 <Route path="/driver/occurrences" element={<PageTransition><ProtectedRoute requiredRole="driver"><DriverOccurrencesPage /></ProtectedRoute></PageTransition>} />
+                 <Route path="/driver/chat" element={<PageTransition><ProtectedRoute requiredRole="driver"><DriverChatPage /></ProtectedRoute></PageTransition>} />
 
                  <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
             </Routes>

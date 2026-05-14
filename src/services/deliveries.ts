@@ -35,7 +35,23 @@ export interface DeliveryWithRelations {
   cancellation_reason: string | null;
   created_at: string;
   updated_at: string | null;
-  companies?: { name: string; phone: string | null } | null;
+  delivery_drivers?: { 
+    id: string; 
+    user_id: string; 
+    vehicle: string;
+    profiles?: { full_name: string; phone: string | null } | null;
+  } | null;
+  pickup_latitude?: number | null;
+  pickup_longitude?: number | null;
+  dropoff_address?: string | null;
+  dropoff_latitude?: number | null;
+  dropoff_longitude?: number | null;
+  accepted_at?: string | null;
+  collected_at?: string | null;
+  delivered_at?: string | null;
+  cancelled_at?: string | null;
+  picked_up_at?: string | null;
+  region_name?: string | null;
 }
 
 interface UseDeliveriesParams {
@@ -57,12 +73,19 @@ export function useDeliveries(params?: UseDeliveriesParams) {
     queryFn: async () => {
       let query = supabase
         .from("deliveries")
-        .select("*, companies(name, phone)", { count: "exact" })
+        .select(`
+          *,
+          companies(name, phone),
+          delivery_drivers(id, user_id, vehicle, profiles(full_name, phone))
+        `, { count: "exact" })
         .order("created_at", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
       if (status && status !== "all") query = query.eq("status", status as any);
-      if (search) query = query.ilike("customer_name", `%${search}%`);
+      
+      if (search) {
+        query = query.or(`customer_name.ilike.%${search}%,address.ilike.%${search}%,dropoff_address.ilike.%${search}%`);
+      }
       if (companyId) query = query.eq("company_id", companyId);
       if (driverId) query = query.eq("driver_id", driverId);
       if (dateFrom) query = query.gte("created_at", new Date(dateFrom).toISOString());
