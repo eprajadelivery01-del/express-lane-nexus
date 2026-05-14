@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { UserPlus, Copy, Check, Link as LinkIcon } from "lucide-react";
+import { UserPlus, Copy, Check } from "lucide-react";
+import { buildInviteLink } from "@/lib/invites";
 
 interface GenerateInviteDialogProps {
   fixedRole?: "driver" | "company";
@@ -18,14 +19,6 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
   const [role, setRole] = useState<"driver" | "company">(fixedRole || "driver");
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-
-  const getInviteBaseUrl = (inviteRole: "driver" | "company") => {
-    if (inviteRole === "driver") {
-      return "https://entregador.eprajadelivery.com";
-    }
-
-    return window.location.origin;
-  };
 
   const generateLink = async () => {
     setLoading(true);
@@ -48,7 +41,7 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
       if (error) throw error;
 
       const inviteRole = fixedRole || role;
-      const link = `${getInviteBaseUrl(inviteRole)}/invite/${token}`;
+      const link = buildInviteLink(token, inviteRole);
       setInviteLink(link);
       toast.success("Link de convite gerado!");
     } catch (err: any) {
