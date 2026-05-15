@@ -267,10 +267,11 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-8">
-          <div className="max-w-7xl mx-auto space-y-6 pb-20 lg:pb-0">
+        <main className="flex-1 overflow-y-auto custom-scrollbar p-4 lg:p-8 flex flex-col">
+          <div className="max-w-7xl mx-auto space-y-6 pb-10 flex-1">
             {children}
           </div>
+
         </main>
       </div>
 

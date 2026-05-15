@@ -41,8 +41,11 @@ export function DriverLayout({ children, title }: DriverLayoutProps) {
       </header>
 
       {/* Content */}
-      <main className="flex-1 p-4 pb-20">
-        {children}
+      <main className="flex-1 p-4 pb-20 flex flex-col">
+        <div className="flex-1">
+          {children}
+        </div>
+
         <SoundEnabler />
       </main>
 
