@@ -59,6 +59,7 @@ interface UseDeliveriesParams {
   dateTo?: string;
   pageSize?: number;
   page?: number;
+  enabled?: boolean;
 }
 
 export function useDeliveries(params?: UseDeliveriesParams) {
