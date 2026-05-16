@@ -1940,6 +1940,20 @@ export type Database = {
       }
     }
     Functions: {
+      create_order_v3: {
+        Args: {
+          p_address_id: string
+          p_change_for?: number
+          p_company_id: string
+          p_coupon_code?: string
+          p_idempotency_key?: string
+          p_items: Json
+          p_needs_change?: boolean
+          p_notes?: string
+          p_payment_method: string
+        }
+        Returns: Json
+      }
       find_region_for_point: {
         Args: { _lat: number; _lng: number }
         Returns: {
@@ -1949,6 +1963,7 @@ export type Database = {
           region_price: number
         }[]
       }
+      fix_user_permissions: { Args: never; Returns: Json }
       get_business_orders_v2: { Args: { p_company_id: string }; Returns: Json }
       get_delivery_price: {
         Args: { lat: number; lng: number }
