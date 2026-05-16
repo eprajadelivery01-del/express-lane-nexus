@@ -16,6 +16,11 @@ export type DriverWithProfile = {
   avatar_url?: string | null;
   status?: string | null;
   created_at?: string;
+  profiles?: {
+    full_name?: string | null;
+    phone?: string | null;
+    avatar_url?: string | null;
+  } | null;
 };
 
 export async function fetchDrivers() {
