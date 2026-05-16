@@ -35,24 +35,18 @@ export interface DeliveryWithRelations {
   cancellation_reason: string | null;
   created_at: string;
   updated_at: string | null;
-  delivery_drivers?: { 
-    id: string; 
-    user_id: string; 
+  delivery_drivers?: {
+    id: string;
+    user_id: string;
     full_name: string;
     phone: string | null;
     vehicle_type: string | null;
     vehicle_plate: string | null;
   } | null;
-  pickup_latitude?: number | null;
-  pickup_longitude?: number | null;
-  dropoff_address?: string | null;
-  dropoff_latitude?: number | null;
-  dropoff_longitude?: number | null;
-  accepted_at?: string | null;
-  collected_at?: string | null;
-  delivered_at?: string | null;
-  cancelled_at?: string | null;
-  picked_up_at?: string | null;
+  companies?: {
+    name: string | null;
+    phone: string | null;
+  } | null;
   region_name?: string | null;
 }
 
