@@ -15,7 +15,7 @@ export function useOccurrences(driverId?: string) {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as (Occurrence & { deliveries: { customer_name: string } | null })[];
+      return (data as unknown) as (Occurrence & { deliveries: { customer_name: string } | null })[];
     },
     enabled: !!driverId,
   });
@@ -24,13 +24,14 @@ export function useOccurrences(driverId?: string) {
 export function useReportOccurrence() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (occurrence: Omit<Occurrence, "id" | "created_at" | "updated_at" | "status">) => {
+    mutationFn: async (occurrence: { driver_id: string; delivery_id: string | null; type: OccurrenceType; description: string }) => {
       const { error } = await supabase.from("occurrences").insert([
         {
           ...occurrence,
+          type: occurrence.type as any,
           status: "pending",
           updated_at: new Date().toISOString(),
-        },
+        } as any,
       ]);
       if (error) throw error;
     },
