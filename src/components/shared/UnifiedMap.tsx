@@ -282,7 +282,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
             white-space: nowrap;
             z-index: 3;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-          ">${escapeHtml(driver.profiles?.full_name?.split(" ")[0] || "Entregador")}</div>
+          ">${escapeHtml(driver.full_name?.split(" ")[0] || "Entregador")}</div>
         </div>
         
         <style>
@@ -306,7 +306,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
               <img src="/logo.png" style="width: 28px; height: 28px; object-fit: contain;" />
             </div>
             <div>
-              <div style="font-size: 15px; font-weight: 800; color: #111827;">${escapeHtml(driver.profiles?.full_name || "Entregador")}</div>
+              <div style="font-size: 15px; font-weight: 800; color: #111827;">${escapeHtml(driver.full_name || "Entregador")}</div>
               <div style="font-size: 12px; color: #22c55e; font-weight: 600; display: flex; align-items: center; gap: 4px;">
                 <div style="width: 6px; height: 6px; border-radius: 50%; background: #22c55e;"></div>
                 Em Rota de Entrega
@@ -315,7 +315,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
           </div>
           
           <div style="display: grid; grid-template-cols: 1fr; gap: 8px;">
-            <a href="https://wa.me/${encodeURIComponent(driver.profiles?.phone?.replace(/\D/g, "") || "")}" target="_blank" style="
+            <a href="https://wa.me/${encodeURIComponent(driver.phone?.replace(/\D/g, "") || "")}" target="_blank" style="
               text-decoration: none;
               background: #25D366;
               color: white;

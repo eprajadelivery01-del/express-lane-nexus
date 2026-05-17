@@ -15,7 +15,7 @@ export function MotoboysSidebar() {
   const online = allDrivers.filter((d) => d.is_online);
   const offline = allDrivers.filter((d) => !d.is_online);
   const list = (tab === "online" ? online : offline).filter((d) =>
-    !search || (d.profiles?.full_name || "").toLowerCase().includes(search.toLowerCase())
+    !search || (d.full_name || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -117,8 +117,8 @@ export function MotoboysSidebar() {
                           "w-9 h-9 rounded-xl flex items-center justify-center text-sm border overflow-hidden",
                           isOn ? "bg-success/5 border-success/20" : "bg-muted border-border grayscale"
                         )}>
-                          {driver.profiles?.avatar_url ? (
-                            <img src={driver.profiles.avatar_url} alt="" className="h-full w-full object-cover" />
+                          {driver.avatar_url ? (
+                            <img src={driver.avatar_url} alt="" className="h-full w-full object-cover" />
                           ) : "🏍️"}
                         </div>
                         <span className={cn(
@@ -128,7 +128,7 @@ export function MotoboysSidebar() {
                       </div>
                       <div className="min-w-0">
                         <p className="text-xs font-bold text-foreground truncate group-hover:text-primary transition-colors">
-                          {driver.profiles?.full_name || "—"}
+                          {driver.full_name || "—"}
                         </p>
                         <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
                           {driver.vehicle_type || "motorcycle"}

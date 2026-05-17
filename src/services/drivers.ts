@@ -40,7 +40,7 @@ export async function fetchDrivers() {
   const userIds = (drivers || []).map(d => d.user_id);
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("user_id, full_name, phone, avatar_url")
+    .select("user_id, full_name, phone, avatar_url, document")
     .in("user_id", userIds);
 
   // Merge and Flatten delivery_drivers
@@ -51,6 +51,7 @@ export async function fetchDrivers() {
       full_name: profile?.full_name || driver.full_name || "—",
       avatar_url: profile?.avatar_url || driver.avatar_url,
       phone: profile?.phone || driver.phone,
+      document: profile?.document || driver.document,
     };
   });
 
@@ -94,7 +95,7 @@ export function useOnlineDrivers() {
       
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("user_id, full_name, phone, avatar_url")
+        .select("user_id, full_name, phone, avatar_url, document")
         .in("user_id", userIds);
 
       if (profilesError) {
@@ -109,6 +110,7 @@ export function useOnlineDrivers() {
           full_name: profile?.full_name || driver.full_name || "—",
           avatar_url: profile?.avatar_url || driver.avatar_url,
           phone: profile?.phone || driver.phone,
+          document: profile?.document || driver.document,
         };
       }) as unknown as DriverWithProfile[];
     },
