@@ -2,6 +2,25 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { DeliveryStatus } from "@/types/models";
 
+const APP_TO_DB_STATUS: Record<string, string> = {
+  delivered: "completed",
+  in_transit: "in_route",
+};
+
+const DB_TO_APP_STATUS: Record<string, DeliveryStatus> = {
+  completed: "delivered",
+  in_route: "in_transit",
+  in_transit: "in_transit" as any,
+};
+
+function toDbStatus(status: string) {
+  return APP_TO_DB_STATUS[status] ?? status;
+}
+
+function toAppStatus(status: string) {
+  return (DB_TO_APP_STATUS[status] ?? status) as DeliveryStatus;
+}
+
 export interface DeliveryWithRelations {
   id: string;
   company_id: string | null;
@@ -78,7 +97,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
         .order("created_at", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (status && status !== "all") query = query.eq("status", status as any);
+      if (status && status !== "all") query = query.eq("status", toDbStatus(status) as any);
       
       if (search) {
         query = query.or(`customer_name.ilike.%${search}%,address.ilike.%${search}%,dropoff_address.ilike.%${search}%`);
@@ -94,7 +113,14 @@ export function useDeliveries(params?: UseDeliveriesParams) {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      return { data: (data ?? []) as unknown as DeliveryWithRelations[], count: count || 0 };
+
+      const normalizedData = (data ?? []).map((delivery: any) => ({
+        ...delivery,
+        status: toAppStatus(delivery.status),
+        delivered_at: delivery.delivered_at ?? delivery.completed_at ?? null,
+      }));
+
+      return { data: normalizedData as unknown as DeliveryWithRelations[], count: count || 0 };
     },
   });
 }
@@ -114,14 +140,19 @@ export function useDeliveryStats() {
       if (todayRes.error) throw todayRes.error;
       const data = todayRes.data;
 
+      const normalizedData = data.map((d) => ({
+        ...d,
+        status: toAppStatus(d.status),
+      }));
+
       return {
-        today: data.length,
+        today: normalizedData.length,
         total: totalRes.count ?? 0,
-        pending: data.filter((d) => d.status === "pending").length,
-        inTransit: data.filter((d) => d.status === "in_transit" || d.status === "collecting").length,
-        delivered: data.filter((d) => d.status === "delivered" || d.status === "completed").length,
-        cancelled: data.filter((d) => d.status === "cancelled").length,
-        todayRevenue: data.filter((d) => d.status === "delivered" || d.status === "completed").reduce((sum, d) => sum + Number(d.price ?? 0), 0),
+        pending: normalizedData.filter((d) => d.status === "pending").length,
+        inTransit: normalizedData.filter((d) => d.status === "in_transit" || d.status === "collecting").length,
+        delivered: normalizedData.filter((d) => d.status === "delivered").length,
+        cancelled: normalizedData.filter((d) => d.status === "cancelled").length,
+        todayRevenue: normalizedData.filter((d) => d.status === "delivered").reduce((sum, d) => sum + Number(d.price ?? 0), 0),
       };
     },
     refetchInterval: 30000,
@@ -132,13 +163,49 @@ export function useUpdateDeliveryStatus() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: DeliveryStatus }) => {
-      const updates: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
-      if (status === "accepted") updates.accepted_at = new Date().toISOString();
-      if (status === "collecting") updates.collected_at = new Date().toISOString();
-      if (status === "delivered") updates.delivered_at = new Date().toISOString();
-      if (status === "cancelled") updates.cancelled_at = new Date().toISOString();
-      const { error } = await supabase.from("deliveries").update(updates as any).eq("id", id);
-      if (error) throw error;
+      const now = new Date().toISOString();
+      const dbStatus = toDbStatus(status);
+
+      const updates: Record<string, unknown> = { status: dbStatus, updated_at: now };
+      if (status === "accepted") updates.accepted_at = now;
+      if (status === "collecting") updates.collected_at = now;
+      if (status === "delivered") {
+        updates.completed_at = now;
+      }
+      if (status === "cancelled") updates.cancelled_at = now;
+      
+      let { error } = await supabase.from("deliveries").update(updates as any).eq("id", id);
+      
+      // Fallback try with delivered_at if completed_at failed (in case of schema variations)
+      if (error) {
+        console.warn("Update with completed_at failed, trying with delivered_at:", error);
+        const fallbackUpdates: Record<string, unknown> = { status: dbStatus, updated_at: now };
+        if (status === "accepted") fallbackUpdates.accepted_at = now;
+        if (status === "collecting") fallbackUpdates.collected_at = now;
+        if (status === "delivered") fallbackUpdates.delivered_at = now;
+        if (status === "cancelled") fallbackUpdates.cancelled_at = now;
+        
+        const fallbackRes = await supabase.from("deliveries").update(fallbackUpdates as any).eq("id", id);
+        if (fallbackRes.error) {
+          throw error; // throw the original error if both failed
+        }
+      }
+
+      // Update linked order status to keep customer/merchant informed
+      let orderStatus = "";
+      if (status === "accepted") orderStatus = "confirmed";
+      if (status === "collecting") orderStatus = "preparing";
+      if (status === "in_transit") orderStatus = "delivering";
+      if (status === "delivered") orderStatus = "delivered";
+      if (status === "cancelled") orderStatus = "cancelled";
+
+      if (orderStatus) {
+        const { error: orderError } = await supabase
+          .from("orders")
+          .update({ status: orderStatus as any })
+          .eq("delivery_id", id);
+        if (orderError) console.error("Error updating order status:", orderError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
