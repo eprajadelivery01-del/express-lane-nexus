@@ -143,7 +143,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (currentUser) {
             const email = currentUser.email?.toLowerCase();
-            fetchUserData(currentUser.id, email);
+            // Defer load of user data to allow gotrue-js to release auth locks first, preventing deadlock
+            setTimeout(() => {
+              if (!mounted) return;
+              fetchUserData(currentUser.id, email);
+            }, 0);
           } else {
             setRolesLoaded(true);
             setLoading(false);
