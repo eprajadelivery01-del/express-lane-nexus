@@ -53,7 +53,7 @@ export default function AdminChatPage() {
     queryFn: async () => {
       const [{ data: companies }, { data: drivers }, { data: profiles }] = await Promise.all([
         supabase.from("companies").select("user_id, name, logo_url").not("user_id", "is", null),
-        supabase.from("delivery_drivers").select("user_id, full_name, avatar_url"),
+        supabase.from("delivery_drivers").select("user_id"),
         supabase.from("profiles").select("user_id, full_name, avatar_url, role"),
       ]);
 
@@ -69,7 +69,13 @@ export default function AdminChatPage() {
 
       drivers?.forEach((d) => {
         if (d.user_id && !seen.has(d.user_id)) {
-          list.push({ user_id: d.user_id, full_name: d.full_name, avatar_url: d.avatar_url, type: "driver" });
+          const profile = profiles?.find((p) => p.user_id === d.user_id);
+          list.push({
+            user_id: d.user_id,
+            full_name: profile?.full_name || "Entregador",
+            avatar_url: profile?.avatar_url || null,
+            type: "driver",
+          });
           seen.add(d.user_id);
         }
       });
@@ -98,7 +104,7 @@ export default function AdminChatPage() {
       const [{ data: profiles }, { data: companies }, { data: drivers }] = await Promise.all([
         supabase.from("profiles").select("user_id, full_name, avatar_url, role"),
         supabase.from("companies").select("user_id, name, logo_url").not("user_id", "is", null),
-        supabase.from("delivery_drivers").select("user_id, full_name, avatar_url"),
+        supabase.from("delivery_drivers").select("user_id"),
       ]);
       
       const map: Record<string, any> = {};
@@ -115,9 +121,10 @@ export default function AdminChatPage() {
       });
       drivers?.forEach(d => {
         if (d.user_id) {
+          const profile = profiles?.find((p) => p.user_id === d.user_id);
           if (!map[d.user_id]) map[d.user_id] = { user_id: d.user_id };
-          map[d.user_id].full_name = d.full_name;
-          map[d.user_id].avatar_url = d.avatar_url;
+          map[d.user_id].full_name = profile?.full_name || map[d.user_id].full_name || "Entregador";
+          map[d.user_id].avatar_url = profile?.avatar_url || map[d.user_id].avatar_url || null;
           map[d.user_id].role = 'driver';
         }
       });

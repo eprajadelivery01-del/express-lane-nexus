@@ -92,7 +92,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
         .select(`
           *,
           companies(name, phone),
-          delivery_drivers(id, user_id, full_name, phone, vehicle_type, vehicle_plate)
+          delivery_drivers(id, user_id, vehicle, profiles(full_name, phone))
         `, { count: "exact" })
         .order("created_at", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
@@ -114,11 +114,27 @@ export function useDeliveries(params?: UseDeliveriesParams) {
       const { data, error, count } = await query;
       if (error) throw error;
 
-      const normalizedData = (data ?? []).map((delivery: any) => ({
-        ...delivery,
-        status: toAppStatus(delivery.status),
-        delivered_at: delivery.delivered_at ?? delivery.completed_at ?? null,
-      }));
+      const normalizedData = (data ?? []).map((delivery: any) => {
+        const rawDriver = delivery.delivery_drivers;
+        let normalizedDriver = null;
+        if (rawDriver) {
+          normalizedDriver = {
+            id: rawDriver.id,
+            user_id: rawDriver.user_id,
+            full_name: rawDriver.profiles?.full_name || "Entregador Atribuído",
+            phone: rawDriver.profiles?.phone || null,
+            vehicle_type: rawDriver.vehicle || null,
+            vehicle_plate: null, // Legacy field fallback
+          };
+        }
+
+        return {
+          ...delivery,
+          status: toAppStatus(delivery.status),
+          delivered_at: delivery.delivered_at ?? delivery.completed_at ?? null,
+          delivery_drivers: normalizedDriver,
+        };
+      });
 
       return { data: normalizedData as unknown as DeliveryWithRelations[], count: count || 0 };
     },
