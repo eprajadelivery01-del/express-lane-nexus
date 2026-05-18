@@ -25,6 +25,8 @@ export interface DeliveryWithRelations {
   id: string;
   company_id: string | null;
   driver_id: string | null;
+  order_id: string | null;
+  region_id: string | null;
   customer_name: string | null;
   customer_phone: string | null;
   address: string | null;
@@ -52,6 +54,7 @@ export interface DeliveryWithRelations {
   cancelled_at: string | null;
   picked_up_at: string | null;
   cancellation_reason: string | null;
+  payment_method?: string | null;
   created_at: string;
   updated_at: string | null;
   delivery_drivers?: {
@@ -114,6 +117,26 @@ export function useDeliveries(params?: UseDeliveriesParams) {
       const { data, error, count } = await query;
       if (error) throw error;
 
+      const orderIds = Array.from(
+        new Set((data ?? []).map((delivery: any) => delivery.order_id).filter(Boolean))
+      ) as string[];
+
+      const paymentMethodsByOrderId = new Map<string, string | null>();
+      if (orderIds.length > 0) {
+        const { data: ordersData, error: ordersError } = await supabase
+          .from("orders")
+          .select("id, payment_method")
+          .in("id", orderIds);
+
+        if (ordersError) {
+          console.error("Erro ao buscar formas de pagamento das entregas:", ordersError);
+        } else {
+          (ordersData ?? []).forEach((order: any) => {
+            paymentMethodsByOrderId.set(order.id, order.payment_method ?? null);
+          });
+        }
+      }
+
       const normalizedData = (data ?? []).map((delivery: any) => {
         const rawDriver = delivery.delivery_drivers;
         let normalizedDriver = null;
@@ -132,6 +155,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
           ...delivery,
           status: toAppStatus(delivery.status),
           delivered_at: delivery.delivered_at ?? delivery.completed_at ?? null,
+          payment_method: delivery.order_id ? paymentMethodsByOrderId.get(delivery.order_id) ?? null : null,
           delivery_drivers: normalizedDriver,
         };
       });
