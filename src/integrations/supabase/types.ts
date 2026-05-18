@@ -740,6 +740,13 @@ export type Database = {
             referencedRelation: "store_public_info"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_delivery_drivers_profiles"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       delivery_occurrences: {
@@ -1990,6 +1997,10 @@ export type Database = {
       process_payment_split: {
         Args: { p_payment_id: string }
         Returns: undefined
+      }
+      update_delivery_status_safe: {
+        Args: { p_delivery_id: string; p_driver_id?: string; p_status: string }
+        Returns: Json
       }
       update_order_status_v4: {
         Args: {
