@@ -44,9 +44,26 @@ export default function NewDeliveryForm({ onClose, initialData, companyId: propC
   
   const [deliveryValue, setDeliveryValue] = useState(initialData?.value?.toFixed(2).replace('.', ',') || "0,00");
   const [collectValue, setCollectValue] = useState(initialData?.estimated_value?.toFixed(2).replace('.', ',') || "0,00");
-  const [isPaid, setIsPaid] = useState(initialData?.notes?.includes("[PAGO]") || false);
-  
-  const [notes, setNotes] = useState(initialData?.notes?.replace("[PAGO]", "").trim() || "");
+  const [isPaid, setIsPaid] = useState(() => {
+    return initialData?.notes?.includes("[PAGO]") || false;
+  });
+
+  const [paymentMethod, setPaymentMethod] = useState(() => {
+    if (initialData?.notes?.includes("[RECEBER: Pix]")) return "Pix";
+    if (initialData?.notes?.includes("[RECEBER: Dinheiro]")) return "Dinheiro";
+    if (initialData?.notes?.includes("[RECEBER: Máquina Móvel]")) return "Máquina Móvel";
+    return "Pix";
+  });
+
+  const [notes, setNotes] = useState(() => {
+    let rawNotes = initialData?.notes || "";
+    rawNotes = rawNotes.replace("[PAGO]", "");
+    rawNotes = rawNotes.replace("[RECEBER: Pix]", "");
+    rawNotes = rawNotes.replace("[RECEBER: Dinheiro]", "");
+    rawNotes = rawNotes.replace("[RECEBER: Máquina Móvel]", "");
+    return rawNotes.trim();
+  });
+
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [saveCustomer, setSaveCustomer] = useState(true);
@@ -92,7 +109,13 @@ export default function NewDeliveryForm({ onClose, initialData, companyId: propC
       if (!cId) throw new Error("Empresa não identificada.");
       const parsedDeliveryValue = parseFloat(deliveryValue.replace(',', '.'));
       const parsedCollectValue = isPaid ? 0 : parseFloat(collectValue.replace(',', '.'));
-      const finalNotes = isPaid ? `[PAGO] ${notes}`.trim() : notes.trim();
+      
+      let finalNotes = notes.trim();
+      if (isPaid) {
+        finalNotes = `[PAGO] ${finalNotes}`.trim();
+      } else {
+        finalNotes = `[RECEBER: ${paymentMethod}] ${finalNotes}`.trim();
+      }
 
       const payload: any = {
         company_id: cId,
@@ -156,7 +179,7 @@ export default function NewDeliveryForm({ onClose, initialData, companyId: propC
         <div className="bg-primary/5 p-8 border-b border-border">
           <h2 className="text-3xl font-black text-foreground flex items-center gap-3">
              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center">
-               <Plus className="h-6 w-6 text-white" />
+                <Plus className="h-6 w-6 text-white" />
              </div>
              {initialData ? "Editar Entrega" : "Nova Solicitação"}
           </h2>
@@ -231,6 +254,37 @@ export default function NewDeliveryForm({ onClose, initialData, companyId: propC
                </button>
              </div>
           </div>
+
+          {!isPaid && (
+             <div className="space-y-2 p-6 bg-muted/30 border border-border rounded-3xl animate-in fade-in slide-in-from-top-2 duration-300">
+               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Forma de Recebimento pelo Entregador</label>
+               <div className="grid grid-cols-3 gap-3">
+                 {[
+                   { id: "Pix", label: "Pix", icon: Wallet },
+                   { id: "Dinheiro", label: "Dinheiro", icon: DollarSign },
+                   { id: "Máquina Móvel", label: "Máquina Móvel", icon: Plus },
+                 ].map((method) => {
+                   const isSelected = paymentMethod === method.id;
+                   return (
+                     <button
+                       key={method.id}
+                       type="button"
+                       onClick={() => setPaymentMethod(method.id)}
+                       className={cn(
+                         "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all font-black gap-2",
+                         isSelected
+                           ? "border-primary bg-primary/10 text-primary"
+                           : "border-border bg-background text-muted-foreground hover:bg-muted/50"
+                       )}
+                     >
+                       <method.icon className={cn("h-5 w-5", isSelected ? "text-primary" : "text-muted-foreground")} />
+                       <span className="text-xs">{method.label}</span>
+                     </button>
+                   );
+                 })}
+               </div>
+             </div>
+          )}
 
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Observações para o Entregador</label>
