@@ -391,6 +391,7 @@ export default function ReportsPage() {
                   outerRadius={100}
                   paddingAngle={8}
                   dataKey="value"
+                  isAnimationActive={false}
                 >
                   {statusData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name as keyof typeof STATUS_COLORS] || "#8884d8"} />
