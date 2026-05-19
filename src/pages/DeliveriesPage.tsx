@@ -60,6 +60,14 @@ export default function DeliveriesPage() {
   const [dispatchDelivery, setDispatchDelivery] = useState<DeliveryWithRelations | null>(null);
   const [selectedDriverId, setSelectedDriverId] = useState("");
 
+  const handleDeliveryCreated = () => {
+    setActiveFilter("all");
+    setSearch("");
+    setCompanyFilter("");
+    setDriverFilter("");
+    setPage(0);
+  };
+
   const { data, isLoading } = useDeliveries({
     status: activeFilter,
     search: search || undefined,
@@ -175,7 +183,11 @@ export default function DeliveriesPage() {
   return (
     <AdminLayout title="Entregas" subtitle="Gestão de corridas e ordens de serviço">
       {showNewForm ? (
-        <NewDeliveryForm isAdmin onClose={() => setShowNewForm(false)} />
+        <NewDeliveryForm
+          isAdmin
+          onSuccess={handleDeliveryCreated}
+          onClose={() => setShowNewForm(false)}
+        />
       ) : (
         <>
           <div className="flex justify-end mb-4">
