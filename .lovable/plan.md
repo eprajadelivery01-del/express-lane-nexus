@@ -1,47 +1,47 @@
-## Problema
+# Plano para corrigir o painel admin
 
-O link de convite gerado no painel admin aponta para `https://entregador.eprajadelivery.com` (e `https://lojista.eprajadelivery.com` para empresas), mas esses domínios **não estão conectados / não resolvem DNS**. O usuário acaba sendo redirecionado para `admin.epraja.com.br` (também inexistente) por algum proxy externo, resultando em `DNS_PROBE_FINISHED_NXDOMAIN`.
+## Objetivo
+Restaurar o painel para que perfis, entregas e entregadores carreguem sem erro 500, garantindo que as regras de acesso continuem seguras.
 
-A rota `/invite/:token` já existe **neste mesmo app** (ver `src/App.tsx:58`), e o domínio ativo hoje é `painel.eprajadelivery.com`. Não faz sentido o admin gerar links para outro host.
+## O que vou fazer
 
-## Mudanças
+1. **Corrigir a causa raiz no Supabase**
+   - Ajustar as policies de `deliveries`, `delivery_drivers` e `profiles` para remover dependências circulares entre elas.
+   - Restaurar `get_driver_id(uuid)` para um formato seguro que não quebre consultas RLS.
+   - Revisar `is_driver(uuid)` pelo mesmo motivo, para evitar novos loops de permissão.
 
-### 1. `src/components/admin/GenerateInviteDialog.tsx`
-Substituir o bloco hardcoded de `baseUrl`:
+2. **Validar as consultas que o painel usa**
+   - Testar diretamente as leituras equivalentes a:
+     - `profiles` por `user_id`
+     - `delivery_drivers` ordenado por `created_at`
+     - `deliveries` com `companies(...)` e `delivery_drivers(...)`
+   - Confirmar que voltaram a responder sem 500.
 
-```ts
-const baseUrl =
-  selectedRole === "driver"
-    ? "https://entregador.eprajadelivery.com"
-    : "https://lojista.eprajadelivery.com";
-const link = `${baseUrl}/invite/${token}`;
-```
+3. **Blindar o frontend contra regressões**
+   - Revisar os pontos do app que ainda dependem de `profiles.role` como fonte de permissão, porque o projeto já usa `user_roles` como fronteira de confiança.
+   - Manter o painel consultando apenas campos realmente suportados e compatíveis com as policies corrigidas.
 
-por:
+4. **Verificar o fluxo do admin**
+   - Confirmar que a autenticação carrega perfil e roles sem travar a tela.
+   - Confirmar que listagens principais do painel voltam a aparecer.
 
-```ts
-const link = `${window.location.origin}/invite/${token}`;
-```
+## Causa provável encontrada
+A migração de endurecimento de segurança criou uma combinação perigosa:
+- `deliveries` depende de `get_driver_id(auth.uid())`
+- `get_driver_id()` lê `delivery_drivers`
+- `delivery_drivers` tem policy que consulta `deliveries`
+- `profiles` também depende de `deliveries`
 
-Assim o link sempre usa o domínio onde o admin está logado (ex.: `https://painel.eprajadelivery.com/invite/<token>`), que é onde a rota efetivamente existe.
+Isso pode gerar recursão/avaliação circular nas policies e responder com erro interno 500 no PostgREST.
 
-### 2. `src/pages/InvitePage.tsx` (linhas 114–121)
-Trocar o redirect pós-cadastro hardcoded para caminhos relativos no mesmo origin:
+Além disso, `get_driver_id()` foi alterada para `SECURITY INVOKER`, o que piora esse cenário porque ela passa a obedecer as mesmas policies circulares ao tentar resolver o motorista do usuário atual.
 
-```ts
-const redirectPath = invitation.role === "company" ? "/business" : "/";
-setTimeout(() => {
-  window.location.href = redirectPath;
-}, 3000);
-```
+## Resultado esperado
+- O login/admin deixa de gerar erro 500
+- Entregas e entregadores voltam a carregar
+- O painel continua com acesso restrito por papel e vínculo real
 
-Mantém o usuário no mesmo host do convite (que é o painel) e leva para a área correspondente já roteada no `App.tsx`.
-
-## Fora de escopo
-
-- Não vou mexer em CORS, edge functions, DriversPage.tsx ou ChatPage.tsx — são correções anteriores não relacionadas a este bug.
-- Não vou registrar domínios novos. Se no futuro você quiser portais separados (`entregador.*`, `lojista.*`), basta conectá-los em Project Settings → Domains; o código com `window.location.origin` continuará correto em qualquer host.
-
-## Validação
-
-Após a mudança, gerar um novo link de convite no painel deve produzir uma URL como `https://painel.eprajadelivery.com/invite/<uuid>`, que abre a `InvitePage` corretamente.
+## Detalhes técnicos
+- Vou aplicar uma nova migration para quebrar a circularidade de RLS.
+- A abordagem mais segura é fazer as policies de leitura usarem subconsultas diretas por `user_id` onde necessário, ou helper functions com privilégio controlado e `search_path` fixo.
+- Depois disso, valido as queries reais do painel no banco e reviso os pontos críticos do frontend que fazem essas leituras.
