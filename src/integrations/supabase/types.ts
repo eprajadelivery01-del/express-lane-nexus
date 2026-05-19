@@ -1982,6 +1982,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_company_owner: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_driver: { Args: { _user_id: string }; Returns: string }
       process_delivery_payment: {
         Args: { p_delivery_id: string }
