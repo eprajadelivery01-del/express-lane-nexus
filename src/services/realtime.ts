@@ -94,7 +94,9 @@ export function useDriverRealtime() {
 }
 
 // Deprecated individual hooks
-export function useDeliveriesRealtime() {}
+export function useDeliveriesRealtime() {
+  useAdminRealtime();
+}
 export function useDriversRealtime() {}
 export function useOrdersRealtime() {}
 export function useAllRealtime() { 
