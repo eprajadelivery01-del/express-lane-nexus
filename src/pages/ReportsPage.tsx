@@ -368,8 +368,8 @@ export default function ReportsPage() {
                   itemStyle={{ fontSize: "12px", fontWeight: "bold" }}
                   formatter={(val: any) => [`R$ ${Number(val).toFixed(2)}`, ""]}
                 />
-                <Area type="monotone" dataKey="total" name="Faturamento" stroke="hsl(var(--primary))" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
-                <Area type="monotone" dataKey="commission" name="Comissão" stroke="hsl(var(--primary))" strokeWidth={1} strokeDasharray="4 4" fill="transparent" />
+                <Area isAnimationActive={false} type="monotone" dataKey="total" name="Faturamento" stroke="hsl(var(--primary))" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
+                <Area isAnimationActive={false} type="monotone" dataKey="commission" name="Comissão" stroke="hsl(var(--primary))" strokeWidth={1} strokeDasharray="4 4" fill="transparent" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
