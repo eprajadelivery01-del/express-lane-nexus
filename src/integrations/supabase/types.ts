@@ -740,13 +740,6 @@ export type Database = {
             referencedRelation: "store_public_info"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_delivery_drivers_profiles"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["user_id"]
-          },
         ]
       }
       delivery_occurrences: {
