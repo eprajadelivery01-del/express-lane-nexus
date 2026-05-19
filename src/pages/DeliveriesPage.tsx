@@ -4,7 +4,6 @@ import { DeliveryStatusBadge } from "@/components/admin/DeliveryStatusBadge";
 import { useDeliveries, useUpdateDeliveryStatus, useReassignDelivery, type DeliveryWithRelations } from "@/services/deliveries";
 import { useCompanies } from "@/services/companies";
 import { useDrivers } from "@/services/drivers";
-import { useDeliveriesRealtime } from "@/services/realtime";
 import { cn } from "@/lib/utils";
 import {
   Search, Filter, Eye, MoreHorizontal, X as XIcon, ChevronLeft, ChevronRight,
@@ -44,7 +43,6 @@ function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
 import NewDeliveryForm from "@/components/business/NewDeliveryForm";
 
 export default function DeliveriesPage() {
-  useDeliveriesRealtime();
   const { toast } = useToast();
 
   const [activeFilter, setActiveFilter] = useState("all");
