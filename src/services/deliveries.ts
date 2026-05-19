@@ -311,7 +311,7 @@ export async function createDeliveryRequest(orderId: string) {
   const { data: address } = await supabase
     .from("addresses")
     .select("*")
-    .eq("user_id", order.customer_id)
+    .eq("user_id", order.user_id)
     .limit(1)
     .maybeSingle();
 

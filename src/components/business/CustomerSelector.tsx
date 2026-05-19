@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 
 interface Customer {
   id: string;
+  user_id?: string | null;
   name: string;
   phone: string | null;
   cpf: string | null;
@@ -60,7 +61,7 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
 
         const { data: customersData } = await supabase
           .from("customers")
-          .select("id, name, phone, cpf")
+          .select("id, user_id, name, phone, cpf")
           .or(orConditions.join(","))
           .limit(10);
 
@@ -93,6 +94,7 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
 
           merged.push({
             id: item.id,
+            user_id: item.user_id ?? null,
             name: finalName,
             phone: item.phone || item.customer_phone || null,
             cpf: item.cpf || item.customer_cpf || null,
@@ -156,6 +158,7 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
         const { data: lastDelivery } = await supabase
             .from("deliveries")
             .select("address")
+            .eq("company_id", companyId)
             .eq("customer_name", customer.name)
             .order("created_at", { ascending: false })
             .limit(1)
