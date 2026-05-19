@@ -2,23 +2,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { DeliveryStatus } from "@/types/models";
 
-const APP_TO_DB_STATUS: Record<string, string> = {
-  delivered: "completed",
-  in_transit: "in_route",
-};
-
-const DB_TO_APP_STATUS: Record<string, DeliveryStatus> = {
-  completed: "delivered",
-  in_route: "in_transit",
-  in_transit: "in_transit" as any,
-};
-
+// DB enum delivery_status: pending, broadcasted, accepted, collecting, in_transit, delivered, cancelled, returned, completed
 function toDbStatus(status: string) {
-  return APP_TO_DB_STATUS[status] ?? status;
+  return status;
 }
 
 function toAppStatus(status: string) {
-  return (DB_TO_APP_STATUS[status] ?? status) as DeliveryStatus;
+  return status as DeliveryStatus;
 }
 
 export interface DeliveryWithRelations {
