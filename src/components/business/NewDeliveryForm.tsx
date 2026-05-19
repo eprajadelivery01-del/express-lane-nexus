@@ -10,13 +10,14 @@ import { cn } from "@/lib/utils";
 
 interface NewDeliveryFormProps {
   onClose: () => void;
+  onSuccess?: () => void;
   initialData?: any;
   companyId?: string;
   companyData?: any;
   isAdmin?: boolean;
 }
 
-export default function NewDeliveryForm({ onClose, initialData, companyId: propCompanyId, companyData: propCompanyData, isAdmin }: NewDeliveryFormProps) {
+export default function NewDeliveryForm({ onClose, onSuccess, initialData, companyId: propCompanyId, companyData: propCompanyData, isAdmin }: NewDeliveryFormProps) {
   const { selectedCity } = useCity();
   const qc = useQueryClient();
   
@@ -148,6 +149,7 @@ export default function NewDeliveryForm({ onClose, initialData, companyId: propC
 
       toast.success(initialData ? "Entrega atualizada!" : "Entrega solicitada!");
       qc.invalidateQueries({ queryKey: ["deliveries"] });
+      onSuccess?.();
       setSubmitted(true);
     } catch (err: any) {
       toast.error(err.message);
