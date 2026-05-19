@@ -131,11 +131,11 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
     
     // Attempt to fetch most recent address from 'addresses' table if it's a marketplace customer
     let fullAddress = "";
-    if (customer.id) {
+    if (customer.user_id) {
         const { data: addresses } = await (supabase as any)
         .from("addresses")
         .select("street, number, neighborhood, complement")
-        .eq("customer_id", customer.id)
+        .eq("user_id", customer.user_id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
