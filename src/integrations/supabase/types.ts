@@ -1940,6 +1940,14 @@ export type Database = {
       }
     }
     Functions: {
+      can_view_profile: {
+        Args: { _profile_user_id: string; _viewer_id: string }
+        Returns: boolean
+      }
+      can_write_order_items: {
+        Args: { _order_id: string; _user_id: string }
+        Returns: boolean
+      }
       create_order_v3: {
         Args: {
           p_address_id: string
@@ -1986,7 +1994,15 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      is_delivery_visible_to_user: {
+        Args: { _delivery_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_driver: { Args: { _user_id: string }; Returns: string }
+      is_order_visible_to_user: {
+        Args: { _order_id: string; _user_id: string }
+        Returns: boolean
+      }
       process_delivery_payment: {
         Args: { p_delivery_id: string }
         Returns: undefined
