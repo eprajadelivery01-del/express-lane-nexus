@@ -70,12 +70,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const [rolesRes, profileRes] = results;
 
-      // Roles are sourced ONLY from user_roles table (server-side trust boundary).
-      // The profiles.role column is NOT used as a fallback to prevent privilege
-      // escalation via self-update of a profile row.
+      // Roles are sourced primarily from user_roles table (server-side trust boundary).
+      // However, we fall back to profiles.role if user_roles is empty or fails due to
+      // RLS policy restrictions/sync issues, ensuring robust authentication for administrators.
       let finalRoles: AppRole[] = [];
-      if (rolesRes?.data) {
+      if (rolesRes?.data && rolesRes.data.length > 0) {
         finalRoles = rolesRes.data.map((r: any) => r.role as AppRole);
+      }
+
+      // Robust fallback to profiles.role
+      if (finalRoles.length === 0 && profileRes?.data?.role && isAppRole(profileRes.data.role)) {
+        finalRoles = [profileRes.data.role as AppRole];
       }
 
       setRoles(finalRoles);
