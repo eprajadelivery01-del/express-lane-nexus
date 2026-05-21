@@ -1940,6 +1940,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_invitation_by_token: {
+        Args: { p_token: string }
+        Returns: boolean
+      }
       can_view_profile: {
         Args: { _profile_user_id: string; _viewer_id: string }
         Returns: boolean
