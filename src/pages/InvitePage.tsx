@@ -84,38 +84,37 @@ export default function InvitePage() {
     console.log("Iniciando processo de cadastro para:", formData.email);
 
     try {
-      // 1. Sign up user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-            phone: formData.phone,
-            invitation_id: invitation.id,
-            company_name: formData.companyName
-          }
-        }
+      // Route through the accept-invitation edge function to atomically:
+      // - validate the token (single-use)
+      // - create the auth user
+      // - assign role and create driver/company record
+      // - mark invitation as accepted
+      const { data: result, error: invokeError } = await supabase.functions.invoke("accept-invitation", {
+        body: {
+          token,
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          phone: formData.phone,
+        },
       });
 
-      if (authError) {
-        console.error("Erro retornado pelo Supabase Auth:", authError);
-        throw authError;
-      }
-      
-      if (!authData.user) {
-        console.warn("Auth concluído mas sem objeto user retornado");
-        throw new Error("Não foi possível criar sua conta. Verifique se este email já está em uso.");
-      }
+      if (invokeError) throw invokeError;
+      if (result?.error) throw new Error(result.error);
 
-      console.log("Cadastro realizado com sucesso, redirecionando...");
+      // Sign the user in client-side so the session is established
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+      if (signInError) throw signInError;
+
       toast.success("Cadastro realizado com sucesso!");
-      
-      // 2. Redirect to appropriate dashboard (same origin) after a short delay
+
       const redirectPath = invitation.role === "company" ? "/business" : "/";
       setTimeout(() => {
         window.location.href = redirectPath;
-      }, 3000);
+      }, 1500);
 
     } catch (err: any) {
       console.error("Erro capturado no handleSubmit:", err);
