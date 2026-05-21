@@ -74,7 +74,7 @@ export function GenerateInviteDialog({ fixedRole, triggerLabel }: GenerateInvite
           <UserPlus className="h-4 w-4" />{triggerLabel || "Gerar Link de Convite"}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md w-[95vw]">
+      <DialogContent className="sm:max-w-md w-[95vw]" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>Gerar Link de Convite</DialogTitle>
         </DialogHeader>

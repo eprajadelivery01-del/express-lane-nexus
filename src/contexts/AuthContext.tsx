@@ -23,10 +23,23 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, _setUser] = useState<User | null>(null);
+  const userRef = useRef<User | null>(null);
+  const setUser = (val: User | null) => {
+    userRef.current = val;
+    _setUser(val);
+  };
+
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [rolesLoaded, setRolesLoaded] = useState(false);
+
+  const [rolesLoaded, _setRolesLoaded] = useState(false);
+  const rolesLoadedRef = useRef(false);
+  const setRolesLoaded = (val: boolean) => {
+    rolesLoadedRef.current = val;
+    _setRolesLoaded(val);
+  };
+
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [userStatus, setUserStatus] = useState<UserStatus | null>(null);
   const [profile, setProfile] = useState<AuthContextType["profile"]>(null);
@@ -40,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (fetchingRef.current === userId) return;
     fetchingRef.current = userId;
     // Only reset rolesLoaded if it's the very first time we are fetching
-    if (!rolesLoaded) {
+    if (!rolesLoadedRef.current) {
       setRolesLoaded(false);
     }
     
@@ -143,6 +156,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (event === "SIGNED_IN" || event === "USER_UPDATED") {
           const currentUser = session?.user;
+          
+          if (currentUser && userRef.current?.id === currentUser.id && rolesLoadedRef.current) {
+            if (import.meta.env.DEV) {
+              console.log("[Auth] Tab focus or repeated auth check - user already loaded. Skipping refetch.");
+            }
+            setSession(session);
+            return;
+          }
+
           setSession(session);
           setUser(currentUser ?? null);
           
