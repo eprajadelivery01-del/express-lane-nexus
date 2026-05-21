@@ -176,9 +176,6 @@ export default function InvitePage() {
             )}
           </div>
           <CardTitle className="text-3xl font-black tracking-tight mb-2">Seja bem-vindo!</CardTitle>
-          <CardDescription className="text-base">
-            Você foi convidado para se tornar um {isCompany ? "Lojista Parceiro" : "Entregador Parceiro"}.
-          </CardDescription>
         </CardHeader>
 
         <CardContent>
@@ -192,7 +189,9 @@ export default function InvitePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Nome Completo</Label>
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
+                  {isCompany ? "Nome do Responsável" : "Nome Completo"}
+                </Label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
@@ -222,12 +221,12 @@ export default function InvitePage() {
 
             {isCompany && (
               <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Nome da Empresa / Loja</Label>
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Nome da Loja (como aparecerá no Marketplace)</Label>
                 <div className="relative">
                   <Store className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
                     className="pl-10 h-12 rounded-xl bg-muted/30 border-border/50 focus:bg-background transition-all" 
-                    placeholder="Nome Fantasia"
+                    placeholder="Nome Fantasia da Loja"
                     value={formData.companyName}
                     onChange={e => setFormData({...formData, companyName: e.target.value})}
                     required
