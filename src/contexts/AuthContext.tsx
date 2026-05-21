@@ -20,7 +20,7 @@ interface AuthContextType {
   deleteAccount: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, _setUser] = useState<User | null>(null);

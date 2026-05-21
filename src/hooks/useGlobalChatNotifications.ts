@@ -1,12 +1,13 @@
-import { useEffect } from "react";
+import { useContext, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { AuthContext } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
 export function useGlobalChatNotifications() {
-  const { user } = useAuth();
+  const auth = useContext(AuthContext);
+  const user = auth?.user ?? null;
   const location = useLocation();
   const navigate = useNavigate();
   const qc = useQueryClient();
