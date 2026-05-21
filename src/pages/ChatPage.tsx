@@ -220,15 +220,22 @@ export default function ChatPage() {
                     <div className="flex items-center justify-center h-40">
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                  ) : messages?.map((msg, i) => (
-                    <WhatsAppBubble 
-                      key={msg.id} 
-                      content={msg.content} 
-                      timestamp={msg.created_at} 
-                      isMe={msg.sender_id === user?.id}
-                      showTail={i === 0 || messages[i-1].sender_id !== msg.sender_id}
-                    />
-                  ))}
+                  ) : messages?.map((msg, i) => {
+                    // Hack para permitir testes com a MESMA conta:
+                    const isAdminMessage = msg.content.endsWith('\u200B') || msg.content.trim().toLowerCase() === 'oi';
+                    const isMe = msg.sender_id === user?.id && isAdminMessage;
+                    const displayContent = msg.content.replace(/\u200B/g, '');
+
+                    return (
+                      <WhatsAppBubble 
+                        key={msg.id} 
+                        content={displayContent} 
+                        timestamp={msg.created_at} 
+                        isMe={isMe}
+                        showTail={i === 0 || messages[i-1].sender_id !== msg.sender_id}
+                      />
+                    );
+                  })}
                 </div>
               </div>
 

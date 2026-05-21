@@ -18,16 +18,16 @@ export function WhatsAppBubble({ content, timestamp, isMe, showTail = true }: Wh
       <div className={cn(
         "relative max-w-[85%] md:max-w-[70%] px-3 py-1.5 rounded-xl shadow-sm",
         isMe 
-          ? "bg-[#d9fdd3] dark:bg-[#005c4b] rounded-tr-none text-[#111b21] dark:text-[#e9edef]" 
-          : "bg-white dark:bg-[#202c33] rounded-tl-none text-[#111b21] dark:text-[#e9edef]",
+          ? "bg-[#2b5278] rounded-tr-none text-[#ffffff]" 
+          : "bg-[#182533] rounded-tl-none text-[#ffffff]",
         !showTail && (isMe ? "rounded-tr-xl" : "rounded-tl-xl")
       )}>
         {showTail && (
           <div className={cn(
             "absolute top-0 w-3 h-3",
             isMe 
-              ? "-right-2 bg-[#d9fdd3] dark:bg-[#005c4b] [clip-path:polygon(0_0,0_100%,100%_0)]" 
-              : "-left-2 bg-white dark:bg-[#202c33] [clip-path:polygon(100%_0,100%_100%,0_0)]"
+              ? "-right-2 bg-[#2b5278] [clip-path:polygon(0_0,0_100%,100%_0)]" 
+              : "-left-2 bg-[#182533] [clip-path:polygon(100%_0,100%_100%,0_0)]"
           )} />
         )}
         
