@@ -34,27 +34,10 @@ export async function getTransactions(userId: string) {
   return data;
 }
 
-export async function requestWithdrawal(amount: number, userId: string) {
-  const wallet = await getWallet(userId);
-  if (wallet.balance < amount) throw new Error("Saldo insuficiente");
-
-  const { error: updateError } = await supabase
-    .from("wallets")
-    .update({ balance: wallet.balance - amount })
-    .eq("id", wallet.id);
-  
-  if (updateError) throw updateError;
-
-  const { error: transError } = await supabase
-    .from("financial_transactions")
-    .insert([{
-      user_id: userId,
-      amount: -amount,
-      type: "withdrawal" as const,
-      description: "Saque solicitado",
-    }]);
-
-  if (transError) throw transError;
+export async function requestWithdrawal(amount: number, _userId: string) {
+  // Atomic, server-side balance check + deduction prevents race-condition overdraft
+  const { error } = await (supabase as any).rpc("request_wallet_withdrawal", { _amount: amount });
+  if (error) throw error;
   return { success: true };
 }
 

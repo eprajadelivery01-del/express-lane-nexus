@@ -1940,6 +1940,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_invitation_by_token: {
+        Args: { p_token: string }
+        Returns: boolean
+      }
       can_view_profile: {
         Args: { _profile_user_id: string; _viewer_id: string }
         Returns: boolean
@@ -2011,6 +2015,7 @@ export type Database = {
         Args: { p_payment_id: string }
         Returns: undefined
       }
+      request_wallet_withdrawal: { Args: { _amount: number }; Returns: Json }
       update_delivery_status_safe: {
         Args: { p_delivery_id: string; p_driver_id?: string; p_status: string }
         Returns: Json
