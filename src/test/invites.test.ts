@@ -11,9 +11,12 @@ describe("invite links", () => {
     );
   });
 
-  it("mantém a origem atual para convites de company", () => {
+  it("redireciona para o domínio do lojista em produção e preserva localhost em desenvolvimento", () => {
     expect(buildInviteLink("xyz", "company", "https://painel.eprajadelivery.com")).toBe(
-      "https://painel.eprajadelivery.com/invite/xyz",
+      "https://lojista.eprajadelivery.com/invite/xyz",
+    );
+    expect(buildInviteLink("xyz", "company", "http://localhost:5173")).toBe(
+      "http://localhost:5173/invite/xyz",
     );
   });
 });
