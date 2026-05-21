@@ -2015,6 +2015,7 @@ export type Database = {
         Args: { p_payment_id: string }
         Returns: undefined
       }
+      request_wallet_withdrawal: { Args: { _amount: number }; Returns: Json }
       update_delivery_status_safe: {
         Args: { p_delivery_id: string; p_driver_id?: string; p_status: string }
         Returns: Json
