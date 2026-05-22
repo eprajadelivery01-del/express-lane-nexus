@@ -68,14 +68,28 @@ Deno.serve(async (req) => {
       document: document ?? null,
     }).eq("user_id", userId);
 
-    // Assign role
-    await admin.from("user_roles").insert({ user_id: userId, role: invitation.role });
+    // Assign role safely
+    const { data: existingRoles } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", invitation.role);
+    if (!existingRoles || existingRoles.length === 0) {
+      await admin.from("user_roles").insert({ user_id: userId, role: invitation.role });
+    }
 
     if (invitation.role === "driver") {
-      await admin.from("delivery_drivers").insert({ user_id: userId, full_name: fullName });
+      const { data: existingDriver } = await admin.from("delivery_drivers").select("id").eq("user_id", userId).maybeSingle();
+      if (!existingDriver) {
+         await admin.from("delivery_drivers").insert({ user_id: userId, full_name: fullName, phone: phone || null });
+      } else {
+         await admin.from("delivery_drivers").update({ full_name: fullName, phone: phone || null }).eq("user_id", userId);
+      }
     }
     if (invitation.role === "company") {
-      await admin.from("companies").insert({ user_id: userId, name: fullName });
+      const correctName = body.companyName || fullName;
+      const { data: existingCompany } = await admin.from("companies").select("id").eq("user_id", userId).maybeSingle();
+      if (!existingCompany) {
+        await admin.from("companies").insert({ user_id: userId, name: correctName, email: finalEmail, phone: phone || null });
+      } else {
+        await admin.from("companies").update({ name: correctName, email: finalEmail, phone: phone || null }).eq("user_id", userId);
+      }
     }
 
     // Mark invitation accepted

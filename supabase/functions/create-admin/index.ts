@@ -147,6 +147,7 @@ Deno.serve(async (req) => {
         user_id: userId,
         name: companyName || fullName || "",
         phone: phone || null,
+        email: email || null,
         address: address || null,
         region_id: regionId || null,
       });
