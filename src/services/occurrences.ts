@@ -29,8 +29,6 @@ export function useReportOccurrence() {
         {
           ...occurrence,
           type: occurrence.type as any,
-          status: "open",
-          updated_at: new Date().toISOString(),
         } as any,
       ]);
       if (error) throw error;
