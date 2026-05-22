@@ -135,7 +135,7 @@ export default function InvitePage() {
       if (!isCompany && signInData.user) {
         try {
            await supabase.from("delivery_drivers").update({ 
-             vehicle_type: formData.vehicle, 
+             vehicle_type: formData.vehicle as any, 
              vehicle_plate: formData.licensePlate.toUpperCase() 
            }).eq("user_id", signInData.user.id);
         } catch (drvErr) {
