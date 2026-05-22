@@ -35,31 +35,18 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
       return;
     }
 
-    setLoading(true);
-    try {
-      // Update profile
-      const { error: pError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: form.fullName,
-          phone: form.phone,
-          document: form.document,
-        })
-        .eq("id", driver.user_id);
+      // Update using secure RPC for Admins
+      const { error: rpcError } = await supabase.rpc("admin_update_driver_by_user_id", {
+        p_user_id: driver.user_id,
+        p_full_name: form.fullName,
+        p_phone: form.phone,
+        p_document: form.document,
+        p_vehicle_type: form.vehicleType,
+        p_vehicle_plate: form.vehiclePlate,
+        p_commission_rate: parseFloat(form.commission) || 15
+      });
 
-      if (pError) throw pError;
-
-      // Update driver data
-      const { error: dError } = await supabase
-        .from("delivery_drivers")
-        .update({
-          vehicle_type: form.vehicleType,
-          vehicle_plate: form.vehiclePlate,
-          commission_rate: parseFloat(form.commission),
-        })
-        .eq("id", driver.id);
-
-      if (dError) throw dError;
+      if (rpcError) throw rpcError;
 
       toast.success("Dados do entregador atualizados!");
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
