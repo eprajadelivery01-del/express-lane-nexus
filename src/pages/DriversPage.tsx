@@ -18,7 +18,10 @@ export default function DriversPage() {
   const [editingDriver, setEditingDriver] = useState<any>(null);
 
   const toggleOnline = async (id: string, isOnline: boolean) => {
-    const { error } = await supabase.rpc("admin_set_driver_state", { p_driver_id: id, p_is_online: !isOnline, p_status: null });
+    const { error } = await supabase
+      .from("delivery_drivers")
+      .update({ is_online: !isOnline } as any)
+      .eq("id", id);
     if (error) {
       toast.error("Erro ao alterar status online: " + error.message);
       return;
@@ -27,9 +30,16 @@ export default function DriversPage() {
     toast.success(isOnline ? "Entregador ficou offline" : "Entregador ficou online");
   };
 
-  const toggleStatus = async (id: string, status: string) => {
-    const newStatus = status === "active" ? "suspended" : "active";
-    const { error } = await supabase.rpc("admin_set_driver_state", { p_driver_id: id, p_status: newStatus, p_is_online: null });
+  const toggleStatus = async (id: string, currentStatus: string) => {
+    // Status is stored in profiles table, not delivery_drivers
+    // Find the driver to get user_id
+    const driver = (drivers ?? []).find(d => d.id === id);
+    if (!driver) return;
+    const newStatus = currentStatus === "active" ? "suspended" : "active";
+    const { error } = await supabase
+      .from("profiles")
+      .update({ status: newStatus })
+      .eq("user_id", driver.user_id);
     if (error) {
       toast.error("Erro ao alterar status: " + error.message);
       return;
@@ -40,7 +50,10 @@ export default function DriversPage() {
 
   const deleteDriver = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este entregador?")) return;
-    const { error } = await supabase.rpc("admin_delete_driver", { p_driver_id: id });
+    const { error } = await supabase
+      .from("delivery_drivers")
+      .delete()
+      .eq("id", id);
     if (error) {
       toast.error("Erro ao excluir: " + error.message);
       return;

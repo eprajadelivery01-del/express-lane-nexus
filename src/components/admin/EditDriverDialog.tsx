@@ -24,7 +24,7 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
     document: driver?.document || "",
     vehicleType: driver?.vehicle_type || "motorcycle",
     vehiclePlate: driver?.vehicle_plate || "",
-    commission: driver?.commission_rate?.toString() || "10",
+    commission: driver?.commission_rate?.toString() || "15",
   });
 
   const set = (key: string, val: string) => setForm(p => ({ ...p, [key]: val }));
@@ -37,18 +37,35 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
 
     setLoading(true);
     try {
-      // Update using secure RPC for Admins
-      const { error: rpcError } = await (supabase.rpc as any)("admin_update_driver_by_user_id", {
-        p_user_id: driver.user_id,
-        p_full_name: form.fullName,
-        p_phone: form.phone,
-        p_document: form.document,
-        p_vehicle_type: form.vehicleType,
-        p_vehicle_plate: form.vehiclePlate,
-        p_commission_rate: parseFloat(form.commission) || 15
-      });
+      // 1. Update profile (name, phone, document)
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          full_name: form.fullName,
+          phone: form.phone,
+          document: form.document,
+        })
+        .eq("user_id", driver.user_id);
 
-      if (rpcError) throw rpcError;
+      if (profileError) {
+        console.error("Profile update error:", profileError);
+        // Don't throw — continue to update delivery_drivers
+      }
+
+      // 2. Update delivery_drivers with REAL column names: "vehicle" and "license_plate"
+      const { error: driverError } = await supabase
+        .from("delivery_drivers")
+        .update({
+          vehicle: form.vehicleType,
+          license_plate: form.vehiclePlate,
+          commission_rate: parseFloat(form.commission) || 15,
+        } as any)
+        .eq("id", driver.id);
+
+      if (driverError) {
+        console.error("Driver update error:", driverError);
+        throw driverError;
+      }
 
       toast.success("Dados do entregador atualizados!");
       queryClient.invalidateQueries({ queryKey: ["drivers"] });

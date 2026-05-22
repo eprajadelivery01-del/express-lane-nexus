@@ -6,25 +6,22 @@ export type DriverWithProfile = {
   user_id: string;
   full_name: string;
   phone?: string | null;
+  document?: string | null;
   vehicle_type?: string | null;
   vehicle_plate?: string | null;
-  online?: boolean | null;
   is_online?: boolean | null;
   rating: number;
   latitude: number | null;
   longitude: number | null;
   avatar_url?: string | null;
   status?: string | null;
+  commission_rate?: number | null;
   created_at?: string;
-  profiles?: {
-    full_name?: string | null;
-    phone?: string | null;
-    avatar_url?: string | null;
-  } | null;
 };
 
-export async function fetchDrivers() {
+export async function fetchDrivers(): Promise<DriverWithProfile[]> {
   // 1. Fetch from delivery_drivers (main table)
+  // Real columns: id, user_id, vehicle, license_plate, is_online, rating, commission_rate, latitude, longitude
   const { data: drivers, error: driversError } = await supabase
     .from("delivery_drivers")
     .select("*")
@@ -32,45 +29,41 @@ export async function fetchDrivers() {
     
   if (driversError) throw driversError;
 
-  // 2. Fetch from motoboys (legacy/fallback table)
-  const { data: legacyDrivers } = await supabase
-    .from("motoboys")
-    .select("*");
-
+  // 2. Fetch profiles for all driver user_ids to get name, phone, avatar, document
   const userIds = (drivers || []).map(d => d.user_id);
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("user_id, full_name, phone, avatar_url, document")
-    .in("user_id", userIds);
+  const { data: profiles } = userIds.length > 0 
+    ? await supabase
+        .from("profiles")
+        .select("user_id, full_name, phone, avatar_url, document, status")
+        .in("user_id", userIds)
+    : { data: [] };
 
-  // Merge and Flatten delivery_drivers
-  const mainDrivers = (drivers || []).map(driver => {
+  // 3. Merge: delivery_drivers + profiles
+  // DB columns are "vehicle" and "license_plate", NOT "vehicle_type"/"vehicle_plate"
+  const merged = (drivers || []).map(driver => {
     const profile = profiles?.find(p => p.user_id === driver.user_id);
+    const raw = driver as any;
     return {
-      ...driver,
-      full_name: profile?.full_name || driver.full_name || "—",
-      avatar_url: profile?.avatar_url || driver.avatar_url,
-      phone: profile?.phone || driver.phone,
-      document: profile?.document || driver.document,
-      vehicle_type: (driver as any).vehicle_type || (driver as any).vehicle || "motorcycle",
-      vehicle_plate: (driver as any).vehicle_plate || (driver as any).license_plate || null,
-    };
+      id: driver.id,
+      user_id: driver.user_id,
+      full_name: profile?.full_name || raw.full_name || "Entregador",
+      phone: profile?.phone || raw.phone || null,
+      document: profile?.document || raw.document || null,
+      avatar_url: profile?.avatar_url || raw.avatar_url || null,
+      // Map real DB column names to what the UI expects
+      vehicle_type: raw.vehicle_type || raw.vehicle || "motorcycle",
+      vehicle_plate: raw.vehicle_plate || raw.license_plate || null,
+      is_online: driver.is_online ?? false,
+      rating: Number(driver.rating) || 5.0,
+      commission_rate: Number(driver.commission_rate) || 15,
+      latitude: driver.latitude,
+      longitude: driver.longitude,
+      status: profile?.status || raw.status || "active",
+      created_at: driver.created_at,
+    } as DriverWithProfile;
   });
 
-  // Convert legacy motoboys to the same format
-  const formattedLegacy = (legacyDrivers || []).map(m => ({
-    id: m.id,
-    user_id: m.id, // Fallback
-    full_name: m.name || "Entregador Legado",
-    is_online: m.is_online,
-    vehicle_type: "motorcycle", // Default for legacy
-    status: "active",
-    rating: 5.0,
-    created_at: m.created_at
-  }));
-
-  // Combine and deduplicate if necessary (though IDs should be unique)
-  return [...mainDrivers, ...formattedLegacy] as unknown as DriverWithProfile[];
+  return merged;
 }
 
 export function useDrivers() {
@@ -90,33 +83,35 @@ export function useOnlineDrivers() {
         .eq("is_online", true);
       
       if (driversError) throw driversError;
-      if (!drivers) return [];
+      if (!drivers || drivers.length === 0) return [];
 
       const userIds = drivers.map(d => d.user_id);
-      if (userIds.length === 0) return [];
-      
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name, phone, avatar_url, document")
+        .select("user_id, full_name, phone, avatar_url, document, status")
         .in("user_id", userIds);
 
-      if (profilesError) {
-        console.error("Erro ao buscar perfis dos motoristas online:", profilesError);
-        return drivers as unknown as DriverWithProfile[];
-      }
-
-      return (drivers || []).map(driver => {
+      return drivers.map(driver => {
         const profile = profiles?.find(p => p.user_id === driver.user_id);
+        const raw = driver as any;
         return {
-          ...driver,
-          full_name: profile?.full_name || driver.full_name || "—",
-          avatar_url: profile?.avatar_url || driver.avatar_url,
-          phone: profile?.phone || driver.phone,
-          document: profile?.document || driver.document,
-          vehicle_type: (driver as any).vehicle_type || (driver as any).vehicle || "motorcycle",
-          vehicle_plate: (driver as any).vehicle_plate || (driver as any).license_plate || null,
-        };
-      }) as unknown as DriverWithProfile[];
+          id: driver.id,
+          user_id: driver.user_id,
+          full_name: profile?.full_name || raw.full_name || "Entregador",
+          phone: profile?.phone || raw.phone || null,
+          document: profile?.document || raw.document || null,
+          avatar_url: profile?.avatar_url || raw.avatar_url || null,
+          vehicle_type: raw.vehicle_type || raw.vehicle || "motorcycle",
+          vehicle_plate: raw.vehicle_plate || raw.license_plate || null,
+          is_online: driver.is_online ?? false,
+          rating: Number(driver.rating) || 5.0,
+          commission_rate: Number(driver.commission_rate) || 15,
+          latitude: driver.latitude,
+          longitude: driver.longitude,
+          status: profile?.status || raw.status || "active",
+          created_at: driver.created_at,
+        } as DriverWithProfile;
+      });
     },
   });
 }

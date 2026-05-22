@@ -54,21 +54,6 @@ export function CreateDriverDialog({ open, onOpenChange }: CreateDriverDialogPro
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      // CORREÇÃO IMEDIATA: A Edge Function `create-admin` não consegue preencher placa e veículo
-      // corretamente porque utiliza nomes de colunas errados (`vehicle` e `license_plate`).
-      // Forçamos a correção via RPC imediatamente após a criação para garantir os dados na tabela.
-      if (data?.userId) {
-        await (supabase.rpc as any)("admin_update_driver_by_user_id", {
-          p_user_id: data.userId,
-          p_full_name: form.fullName,
-          p_phone: form.phone,
-          p_document: form.document,
-          p_vehicle_type: form.vehicle,
-          p_vehicle_plate: form.licensePlate,
-          p_commission_rate: parseFloat(form.commissionRate) || 15
-        });
-      }
-
       toast({ title: "Entregador cadastrado com sucesso!" });
       qc.invalidateQueries({ queryKey: ["drivers"] });
       onOpenChange(false);
