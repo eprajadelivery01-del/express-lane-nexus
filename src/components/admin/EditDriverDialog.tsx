@@ -34,6 +34,7 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
       toast.error("Nome e telefone são obrigatórios");
       return;
     }
+
     setLoading(true);
     try {
       // Update using secure RPC for Admins
