@@ -58,7 +58,7 @@ export function CreateDriverDialog({ open, onOpenChange }: CreateDriverDialogPro
       // corretamente porque utiliza nomes de colunas errados (`vehicle` e `license_plate`).
       // Forçamos a correção via RPC imediatamente após a criação para garantir os dados na tabela.
       if (data?.userId) {
-        await supabase.rpc("admin_update_driver_by_user_id", {
+        await (supabase.rpc as any)("admin_update_driver_by_user_id", {
           p_user_id: data.userId,
           p_full_name: form.fullName,
           p_phone: form.phone,
