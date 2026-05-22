@@ -37,7 +37,7 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
     setLoading(true);
     try {
       // Update using secure RPC for Admins
-      const { error: rpcError } = await supabase.rpc("admin_update_driver_by_user_id", {
+      const { error: rpcError } = await (supabase.rpc as any)("admin_update_driver_by_user_id", {
         p_user_id: driver.user_id,
         p_full_name: form.fullName,
         p_phone: form.phone,
