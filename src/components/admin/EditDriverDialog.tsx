@@ -34,7 +34,8 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
       toast.error("Nome e telefone são obrigatórios");
       return;
     }
-
+    setLoading(true);
+    try {
       // Update using secure RPC for Admins
       const { error: rpcError } = await supabase.rpc("admin_update_driver_by_user_id", {
         p_user_id: driver.user_id,
