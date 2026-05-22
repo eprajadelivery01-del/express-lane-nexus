@@ -52,6 +52,8 @@ export async function fetchDrivers() {
       avatar_url: profile?.avatar_url || driver.avatar_url,
       phone: profile?.phone || driver.phone,
       document: profile?.document || driver.document,
+      vehicle_type: (driver as any).vehicle_type || (driver as any).vehicle || "motorcycle",
+      vehicle_plate: (driver as any).vehicle_plate || (driver as any).license_plate || null,
     };
   });
 
@@ -111,6 +113,8 @@ export function useOnlineDrivers() {
           avatar_url: profile?.avatar_url || driver.avatar_url,
           phone: profile?.phone || driver.phone,
           document: profile?.document || driver.document,
+          vehicle_type: (driver as any).vehicle_type || (driver as any).vehicle || "motorcycle",
+          vehicle_plate: (driver as any).vehicle_plate || (driver as any).license_plate || null,
         };
       }) as unknown as DriverWithProfile[];
     },
