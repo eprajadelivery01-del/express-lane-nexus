@@ -82,12 +82,13 @@ export default function BusinessProfilePage() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
     const file = event.target.files?.[0];
-    if (!file || !companyId) return;
+    if (!file || !user) return;
     if (file.size > 5 * 1024 * 1024) { toast.error("Limite de 5MB!"); return; }
     setIsUploading(true);
     try {
       const fileExt = file.name.split('.').pop();
-      const filePath = `${companyId}/${type}-${Date.now()}.${fileExt}`;
+      const fileName = `${type}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
       const { error } = await supabase.storage.from('store-assets').upload(filePath, file);
       if (error) throw error;
       const { data } = supabase.storage.from('store-assets').getPublicUrl(filePath);
@@ -100,7 +101,7 @@ export default function BusinessProfilePage() {
 
   const handleGalleryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || !companyId) return;
+    if (!files || !user) return;
     setIsUploading(true);
     try {
       const newUrls: string[] = [];
@@ -108,7 +109,8 @@ export default function BusinessProfilePage() {
         const file = files[i];
         if (file.size > 5 * 1024 * 1024) continue;
         const fileExt = file.name.split('.').pop();
-        const filePath = `${companyId}/gallery/${Date.now()}-${i}.${fileExt}`;
+        const fileName = `gallery-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${user.id}/gallery/${fileName}`;
         const { error } = await supabase.storage.from('store-assets').upload(filePath, file);
         if (!error) {
           const { data } = supabase.storage.from('store-assets').getPublicUrl(filePath);
