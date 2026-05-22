@@ -183,6 +183,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Ignore token refreshed events to prevent infinite reload loops
           return;
         } else if (event === "SIGNED_OUT") {
+          // Only clear state if it was an explicit manual logout.
+          // This completely prevents the gotrue multi-tab focus flicker bug.
+          if (!(window as any).isManualLogout) {
+            return;
+          }
           setSession(null);
           setUser(null);
           setRoles([]);
@@ -218,7 +223,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw error;
   };
 
-  const signOut = async () => { await supabase.auth.signOut(); };
+  const signOut = async () => { 
+    (window as any).isManualLogout = true;
+    await supabase.auth.signOut(); 
+  };
 
   const deleteAccount = async () => {
     if (!user) return;
