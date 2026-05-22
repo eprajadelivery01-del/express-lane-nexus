@@ -18,21 +18,33 @@ export default function DriversPage() {
   const [editingDriver, setEditingDriver] = useState<any>(null);
 
   const toggleOnline = async (id: string, isOnline: boolean) => {
-    await supabase.from("delivery_drivers").update({ is_online: !isOnline } as any).eq("id", id);
+    const { error } = await supabase.rpc("admin_set_driver_state", { p_driver_id: id, p_is_online: !isOnline, p_status: null });
+    if (error) {
+      toast.error("Erro ao alterar status online: " + error.message);
+      return;
+    }
     qc.invalidateQueries({ queryKey: ["drivers"] });
     toast.success(isOnline ? "Entregador ficou offline" : "Entregador ficou online");
   };
 
   const toggleStatus = async (id: string, status: string) => {
     const newStatus = status === "active" ? "suspended" : "active";
-    await supabase.from("delivery_drivers").update({ status: newStatus } as any).eq("id", id);
+    const { error } = await supabase.rpc("admin_set_driver_state", { p_driver_id: id, p_status: newStatus, p_is_online: null });
+    if (error) {
+      toast.error("Erro ao alterar status: " + error.message);
+      return;
+    }
     qc.invalidateQueries({ queryKey: ["drivers"] });
     toast.success(newStatus === "active" ? "Entregador ativado" : "Entregador suspenso");
   };
 
   const deleteDriver = async (id: string) => {
     if (!confirm("Tem certeza que deseja excluir este entregador?")) return;
-    await supabase.from("delivery_drivers").delete().eq("id", id);
+    const { error } = await supabase.rpc("admin_delete_driver", { p_driver_id: id });
+    if (error) {
+      toast.error("Erro ao excluir: " + error.message);
+      return;
+    }
     qc.invalidateQueries({ queryKey: ["drivers"] });
     toast.success("Entregador excluído");
   };
