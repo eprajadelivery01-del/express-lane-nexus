@@ -283,6 +283,7 @@ export type Database = {
           opening_hours: Json | null
           phone: string | null
           rating: number | null
+          show_in_marketplace: boolean
           state: string | null
           updated_at: string | null
           user_id: string | null
@@ -314,6 +315,7 @@ export type Database = {
           opening_hours?: Json | null
           phone?: string | null
           rating?: number | null
+          show_in_marketplace?: boolean
           state?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           opening_hours?: Json | null
           phone?: string | null
           rating?: number | null
+          show_in_marketplace?: boolean
           state?: string | null
           updated_at?: string | null
           user_id?: string | null
@@ -358,18 +361,27 @@ export type Database = {
           id: string
           order_id: string | null
           participants: string[]
+          title: string | null
+          topic: string | null
+          updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           order_id?: string | null
           participants: string[]
+          title?: string | null
+          topic?: string | null
+          updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           order_id?: string | null
           participants?: string[]
+          title?: string | null
+          topic?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -2049,7 +2061,14 @@ export type Database = {
         | "completed"
       driver_status: "pending" | "active" | "rejected" | "suspended"
       invitation_status: "pending" | "accepted" | "expired"
-      occurrence_type: "delay" | "damage" | "absence" | "other"
+      occurrence_type:
+        | "delay"
+        | "damage"
+        | "absence"
+        | "other"
+        | "motorcycle_issue"
+        | "accident"
+        | "robbery"
       order_status:
         | "pending"
         | "preparing"
@@ -2204,7 +2223,15 @@ export const Constants = {
       ],
       driver_status: ["pending", "active", "rejected", "suspended"],
       invitation_status: ["pending", "accepted", "expired"],
-      occurrence_type: ["delay", "damage", "absence", "other"],
+      occurrence_type: [
+        "delay",
+        "damage",
+        "absence",
+        "other",
+        "motorcycle_issue",
+        "accident",
+        "robbery",
+      ],
       order_status: ["pending", "preparing", "ready", "delivered", "cancelled"],
       payment_method_type: ["pix", "card", "cash"],
       payment_status: ["pending", "paid", "failed", "refunded"],
