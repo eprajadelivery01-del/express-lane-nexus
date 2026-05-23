@@ -31,15 +31,11 @@ export default function DriversPage() {
   };
 
   const toggleStatus = async (id: string, currentStatus: string) => {
-    // Status is stored in profiles table, not delivery_drivers
-    // Find the driver to get user_id
-    const driver = (drivers ?? []).find(d => d.id === id);
-    if (!driver) return;
     const newStatus = currentStatus === "active" ? "suspended" : "active";
     const { error } = await supabase
-      .from("profiles")
-      .update({ status: newStatus })
-      .eq("user_id", driver.user_id);
+      .from("delivery_drivers")
+      .update({ status: newStatus } as any)
+      .eq("id", id);
     if (error) {
       toast.error("Erro ao alterar status: " + error.message);
       return;

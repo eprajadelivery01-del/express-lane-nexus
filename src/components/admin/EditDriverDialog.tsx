@@ -37,8 +37,22 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
 
     setLoading(true);
     try {
-      // 1. Update profile (name, phone, document)
-      const { error: profileError } = await supabase
+      // Update delivery_drivers directly — it has full_name, phone, document, vehicle_type, vehicle_plate
+      const { error } = await supabase
+        .from("delivery_drivers")
+        .update({
+          full_name: form.fullName,
+          phone: form.phone,
+          document: form.document,
+          vehicle_type: form.vehicleType,
+          vehicle_plate: form.vehiclePlate,
+        } as any)
+        .eq("id", driver.id);
+
+      if (error) throw error;
+
+      // Also sync profile table
+      await supabase
         .from("profiles")
         .update({
           full_name: form.fullName,
@@ -46,26 +60,6 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
           document: form.document,
         })
         .eq("user_id", driver.user_id);
-
-      if (profileError) {
-        console.error("Profile update error:", profileError);
-        // Don't throw — continue to update delivery_drivers
-      }
-
-      // 2. Update delivery_drivers with REAL column names: "vehicle" and "license_plate"
-      const { error: driverError } = await supabase
-        .from("delivery_drivers")
-        .update({
-          vehicle: form.vehicleType,
-          license_plate: form.vehiclePlate,
-          commission_rate: parseFloat(form.commission) || 15,
-        } as any)
-        .eq("id", driver.id);
-
-      if (driverError) {
-        console.error("Driver update error:", driverError);
-        throw driverError;
-      }
 
       toast.success("Dados do entregador atualizados!");
       queryClient.invalidateQueries({ queryKey: ["drivers"] });
