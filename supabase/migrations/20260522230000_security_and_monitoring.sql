@@ -107,7 +107,8 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE TRIGGER tr_check_failed_login
+DROP TRIGGER IF EXISTS tr_check_failed_login ON public.failed_login_attempts;
+CREATE TRIGGER tr_check_failed_login
   AFTER INSERT ON public.failed_login_attempts
   FOR EACH ROW EXECUTE FUNCTION public.check_failed_login_attempts();
 
@@ -175,7 +176,8 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE TRIGGER tr_audit_role_change
+DROP TRIGGER IF EXISTS tr_audit_role_change ON public.user_roles;
+CREATE TRIGGER tr_audit_role_change
   BEFORE INSERT OR UPDATE ON public.user_roles
   FOR EACH ROW EXECUTE FUNCTION public.audit_role_change();
 
