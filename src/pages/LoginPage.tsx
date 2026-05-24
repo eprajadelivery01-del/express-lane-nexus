@@ -50,7 +50,7 @@ export default function LoginPage() {
       if (error) {
         toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
         // Log brute-force tracking
-        await supabase.rpc("log_failed_login", { p_email: email, p_app_name: "Central de Comando (Admin)" } as any).catch(() => {});
+        try { await supabase.rpc("log_failed_login", { p_email: email, p_app_name: "Central de Comando (Admin)" } as any); } catch {}
       }
     } catch (error: any) {
       toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
