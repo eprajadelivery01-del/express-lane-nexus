@@ -62,6 +62,30 @@ export type Database = {
         }
         Relationships: []
       }
+      app_settings: {
+        Row: {
+          created_at: string
+          description: string | null
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           context: Json | null
@@ -980,6 +1004,30 @@ export type Database = {
           },
         ]
       }
+      failed_login_attempts: {
+        Row: {
+          app_name: string
+          created_at: string
+          email: string
+          id: string
+          ip_address: string | null
+        }
+        Insert: {
+          app_name: string
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: string | null
+        }
+        Update: {
+          app_name?: string
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: string | null
+        }
+        Relationships: []
+      }
       financial_transactions: {
         Row: {
           amount: number
@@ -1693,6 +1741,33 @@ export type Database = {
           },
         ]
       }
+      security_events: {
+        Row: {
+          created_at: string
+          description: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          severity: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          severity: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          severity?: string
+        }
+        Relationships: []
+      }
       system_logs: {
         Row: {
           action: string
@@ -1988,6 +2063,7 @@ export type Database = {
         }[]
       }
       fix_user_permissions: { Args: never; Returns: Json }
+      generate_daily_report: { Args: never; Returns: string }
       get_business_orders_v2: { Args: { p_company_id: string }; Returns: Json }
       get_delivery_price: {
         Args: { lat: number; lng: number }
@@ -2017,6 +2093,10 @@ export type Database = {
       is_driver: { Args: { _user_id: string }; Returns: string }
       is_order_visible_to_user: {
         Args: { _order_id: string; _user_id: string }
+        Returns: boolean
+      }
+      log_failed_login: {
+        Args: { p_app_name: string; p_email: string }
         Returns: boolean
       }
       process_delivery_payment: {
