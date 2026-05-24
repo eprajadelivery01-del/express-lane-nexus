@@ -54,7 +54,7 @@ export default function LoginPage() {
       }
     } catch (error: any) {
       toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
-      await supabase.rpc("log_failed_login", { p_email: email, p_app_name: "Central de Comando (Admin)" } as any).catch(() => {});
+      try { await supabase.rpc("log_failed_login", { p_email: email, p_app_name: "Central de Comando (Admin)" } as any); } catch {}
     } finally {
       setLoading(false);
     }
