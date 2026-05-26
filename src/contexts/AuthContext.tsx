@@ -181,6 +181,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return;
           }
 
+          // FIX: Synchronously reset rolesLoaded to prevent LoginPage from checking roles prematurely
+          if (currentUser && userRef.current?.id !== currentUser.id) {
+            setRolesLoaded(false);
+          }
+
           setSession(session);
           setUser(currentUser ?? null);
           
