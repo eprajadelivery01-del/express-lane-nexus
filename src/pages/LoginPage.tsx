@@ -27,18 +27,6 @@ export default function LoginPage() {
       navigate("/admin", { replace: true });
     } else if (hasRole("company")) {
       navigate("/business", { replace: true });
-    } else {
-      toast({
-        title: "Portal Restrito",
-        description: "Sua conta não possui permissões administrativas. Procure o suporte.",
-        variant: "destructive"
-      });
-
-      setTimeout(() => {
-        supabase.auth.signOut().then(() => {
-          window.location.reload();
-        });
-      }, 3000);
     }
   }, [user, authLoading, rolesLoaded, roles, userStatus, hasRole, navigate, toast]);
 
