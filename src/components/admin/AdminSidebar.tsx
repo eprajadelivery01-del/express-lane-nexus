@@ -6,11 +6,20 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminBadges } from "@/hooks/useAdminBadges";
 
-const navItems = [
+interface NavItem {
+  label: string;
+  icon: React.ElementType;
+  href: string;
+  external?: boolean;
+  badgeKey?: keyof import("@/hooks/useAdminBadges").AdminBadges;
+}
+
+const navItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { label: "Corridas (OS)", icon: Truck, href: "/admin/deliveries" },
-  { label: "Chat", icon: MessageSquare, href: "/admin/chat" },
+  { label: "Corridas (OS)", icon: Truck, href: "/admin/deliveries", badgeKey: "openRides" },
+  { label: "Chat", icon: MessageSquare, href: "/admin/chat", badgeKey: "unreadChats" },
   { label: "Empresas", icon: Building2, href: "/admin/companies" },
   { label: "Entregadores", icon: Bike, href: "/admin/drivers" },
   { label: "Regiões / Mapa", icon: MapPin, href: "/admin/regions" },
@@ -23,6 +32,17 @@ interface AdminSidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void;
 }
 
+function BadgeDot({ count, collapsed }: { count: number; collapsed: boolean }) {
+  if (count === 0) return null;
+  return collapsed ? (
+    <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-destructive border-2 border-card" />
+  ) : (
+    <span className="ml-auto min-w-[20px] h-5 px-1.5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold leading-none">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -33,7 +53,8 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
   });
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, user } = useAuth();
+  const { badges } = useAdminBadges(user?.id);
 
   const toggleSidebar = () => {
     const newState = !collapsed;
@@ -95,6 +116,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
           {navItems.map((item) => {
             const isActive = location.pathname === item.href ||
               (item.href !== "/admin" && location.pathname.startsWith(item.href));
+            const badgeCount = item.badgeKey ? (badges[item.badgeKey] ?? 0) : 0;
             
             return item.external ? (
               <a
@@ -118,7 +140,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
                 to={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                  "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                   isActive
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -128,8 +150,9 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
               >
                 <item.icon className="h-4 w-4 shrink-0" />
                 {!collapsed && <span className="animate-in fade-in slide-in-from-left-2 duration-300">{item.label}</span>}
+                <BadgeDot count={badgeCount} collapsed={collapsed} />
               </Link>
-            )
+            );
           })}
         </nav>
 
