@@ -23,10 +23,112 @@ export default function CompaniesPage() {
   };
 
   const deleteCompany = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta empresa?")) return;
-    await supabase.from("companies").delete().eq("id", id);
-    qc.invalidateQueries({ queryKey: ["companies"] });
-    toast.success("Empresa excluída");
+    if (!confirm("Tem certeza que deseja excluir esta empresa? Esta ação também removerá permanentemente todos os produtos, cupons, pedidos, entregas e históricos de chat associados e não poderá ser desfeita!")) return;
+    
+    try {
+      toast.loading("Excluindo registros associados...", { id: "delete-company-toast" });
+
+      // 1. Clean up Deliveries and their dependencies
+      const { data: companyDeliveries } = await supabase.from("deliveries").select("id").eq("company_id", id);
+      const deliveryIds = companyDeliveries?.map(d => d.id) || [];
+
+      if (deliveryIds.length > 0) {
+        // Delete dependent records for these deliveries
+        await supabase.from("delivery_ratings").delete().in("delivery_id", deliveryIds);
+        await supabase.from("driver_earnings").delete().in("delivery_id", deliveryIds);
+        await supabase.from("driver_location_history").delete().in("delivery_id", deliveryIds);
+        await supabase.from("occurrences").delete().in("delivery_id", deliveryIds);
+        await supabase.from("delivery_occurrences").delete().in("delivery_id", deliveryIds);
+        // Delete the deliveries
+        await supabase.from("deliveries").delete().in("id", deliveryIds);
+      }
+
+      // 2. Clean up Orders and their dependencies
+      const { data: companyOrders } = await supabase.from("orders").select("id").eq("company_id", id);
+      const orderIds = companyOrders?.map(o => o.id) || [];
+
+      if (orderIds.length > 0) {
+        // Delete payments referencing these orders
+        await supabase.from("payments").delete().in("order_id", orderIds);
+        // Delete user coupons referencing these orders
+        await supabase.from("user_coupons").delete().in("order_id", orderIds);
+        
+        // Clean up messages and conversations related to these orders
+        const { data: orderConvs } = await supabase.from("conversations").select("id").in("order_id", orderIds);
+        const convIds = orderConvs?.map(c => c.id) || [];
+        if (convIds.length > 0) {
+          await supabase.from("messages").delete().in("conversation_id", convIds);
+          await supabase.from("conversations").delete().in("id", convIds);
+        }
+
+        // Delete reviews referencing these orders
+        await supabase.from("reviews").delete().in("order_id", orderIds);
+        // Clean up order items referencing these orders
+        await supabase.from("order_items").delete().in("order_id", orderIds);
+        // Finally delete orders
+        await supabase.from("orders").delete().in("id", orderIds);
+      }
+
+      // 3. Clean up Products and their options
+      const { data: companyProducts } = await supabase.from("products").select("id").eq("company_id", id);
+      const productIds = companyProducts?.map(p => p.id) || [];
+      if (productIds.length > 0) {
+        // Clean up order items referencing these products
+        await supabase.from("order_items").delete().in("product_id", productIds);
+        
+        // Get option groups for these products
+        const { data: optionGroups } = await supabase.from("product_option_groups").select("id").in("product_id", productIds);
+        const groupIds = optionGroups?.map(g => g.id) || [];
+        if (groupIds.length > 0) {
+          // Delete product options first
+          await supabase.from("product_options").delete().in("group_id", groupIds);
+          // Delete option groups
+          await supabase.from("product_option_groups").delete().in("product_id", productIds);
+        }
+        // Finally delete products
+        await supabase.from("products").delete().in("id", productIds);
+      }
+
+      // 4. Clean up Coupons
+      const { data: companyCoupons } = await supabase.from("coupons").select("id").eq("company_id", id);
+      const couponIds = companyCoupons?.map(c => c.id) || [];
+      if (couponIds.length > 0) {
+        // Delete user coupons referencing these coupons
+        await supabase.from("user_coupons").delete().in("coupon_id", couponIds);
+        // Delete coupons
+        await supabase.from("coupons").delete().in("id", couponIds);
+      }
+
+      // 5. Clean up Chat Sessions
+      const { data: companySessions } = await supabase.from("chat_sessions").select("id").eq("company_id", id);
+      const sessionIds = companySessions?.map(s => s.id) || [];
+      if (sessionIds.length > 0) {
+        // Delete chat message logs
+        await supabase.from("chat_message_logs").delete().in("session_id", sessionIds);
+        // Delete chat sessions
+        await supabase.from("chat_sessions").delete().in("id", sessionIds);
+      }
+
+      // 6. Dissociate Drivers & Reviews directly linked to the company
+      await supabase.from("delivery_drivers").update({ company_id: null }).eq("company_id", id);
+      await supabase.from("reviews").delete().eq("company_id", id);
+
+      // 7. Clean up any remaining deliveries or orders directly referencing company_id just in case
+      await supabase.from("deliveries").delete().eq("company_id", id);
+      await supabase.from("orders").delete().eq("company_id", id);
+      await supabase.from("products").delete().eq("company_id", id);
+      await supabase.from("coupons").delete().eq("company_id", id);
+
+      // 8. Finally, delete the company record
+      const { error } = await supabase.from("companies").delete().eq("id", id);
+      if (error) throw error;
+
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      toast.success("Empresa excluída com sucesso!", { id: "delete-company-toast" });
+    } catch (err: any) {
+      console.error("Erro ao excluir empresa:", err);
+      toast.error("Erro ao excluir empresa: " + (err.message || "Erro de integridade no banco de dados."), { id: "delete-company-toast" });
+    }
   };
 
 
