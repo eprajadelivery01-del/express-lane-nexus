@@ -99,12 +99,18 @@ export default function AdminChatPage() {
 
   // Profiles map for conversation display
   const { data: profilesMap } = useQuery({
-    queryKey: ["profiles-map-admin"],
+    queryKey: ["profiles-map-admin", conversations?.length],
+    enabled: !!conversations && conversations.length > 0,
     queryFn: async () => {
+      if (!conversations) return {};
+      const participantIds = Array.from(new Set(
+        conversations.flatMap(c => c.participants || [])
+      ));
+
       const [{ data: profiles }, { data: companies }, { data: drivers }] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name, avatar_url, role"),
-        supabase.from("companies").select("user_id, name, logo_url").not("user_id", "is", null),
-        supabase.from("delivery_drivers").select("user_id"),
+        supabase.from("profiles").select("user_id, full_name, avatar_url, role").in("user_id", participantIds),
+        supabase.from("companies").select("user_id, name, logo_url").in("user_id", participantIds),
+        supabase.from("delivery_drivers").select("user_id").in("user_id", participantIds),
       ]);
       
       const map: Record<string, any> = {};
@@ -208,7 +214,28 @@ export default function AdminChatPage() {
 
   const getConvTitle = (conv: any) => {
     if (conv.order_id) return `Pedido #${conv.order_id.slice(0, 8)}`;
-    return getOtherProfile(conv)?.full_name || "Conversa";
+    
+    // Tenta extrair o Assunto da primeira mensagem caso seja um chat de suporte
+    let extractedTopic = null;
+    if (conv.messages && conv.messages.length > 0) {
+      const sorted = [...conv.messages].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const firstMsg = sorted[0];
+      if (firstMsg?.content?.startsWith('[Assunto:')) {
+        extractedTopic = firstMsg.content.replace('[Assunto:', '').replace(']', '').trim();
+      }
+    }
+
+    const profile = getOtherProfile(conv);
+    if (profile?.full_name) {
+      return extractedTopic ? `${profile.full_name} (${extractedTopic})` : profile.full_name;
+    }
+
+    const otherId = conv?.participants?.find((p: string) => p !== user?.id);
+    if (otherId) {
+      return extractedTopic || `Usuário #${otherId.slice(0, 6).toUpperCase()}`;
+    }
+    
+    return extractedTopic || conv.topic || "Conversa";
   };
 
   const formatConvTime = (date?: string) => {
