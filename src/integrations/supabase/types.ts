@@ -2031,6 +2031,10 @@ export type Database = {
         Args: { p_token: string }
         Returns: boolean
       }
+      assign_invitation_role: {
+        Args: { _role: string; _user_id: string }
+        Returns: undefined
+      }
       can_view_profile: {
         Args: { _profile_user_id: string; _viewer_id: string }
         Returns: boolean
