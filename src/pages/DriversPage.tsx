@@ -45,18 +45,21 @@ export default function DriversPage() {
   };
 
   const deleteDriver = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este entregador?")) return;
-    const { error } = await supabase
-      .from("delivery_drivers")
-      .delete()
-      .eq("id", id);
+    if (!confirm("Tem certeza que deseja excluir este entregador? Todos os dados serão removidos permanentemente!")) return;
+    
+    toast.loading("Excluindo entregador...", { id: "delete-driver-toast" });
+    
+    const { error } = await (supabase as any).rpc("safe_delete_driver", { p_driver_id: id });
+    
     if (error) {
-      toast.error("Erro ao excluir: " + error.message);
+      console.error("Erro ao excluir entregador:", error);
+      toast.error("Erro ao excluir: " + error.message, { id: "delete-driver-toast" });
       return;
     }
     qc.invalidateQueries({ queryKey: ["drivers"] });
-    toast.success("Entregador excluído");
+    toast.success("Entregador excluído com sucesso!", { id: "delete-driver-toast" });
   };
+
 
   const vehicleLabel: Record<string, string> = {
     motorcycle: "🏍️ Moto", bicycle: "🚲 Bicicleta", car: "🚗 Carro", van: "🚐 Van", truck: "🚛 Caminhão",

@@ -77,18 +77,38 @@ Deno.serve(async (req) => {
     if (invitation.role === "driver") {
       const { data: existingDriver } = await admin.from("delivery_drivers").select("id").eq("user_id", userId).maybeSingle();
       if (!existingDriver) {
-         await admin.from("delivery_drivers").insert({ user_id: userId, full_name: fullName, phone: phone || null });
+         await admin.from("delivery_drivers").insert({ 
+           user_id: userId, 
+           full_name: fullName, 
+           phone: phone || null,
+           created_by_admin_id: invitation.invited_by || null,
+         });
       } else {
-         await admin.from("delivery_drivers").update({ full_name: fullName, phone: phone || null }).eq("user_id", userId);
+         await admin.from("delivery_drivers").update({ 
+           full_name: fullName, 
+           phone: phone || null,
+           created_by_admin_id: invitation.invited_by || null,
+         }).eq("user_id", userId);
       }
     }
     if (invitation.role === "company") {
       const correctName = body.companyName || fullName;
       const { data: existingCompany } = await admin.from("companies").select("id").eq("user_id", userId).maybeSingle();
       if (!existingCompany) {
-        await admin.from("companies").insert({ user_id: userId, name: correctName, email: finalEmail, phone: phone || null });
+        await admin.from("companies").insert({ 
+          user_id: userId, 
+          name: correctName, 
+          email: finalEmail, 
+          phone: phone || null,
+          created_by_admin_id: invitation.invited_by || null,
+        });
       } else {
-        await admin.from("companies").update({ name: correctName, email: finalEmail, phone: phone || null }).eq("user_id", userId);
+        await admin.from("companies").update({ 
+          name: correctName, 
+          email: finalEmail, 
+          phone: phone || null,
+          created_by_admin_id: invitation.invited_by || null,
+        }).eq("user_id", userId);
       }
     }
 

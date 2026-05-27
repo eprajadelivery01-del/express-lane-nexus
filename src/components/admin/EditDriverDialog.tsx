@@ -44,8 +44,8 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
           full_name: form.fullName,
           phone: form.phone,
           document: form.document,
-          vehicle_type: form.vehicleType,
-          vehicle_plate: form.vehiclePlate,
+          vehicle: form.vehicleType,
+          license_plate: form.vehiclePlate,
         } as any)
         .eq("id", driver.id);
 
@@ -76,6 +76,7 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Editar Entregador: {driver?.full_name}</DialogTitle>
+          <DialogDescription className="sr-only">Formulário para editar as informações do entregador selecionado.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">

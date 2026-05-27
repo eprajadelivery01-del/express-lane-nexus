@@ -252,10 +252,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deleteAccount = async () => {
     if (!user) return;
     try {
-      await supabase.from("profiles").update({ status: "rejected" }).eq("user_id", user.id);
-      await signOut();
-    } catch (error) {}
+      // Use the safe_delete_customer RPC to properly clean up all FK dependencies
+      const { error } = await (supabase as any).rpc("safe_delete_customer", { p_user_id: user.id });
+      if (error) throw error;
+      // Sign out after deletion (the auth user is now deleted)
+      (window as any).isManualLogout = true;
+      await supabase.auth.signOut();
+    } catch (error: any) {
+      console.error("Erro ao excluir conta:", error);
+      throw error;
+    }
   };
+
 
   return (
     <AuthContext.Provider value={{ 

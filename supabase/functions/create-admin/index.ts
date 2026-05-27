@@ -101,23 +101,47 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4) Create user
-    const { data: authData, error: authError } = await supabase.auth.admin
-      .createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name: fullName || "" },
-      });
+    // 4) Check if user exists
+    const { data: existingUserId, error: rpcError } = await supabase.rpc("get_user_id_by_email", { p_email: email });
+    
+    let userId = existingUserId;
 
-    if (authError) {
-      return new Response(JSON.stringify({ error: authError.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (userId) {
+      // User exists! Check if they already have the role.
+      const { data: existingRole } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", role).maybeSingle();
+      if (existingRole) {
+         return new Response(JSON.stringify({ error: "Usuário já cadastrado neste painel com este e-mail." }), {
+           status: 400,
+           headers: { ...corsHeaders, "Content-Type": "application/json" },
+         });
+      }
+      
+      // Update password so they can log in with the new credentials
+      const { error: updateAuthErr } = await supabase.auth.admin.updateUserById(userId, { password: password });
+      if (updateAuthErr) {
+        return new Response(JSON.stringify({ error: "Erro ao atualizar credenciais do usuário existente." }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } else {
+      // Create new user
+      const { data: authData, error: authError } = await supabase.auth.admin
+        .createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: fullName || "" },
+        });
+
+      if (authError) {
+        return new Response(JSON.stringify({ error: authError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = authData.user.id;
     }
-
-    const userId = authData.user.id;
 
     // Update profile with active status (admin-created users skip approval)
     await supabase.from("profiles").upsert({
@@ -132,13 +156,15 @@ Deno.serve(async (req) => {
     await supabase.from("user_roles").insert({ user_id: userId, role });
 
     if (role === "driver") {
-      await supabase.from("delivery_drivers").insert({
+      await supabase.from("delivery_drivers").upsert({
         user_id: userId,
         full_name: fullName || "",
         phone: phone || null,
         vehicle: vehicle || "motorcycle",
         license_plate: licensePlate || null,
         commission_rate: commissionRate ?? 15,
+        created_by_admin_id: userData.user.id,
+        status: "active", // CRITICAL FIX: Ensure driver is born active so they can see deliveries!
       });
     }
 
@@ -150,6 +176,7 @@ Deno.serve(async (req) => {
         email: email || null,
         address: address || null,
         region_id: regionId || null,
+        created_by_admin_id: userData.user.id,
       });
     }
 

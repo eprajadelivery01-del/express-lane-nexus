@@ -23,10 +23,20 @@ export type DriverWithProfile = {
 export async function fetchDrivers(): Promise<DriverWithProfile[]> {
   // delivery_drivers already has: full_name, phone, document, avatar_url,
   // vehicle_type, vehicle_plate, status, is_online, rating, etc.
-  const { data: drivers, error } = await supabase
+  
+  // Scope to current admin's subordinates
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  let query = supabase
     .from("delivery_drivers")
     .select("*")
     .order("created_at", { ascending: false });
+  
+  if (user) {
+    query = query.eq("created_by_admin_id", user.id);
+  }
+  
+  const { data: drivers, error } = await query;
 
   if (error) throw error;
   if (!drivers) return [];
@@ -51,8 +61,8 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
       phone: raw.phone || profile?.phone || null,
       document: raw.document || profile?.document || null,
       avatar_url: raw.avatar_url || profile?.avatar_url || null,
-      vehicle_type: raw.vehicle_type || "motorcycle",
-      vehicle_plate: raw.vehicle_plate || null,
+      vehicle_type: raw.vehicle_type || raw.vehicle || "motorcycle",
+      vehicle_plate: raw.vehicle_plate || raw.license_plate || null,
       is_online: raw.is_online ?? raw.online ?? false,
       rating: Number(driver.rating) || 5.0,
       latitude: raw.latitude || raw.current_latitude || null,
@@ -63,6 +73,7 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
     } as DriverWithProfile;
   });
 }
+
 
 export function useDrivers() {
   return useQuery({

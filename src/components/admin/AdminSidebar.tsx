@@ -25,7 +25,6 @@ const navItems: NavItem[] = [
   { label: "Regiões / Mapa", icon: MapPin, href: "/admin/regions" },
   { label: "Financeiro", icon: DollarSign, href: "/admin/reports" },
   { label: "Meu Perfil", icon: User, href: "/admin/profile" },
-  { label: "Suporte", icon: MessageSquare, href: "https://wa.me/5565996112999", external: true },
 ];
 
 interface AdminSidebarProps {
@@ -99,16 +98,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
             <X className="h-5 w-5" />
           </button>
           
-          <button 
-            onClick={toggleSidebar}
-            className={cn(
-              "hidden lg:flex absolute -right-4 top-20 w-8 h-8 rounded-full bg-card border border-border items-center justify-center text-muted-foreground shadow-card hover:text-primary hover:border-primary transition-all z-[60]",
-              collapsed ? "rotate-0 shadow-primary/20 bg-primary text-primary-foreground border-primary" : "rotate-180"
-            )}
-            title={collapsed ? "Expandir Menu" : "Recolher Menu"}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+
         </div>
 
         {/* Navigation */}
@@ -184,6 +174,16 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
 
         </div>
       </aside>
+
+      {/* Toggle button — rendered OUTSIDE aside so it's never clipped by overflow */}
+      <button
+        onClick={toggleSidebar}
+        style={{ left: collapsed ? '52px' : '248px' }}
+        className="hidden lg:flex fixed top-[72px] w-8 h-8 rounded-full bg-primary border-2 border-primary items-center justify-center text-primary-foreground shadow-lg hover:bg-primary/90 hover:scale-110 transition-all duration-300 z-[9999]"
+        title={collapsed ? "Expandir Menu" : "Recolher Menu"}
+      >
+        <ChevronRight className={cn("h-4 w-4 transition-transform duration-300", collapsed ? "rotate-0" : "rotate-180")} />
+      </button>
     </>
   );
 }

@@ -2,10 +2,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 export async function fetchCompanies() {
-  const { data, error } = await supabase
-    .from("companies")
-    .select("*")
-    .order("name");
+  // Fetch only companies created by the currently logged-in admin
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  let query = supabase.from("companies").select("*").order("name");
+  
+  // If we have a logged-in user, scope to their subordinates
+  if (user) {
+    query = query.eq("created_by_admin_id", user.id);
+  }
+  
+  const { data, error } = await query;
   if (error) throw error;
   return data ?? [];
 }
@@ -16,6 +23,7 @@ export function useCompanies() {
     queryFn: fetchCompanies,
   });
 }
+
 
 export async function fetchCompanyByUserId(userId: string) {
   const { data, error } = await supabase

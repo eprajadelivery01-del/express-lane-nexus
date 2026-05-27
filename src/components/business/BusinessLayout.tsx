@@ -123,16 +123,6 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
           collapsed ? "w-20" : "w-72"
         )}
       >
-        {/* Toggle Button (Desktop) */}
-        <button 
-          onClick={toggleSidebar}
-          className={cn(
-            "hidden lg:flex absolute -right-3.5 top-20 w-7 h-7 rounded-full bg-primary border-4 border-background items-center justify-center text-primary-foreground shadow-xl transition-all hover:scale-110 z-[60]",
-            collapsed && "rotate-180"
-          )}
-        >
-          <ChevronRight className="h-3.5 w-3.5" />
-        </button>
 
         {/* Brand/Store Info */}
         <div className={cn("px-6 py-8 transition-all", collapsed && "px-0 flex justify-center")}>
@@ -222,6 +212,16 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
           </button>
         </div>
       </aside>
+
+      {/* Toggle button — rendered OUTSIDE aside so it's never clipped by overflow */}
+      <button
+        onClick={toggleSidebar}
+        style={{ left: collapsed ? '68px' : '264px' }}
+        className="hidden lg:flex fixed top-[72px] w-8 h-8 rounded-full bg-primary border-2 border-primary items-center justify-center text-primary-foreground shadow-lg hover:bg-primary/90 hover:scale-110 transition-all duration-300 z-[9999]"
+        title={collapsed ? "Expandir Menu" : "Recolher Menu"}
+      >
+        <ChevronRight className={cn("h-4 w-4 transition-transform duration-300", collapsed ? "rotate-180" : "rotate-0")} />
+      </button>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 bg-muted/20 overflow-hidden h-screen">

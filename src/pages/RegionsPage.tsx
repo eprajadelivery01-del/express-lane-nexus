@@ -539,14 +539,14 @@ export default function RegionsPage() {
                 />
               </div>
               <div className="flex gap-3">
-                <div className="flex-1">
+                <div className="w-32">
                   <label className="text-sm font-medium mb-1.5 block text-foreground">Cor</label>
                   <div className="flex items-center gap-2">
-                    <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer border-0 p-0" />
-                    <input value={editColor} onChange={(e) => setEditColor(e.target.value)} className="flex-1 px-3 py-2.5 rounded-xl border border-border bg-background text-sm outline-none font-mono" />
+                    <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)} className="w-10 h-10 rounded-lg cursor-pointer border-0 p-0 shrink-0" />
+                    <input value={editColor} onChange={(e) => setEditColor(e.target.value)} className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-border bg-background text-sm outline-none font-mono" />
                   </div>
                 </div>
-                <div className="w-28">
+                <div className="flex-1">
                   <label className="text-sm font-medium mb-1.5 block text-foreground">Preço (R$)</label>
                   <input
                     type="number"
@@ -596,14 +596,14 @@ export default function RegionsPage() {
                 <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary" />
               </div>
               <div className="flex gap-3">
-                <div className="flex-1">
+                <div className="w-32">
                   <label className="text-xs text-muted-foreground mb-1 block">Cor</label>
                   <div className="flex items-center gap-2">
-                    <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0" />
-                    <input value={editColor} onChange={(e) => setEditColor(e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none font-mono" />
+                    <input type="color" value={editColor} onChange={(e) => setEditColor(e.target.value)} className="w-8 h-8 rounded cursor-pointer border-0 shrink-0" />
+                    <input value={editColor} onChange={(e) => setEditColor(e.target.value)} className="flex-1 min-w-0 px-2 py-2 rounded-lg border border-border bg-background text-sm outline-none font-mono" />
                   </div>
                 </div>
-                <div className="w-28">
+                <div className="flex-1">
                   <label className="text-xs text-muted-foreground mb-1 block">Preço (R$)</label>
                   <input type="number" step="0.01" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm outline-none focus:border-primary" />
                 </div>

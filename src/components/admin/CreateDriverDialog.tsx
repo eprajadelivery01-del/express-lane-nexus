@@ -83,6 +83,7 @@ export function CreateDriverDialog({ open, onOpenChange }: CreateDriverDialogPro
             <Bike className="w-6 h-6 text-primary" />
             Novo Entregador
           </DialogTitle>
+          <DialogDescription className="sr-only">Preencha os dados abaixo para cadastrar um novo entregador na plataforma.</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
