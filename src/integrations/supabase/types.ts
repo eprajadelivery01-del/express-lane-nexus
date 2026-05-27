@@ -291,6 +291,7 @@ export type Database = {
           city_id: string | null
           cover_url: string | null
           created_at: string | null
+          created_by_admin_id: string | null
           delivery_fee: number | null
           delivery_mode: string | null
           description: string | null
@@ -323,6 +324,7 @@ export type Database = {
           city_id?: string | null
           cover_url?: string | null
           created_at?: string | null
+          created_by_admin_id?: string | null
           delivery_fee?: number | null
           delivery_mode?: string | null
           description?: string | null
@@ -355,6 +357,7 @@ export type Database = {
           city_id?: string | null
           cover_url?: string | null
           created_at?: string | null
+          created_by_admin_id?: string | null
           delivery_fee?: number | null
           delivery_mode?: string | null
           description?: string | null
@@ -688,6 +691,7 @@ export type Database = {
           city_id: string | null
           company_id: string | null
           created_at: string | null
+          created_by_admin_id: string | null
           current_latitude: number | null
           current_longitude: number | null
           document: string | null
@@ -696,6 +700,7 @@ export type Database = {
           is_online: boolean | null
           last_location_update: string | null
           latitude: number | null
+          license_plate: string | null
           location_updated_at: string | null
           longitude: number | null
           online: boolean | null
@@ -706,6 +711,7 @@ export type Database = {
           total_deliveries: number | null
           updated_at: string | null
           user_id: string
+          vehicle: string | null
           vehicle_plate: string | null
           vehicle_type: Database["public"]["Enums"]["vehicle_type"] | null
         }
@@ -714,6 +720,7 @@ export type Database = {
           city_id?: string | null
           company_id?: string | null
           created_at?: string | null
+          created_by_admin_id?: string | null
           current_latitude?: number | null
           current_longitude?: number | null
           document?: string | null
@@ -722,6 +729,7 @@ export type Database = {
           is_online?: boolean | null
           last_location_update?: string | null
           latitude?: number | null
+          license_plate?: string | null
           location_updated_at?: string | null
           longitude?: number | null
           online?: boolean | null
@@ -732,6 +740,7 @@ export type Database = {
           total_deliveries?: number | null
           updated_at?: string | null
           user_id: string
+          vehicle?: string | null
           vehicle_plate?: string | null
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"] | null
         }
@@ -740,6 +749,7 @@ export type Database = {
           city_id?: string | null
           company_id?: string | null
           created_at?: string | null
+          created_by_admin_id?: string | null
           current_latitude?: number | null
           current_longitude?: number | null
           document?: string | null
@@ -748,6 +758,7 @@ export type Database = {
           is_online?: boolean | null
           last_location_update?: string | null
           latitude?: number | null
+          license_plate?: string | null
           location_updated_at?: string | null
           longitude?: number | null
           online?: boolean | null
@@ -758,6 +769,7 @@ export type Database = {
           total_deliveries?: number | null
           updated_at?: string | null
           user_id?: string
+          vehicle?: string | null
           vehicle_plate?: string | null
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"] | null
         }
@@ -2075,6 +2087,7 @@ export type Database = {
       }
       get_driver_id: { Args: { _user_id: string }; Returns: string }
       get_invitation_by_token: { Args: { _token: string }; Returns: Json }
+      get_user_id_by_email: { Args: { p_email: string }; Returns: string }
       has_profile_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
@@ -2112,6 +2125,8 @@ export type Database = {
         Returns: undefined
       }
       request_wallet_withdrawal: { Args: { _amount: number }; Returns: Json }
+      safe_delete_customer: { Args: { p_user_id: string }; Returns: undefined }
+      safe_delete_driver: { Args: { p_driver_id: string }; Returns: undefined }
       update_delivery_status_safe: {
         Args: { p_delivery_id: string; p_driver_id?: string; p_status: string }
         Returns: Json
