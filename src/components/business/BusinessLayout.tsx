@@ -79,7 +79,7 @@ export function BusinessLayout({ children, title }: BusinessLayoutProps) {
     const newStatus = !company.is_open;
     const { error } = await supabase
       .from("companies")
-      .update({ is_open: newStatus })
+      .update({ is_open: newStatus, show_in_marketplace: newStatus })
       .eq("user_id", user.id);
     
     if (!error) {

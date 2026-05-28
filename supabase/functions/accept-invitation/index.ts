@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       email: finalEmail,
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName },
+      user_metadata: { full_name: fullName, role: invitation.role },
     });
     if (createErr) throw createErr;
     const userId = created.user!.id;
@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
       full_name: fullName,
       phone: phone ?? null,
       document: document ?? null,
+      role: invitation.role,
     }).eq("user_id", userId);
 
     // Assign role safely
