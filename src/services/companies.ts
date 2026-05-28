@@ -2,19 +2,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
 export async function fetchCompanies() {
-  // Fetch only companies created by the currently logged-in admin
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  let query = supabase.from("companies").select("*").order("name");
-  
-  // If we have a logged-in user, scope to their subordinates
-  if (user) {
-    query = query.eq("created_by_admin_id", user.id);
-  }
-  
-  const { data, error } = await query;
-  if (error) throw error;
-  return data ?? [];
+  const response = await supabase.from("companies").select("*").order("name");
+  console.log("FETCH COMPANIES RESPONSE:", response);
+  if (response.error) throw response.error;
+  return response.data ?? [];
 }
 
 export function useCompanies() {
@@ -32,7 +23,27 @@ export async function fetchCompanyByUserId(userId: string) {
     .eq("user_id", userId);
   
   if (error) throw error;
-  if (!data || data.length === 0) return null;
+  
+  if (!data || data.length === 0) {
+    // Fallback para administradores
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (profile?.role === "admin") {
+      const { data: fallbackCompanies } = await supabase
+        .from("companies")
+        .select("*")
+        .order("created_at", { ascending: true })
+        .limit(1);
+      if (fallbackCompanies && fallbackCompanies.length > 0) {
+        return fallbackCompanies[0];
+      }
+    }
+    return null;
+  }
   
   return data.find(c => !c.name.toLowerCase().includes("teste")) || data[0];
 }

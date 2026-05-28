@@ -1,6 +1,7 @@
 import { Bell, Search } from "lucide-react";
 import { NotificationsPopover } from "./NotificationsPopover";
 import { GlobalSearch } from "./GlobalSearch";
+import { ThemeToggle } from "../shared/ThemeToggle";
 
 interface AdminHeaderProps {
   title: string;
@@ -17,6 +18,7 @@ export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
         </div>
         <div className="flex items-center gap-3">
           <GlobalSearch />
+          <ThemeToggle />
           <NotificationsPopover />
         </div>
       </div>

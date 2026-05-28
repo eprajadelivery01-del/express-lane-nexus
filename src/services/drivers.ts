@@ -24,19 +24,10 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
   // delivery_drivers already has: full_name, phone, document, avatar_url,
   // vehicle_type, vehicle_plate, status, is_online, rating, etc.
   
-  // Scope to current admin's subordinates
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  let query = supabase
+  const { data: drivers, error } = await supabase
     .from("delivery_drivers")
     .select("*")
     .order("created_at", { ascending: false });
-  
-  if (user) {
-    query = query.eq("created_by_admin_id", user.id);
-  }
-  
-  const { data: drivers, error } = await query;
 
   if (error) throw error;
   if (!drivers) return [];

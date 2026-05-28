@@ -12,9 +12,14 @@ import { useState } from "react";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 
 export default function CompaniesPage() {
-  const { data: companies, isLoading } = useCompanies();
+  const { data: companies, isLoading, error } = useCompanies();
   const qc = useQueryClient();
   const [editingCompany, setEditingCompany] = useState<any>(null);
+
+  if (error) {
+    console.error("ERRO DO SUPABASE:", error);
+    toast.error("Erro ao carregar empresas: " + (error as any).message);
+  }
 
   const toggleActive = async (id: string, active: boolean) => {
     await supabase.from("companies").update({ active: !active }).eq("id", id);
@@ -161,6 +166,8 @@ export default function CompaniesPage() {
             <tbody>
               {isLoading ? (
                 <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Carregando...</td></tr>
+              ) : error ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center font-bold text-red-500">ERRO DO BANCO: {(error as any).message}</td></tr>
               ) : (companies ?? []).length === 0 ? (
                 <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Nenhuma empresa encontrada</td></tr>
               ) : (
