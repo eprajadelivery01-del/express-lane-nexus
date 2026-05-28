@@ -43,21 +43,41 @@ export default function BusinessProfilePage() {
   useEffect(() => {
     if (!user) return;
     setLoadingCompany(true);
-    supabase
-      .from("companies")
-      .select("id, name, phone, address, logo_url, delivery_fee")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => {
-        if (data) {
-          setCompany(data as Company);
-          setCompName(data.name);
-          setCompPhone(data.phone ?? "");
-          setCompAddress(data.address ?? "");
-          setCompDeliveryFee(String(data.delivery_fee ?? 0));
+    const init = async () => {
+      let { data } = await supabase
+        .from("companies")
+        .select("id, name, phone, address, logo_url, delivery_fee")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!data) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profile?.role === "admin") {
+          const { data: fallback } = await supabase
+            .from("companies")
+            .select("id, name, phone, address, logo_url, delivery_fee")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          data = fallback;
         }
-        setLoadingCompany(false);
-      });
+      }
+
+      if (data) {
+        setCompany(data as Company);
+        setCompName(data.name);
+        setCompPhone(data.phone ?? "");
+        setCompAddress(data.address ?? "");
+        setCompDeliveryFee(String(data.delivery_fee ?? 0));
+      }
+      setLoadingCompany(false);
+    };
+    init();
   }, [user]);
 
   const handleSave = async (e: React.FormEvent) => {

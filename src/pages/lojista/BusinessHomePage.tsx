@@ -20,12 +20,33 @@ export default function BusinessOrdersPage() {
   // Fetch company
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("companies")
-      .select("id")
-      .eq("user_id", user.id)
-      .single()
-      .then(({ data }) => { if (data) setCompanyId(data.id); });
+    const init = async () => {
+      let { data: company } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!company) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profile?.role === "admin") {
+          const { data: fallback } = await supabase
+            .from("companies")
+            .select("id")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          company = fallback;
+        }
+      }
+      if (company) setCompanyId(company.id);
+    };
+    init();
   }, [user]);
 
   // Use the orders service hooks
