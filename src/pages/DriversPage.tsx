@@ -49,9 +49,9 @@ export default function DriversPage() {
           user_id: p.user_id,
           full_name: p.full_name || "Entregador Sincronizado",
           phone: p.phone || null,
-          vehicle_type: "motorcycle",
+          vehicle_type: "motorcycle" as const,
           commission_rate: 15,
-          status: "active"
+          status: "active" as const
         }));
 
         const { error } = await supabase.from("delivery_drivers").insert(inserts);
