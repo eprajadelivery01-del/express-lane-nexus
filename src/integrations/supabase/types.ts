@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -289,6 +289,7 @@ export type Database = {
           category: string | null
           city: string | null
           city_id: string | null
+          commission_percentage: number
           cover_url: string | null
           created_at: string | null
           created_by_admin_id: string | null
@@ -308,6 +309,7 @@ export type Database = {
           opening_hours: Json | null
           phone: string | null
           rating: number | null
+          region_id: string | null
           show_in_marketplace: boolean
           state: string | null
           updated_at: string | null
@@ -322,6 +324,7 @@ export type Database = {
           category?: string | null
           city?: string | null
           city_id?: string | null
+          commission_percentage?: number
           cover_url?: string | null
           created_at?: string | null
           created_by_admin_id?: string | null
@@ -341,6 +344,7 @@ export type Database = {
           opening_hours?: Json | null
           phone?: string | null
           rating?: number | null
+          region_id?: string | null
           show_in_marketplace?: boolean
           state?: string | null
           updated_at?: string | null
@@ -355,6 +359,7 @@ export type Database = {
           category?: string | null
           city?: string | null
           city_id?: string | null
+          commission_percentage?: number
           cover_url?: string | null
           created_at?: string | null
           created_by_admin_id?: string | null
@@ -374,13 +379,22 @@ export type Database = {
           opening_hours?: Json | null
           phone?: string | null
           rating?: number | null
+          region_id?: string | null
           show_in_marketplace?: boolean
           state?: string | null
           updated_at?: string | null
           user_id?: string | null
           zip_code?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       conversations: {
         Row: {
@@ -689,6 +703,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           city_id: string | null
+          commission_rate: number
           company_id: string | null
           created_at: string | null
           created_by_admin_id: string | null
@@ -718,6 +733,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           city_id?: string | null
+          commission_rate?: number
           company_id?: string | null
           created_at?: string | null
           created_by_admin_id?: string | null
@@ -747,6 +763,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           city_id?: string | null
+          commission_rate?: number
           company_id?: string | null
           created_at?: string | null
           created_by_admin_id?: string | null
@@ -2081,6 +2098,50 @@ export type Database = {
       fix_user_permissions: { Args: never; Returns: Json }
       generate_daily_report: { Args: never; Returns: string }
       get_business_orders_v2: { Args: { p_company_id: string }; Returns: Json }
+      get_company_for_current_user: {
+        Args: never
+        Returns: {
+          active: boolean | null
+          address: string | null
+          banner_url: string | null
+          business_hours: string | null
+          category: string | null
+          city: string | null
+          city_id: string | null
+          commission_percentage: number
+          cover_url: string | null
+          created_at: string | null
+          created_by_admin_id: string | null
+          delivery_fee: number | null
+          delivery_mode: string | null
+          description: string | null
+          document: string | null
+          email: string | null
+          gallery: Json | null
+          id: string
+          is_active: boolean | null
+          is_open: boolean | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          name: string
+          opening_hours: Json | null
+          phone: string | null
+          rating: number | null
+          region_id: string | null
+          show_in_marketplace: boolean
+          state: string | null
+          updated_at: string | null
+          user_id: string | null
+          zip_code: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "companies"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_delivery_price: {
         Args: { lat: number; lng: number }
         Returns: number
