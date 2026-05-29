@@ -29,14 +29,10 @@ export function AdminLayout({ children, title, subtitle, fullHeight }: AdminLayo
       <div className="flex-1 flex flex-col min-w-0 min-h-0 transition-all duration-300">
         <AdminHeader title={title} subtitle={subtitle} />
         <main className={cn(
-          "flex-1 animate-fade-in flex flex-col min-h-0",
-          fullHeight ? "p-0 overflow-hidden" : "p-4 md:p-6 overflow-y-auto"
+          "flex-1 animate-fade-in",
+          fullHeight ? "p-0 overflow-hidden" : "p-4 md:p-6 overflow-y-scroll"
         )}>
-          <div className="flex-1 relative flex flex-col min-h-0">
-            {children}
-          </div>
-          
-
+          {children}
         </main>
       </div>
     </div>
