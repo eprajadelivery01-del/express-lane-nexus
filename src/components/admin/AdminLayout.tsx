@@ -24,12 +24,12 @@ export function AdminLayout({ children, title, subtitle, fullHeight }: AdminLayo
   });
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-[100dvh] bg-background overflow-hidden">
       <AdminSidebar onCollapsedChange={setSidebarCollapsed} />
-      <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 transition-all duration-300">
         <AdminHeader title={title} subtitle={subtitle} />
         <main className={cn(
-          "flex-1 animate-fade-in flex flex-col",
+          "flex-1 animate-fade-in flex flex-col min-h-0",
           fullHeight ? "p-0 overflow-hidden" : "p-4 md:p-6 overflow-y-auto custom-scrollbar"
         )}>
           <div className="flex-1 relative flex flex-col min-h-0">
