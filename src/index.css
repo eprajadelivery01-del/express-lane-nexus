@@ -126,17 +126,17 @@
   .modal-gradient {
     background: linear-gradient(135deg, hsl(32, 95%, 52%), hsl(25, 90%, 45%));
   }
-  .custom-scrollbar::-webkit-scrollbar {
+  .invisible-scrollbar-or-something::-webkit-scrollbar {
     width: 5px;
   }
-  .custom-scrollbar::-webkit-scrollbar-track {
+  .invisible-scrollbar-or-something::-webkit-scrollbar-track {
     background: transparent;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
+  .invisible-scrollbar-or-something::-webkit-scrollbar-thumb {
     background: hsl(var(--muted-foreground) / 0.2);
     border-radius: 10px;
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  .invisible-scrollbar-or-something::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.4);
   }
 
