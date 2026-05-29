@@ -47,7 +47,7 @@ export function CreateDriverDialog({ open, onOpenChange }: CreateDriverDialogPro
           role: "driver",
           vehicle: form.vehicle,
           licensePlate: form.licensePlate,
-          commissionRate: parseFloat(form.commissionRate) || 0.40,
+          commissionRate: !isNaN(parseFloat(form.commissionRate)) ? parseFloat(form.commissionRate) : 0.40,
         },
       });
 
