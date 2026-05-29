@@ -267,6 +267,7 @@ export default function DeliveriesPage() {
                     <th className="text-left text-xs font-semibold text-muted-foreground p-4">Cliente</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground p-4 hidden md:table-cell">Empresa</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground p-4 hidden lg:table-cell">Endereço</th>
+                    <th className="text-left text-xs font-semibold text-muted-foreground p-4">Entregador</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground p-4">Status</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground p-4 hidden sm:table-cell">Valor</th>
                     <th className="text-left text-xs font-semibold text-muted-foreground p-4 hidden lg:table-cell">Data</th>
@@ -284,6 +285,27 @@ export default function DeliveriesPage() {
                       </td>
                       <td className="p-4 hidden lg:table-cell">
                         <p className="text-sm text-muted-foreground truncate max-w-[200px]">{delivery.dropoff_address || delivery.address}</p>
+                      </td>
+                      <td className="p-4">
+                        {delivery.delivery_drivers ? (
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-foreground">
+                              {delivery.delivery_drivers.full_name || "—"}
+                            </span>
+                            {delivery.delivery_drivers.vehicle_type && (
+                              <span className="text-[10px] text-muted-foreground/80 uppercase font-black tracking-wider">
+                                {delivery.delivery_drivers.vehicle_type === "motorcycle" ? "🏍️ Moto" : 
+                                 delivery.delivery_drivers.vehicle_type === "bicycle" ? "🚲 Bike" : 
+                                 delivery.delivery_drivers.vehicle_type === "car" ? "🚗 Carro" : 
+                                 delivery.delivery_drivers.vehicle_type}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground/60 font-bold italic bg-muted/40 px-2 py-1 rounded-lg border border-dashed border-border/60">
+                            Em aberto
+                          </span>
+                        )}
                       </td>
                       <td className="p-4">
                         <DeliveryStatusBadge status={delivery.status as DeliveryStatus} />
