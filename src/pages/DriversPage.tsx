@@ -10,12 +10,63 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Power, Trash2, UserCheck, UserX, Edit2, Plus } from "lucide-react";
 import { useState } from "react";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
+import { RefreshCw } from "lucide-react";
 
 export default function DriversPage() {
   const { data: drivers, isLoading } = useDrivers();
   const qc = useQueryClient();
   const [showNewForm, setShowNewForm] = useState(false);
   const [editingDriver, setEditingDriver] = useState<any>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const syncMissingDrivers = async () => {
+    setSyncing(true);
+    toast.loading("Sincronizando cadastros...", { id: "sync" });
+    try {
+      // Get all drivers from user_roles
+      const { data: roles } = await supabase.from("user_roles").select("user_id").eq("role", "driver");
+      if (!roles || roles.length === 0) {
+        toast.success("Nenhum entregador para sincronizar", { id: "sync" });
+        return;
+      }
+
+      // Get existing drivers
+      const { data: existing } = await supabase.from("delivery_drivers").select("user_id");
+      const existingIds = new Set(existing?.map(d => d.user_id) || []);
+
+      const missingIds = roles.filter(r => !existingIds.has(r.user_id)).map(r => r.user_id);
+      
+      if (missingIds.length === 0) {
+        toast.success("Todos os cadastros já estão sincronizados!", { id: "sync" });
+        return;
+      }
+
+      // Get profiles for missing ids
+      const { data: profiles } = await supabase.from("profiles").select("*").in("user_id", missingIds);
+      
+      if (profiles && profiles.length > 0) {
+        const inserts = profiles.map(p => ({
+          user_id: p.user_id,
+          full_name: p.full_name || "Entregador Sincronizado",
+          phone: p.phone || null,
+          vehicle_type: "motorcycle",
+          commission_rate: 15,
+          status: "active"
+        }));
+
+        const { error } = await supabase.from("delivery_drivers").insert(inserts);
+        if (error) throw error;
+      }
+      
+      qc.invalidateQueries({ queryKey: ["drivers"] });
+      toast.success(`${missingIds.length} entregadores sincronizados com sucesso!`, { id: "sync" });
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erro ao sincronizar: " + err.message, { id: "sync" });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const toggleOnline = async (id: string, isOnline: boolean) => {
     const { error } = await supabase
@@ -76,6 +127,10 @@ export default function DriversPage() {
           <p className="text-xs text-muted-foreground">Convide novos parceiros ou cadastre manualmente</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
+          <Button variant="outline" onClick={syncMissingDrivers} disabled={syncing} className="hidden sm:flex">
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            Sincronizar Cadastros
+          </Button>
           <GenerateInviteDialog fixedRole="driver" triggerLabel="Gerar Link de Convite" />
           <CreateDriverDialog 
             open={showNewForm} 
