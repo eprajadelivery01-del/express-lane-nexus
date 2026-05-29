@@ -18,13 +18,14 @@ export default function BusinessFinancePage() {
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [commissionPercentage, setCommissionPercentage] = useState<number>(10.00);
 
   useEffect(() => {
     if (!user) return;
     const init = async () => {
       let { data: company } = await supabase
         .from("companies")
-        .select("id")
+        .select("id, commission_percentage")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -38,14 +39,17 @@ export default function BusinessFinancePage() {
         if (profile?.role === "admin") {
           const { data: fallback } = await supabase
             .from("companies")
-            .select("id")
+            .select("id, commission_percentage")
             .order("created_at", { ascending: true })
             .limit(1)
             .maybeSingle();
           company = fallback;
         }
       }
-      if (company) setCompanyId(company.id);
+      if (company) {
+        setCompanyId(company.id);
+        setCommissionPercentage(company.commission_percentage !== null && company.commission_percentage !== undefined ? Number(company.commission_percentage) : 10.00);
+      }
     };
     init();
   }, [user]);
@@ -72,13 +76,14 @@ export default function BusinessFinancePage() {
 
   const totalAll = deliveries.reduce((sum, d) => sum + Number(d.value), 0);
   const totalCompleted = deliveries
-    .filter((d) => d.status === "completed")
+    .filter((d) => d.status === "completed" || d.status === "delivered")
     .reduce((sum, d) => sum + Number(d.value), 0);
   const totalPending = deliveries
-    .filter((d) => d.status !== "completed" && d.status !== "cancelled")
+    .filter((d) => d.status !== "completed" && d.status !== "delivered" && d.status !== "cancelled")
     .reduce((sum, d) => sum + Number(d.value), 0);
-  const countCompleted = deliveries.filter((d) => d.status === "completed").length;
-  const countPending = deliveries.filter((d) => d.status !== "completed" && d.status !== "cancelled").length;
+  const countCompleted = deliveries.filter((d) => d.status === "completed" || d.status === "delivered").length;
+  const countPending = deliveries.filter((d) => d.status !== "completed" && d.status !== "delivered" && d.status !== "cancelled").length;
+  const duePlatformFee = totalCompleted * (commissionPercentage / 100);
 
   const monthName = new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
@@ -102,7 +107,7 @@ export default function BusinessFinancePage() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUp className="h-4 w-4 text-primary" />
@@ -117,7 +122,7 @@ export default function BusinessFinancePage() {
           <div className="bg-green-500/5 border border-green-500/20 rounded-2xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-xs text-muted-foreground font-medium">Concluídos</span>
+              <span className="text-xs text-muted-foreground font-medium">Vendas Concluídas</span>
             </div>
             <p className="text-2xl font-bold text-green-500">
               {loading ? "—" : `R$ ${totalCompleted.toFixed(2)}`}
@@ -134,6 +139,18 @@ export default function BusinessFinancePage() {
               {loading ? "—" : `R$ ${totalPending.toFixed(2)}`}
             </p>
             <p className="text-xs text-muted-foreground mt-1">{countPending} pedidos</p>
+          </div>
+
+          <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 relative overflow-hidden group">
+            <div className="absolute -right-6 -top-6 w-16 h-16 bg-primary/5 rounded-full blur-xl group-hover:bg-primary/10 transition-colors" />
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs">🪙</span>
+              <span className="text-xs text-muted-foreground font-medium">Devido à Plataforma</span>
+            </div>
+            <p className="text-2xl font-black text-primary">
+              {loading ? "—" : `R$ ${duePlatformFee.toFixed(2)}`}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">Taxa contratada: {commissionPercentage.toFixed(1)}%</p>
           </div>
         </div>
 

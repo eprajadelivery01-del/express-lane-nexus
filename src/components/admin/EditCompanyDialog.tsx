@@ -32,6 +32,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     regionId: "",
     is_active: true,
     category: "restaurante",
+    commissionPercentage: "10.00",
   });
 
   // Reset form when company changes
@@ -48,6 +49,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         regionId: company.region_id || "",
         is_active: company.is_active ?? true,
         category: company.category || "restaurante",
+        commissionPercentage: company.commission_percentage !== null && company.commission_percentage !== undefined ? company.commission_percentage.toString() : "10.00",
       });
       // Fetch owner profile
       if (company.user_id) {
@@ -80,6 +82,22 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
 
     setLoading(true);
     try {
+      if (form.email) {
+        // Check if email already exists for another company
+        const { data: existingCompany } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("email", form.email.trim().toLowerCase())
+          .neq("id", company.id)
+          .maybeSingle();
+ 
+        if (existingCompany) {
+          toast.error("Este e-mail já está cadastrado para outra empresa!");
+          setLoading(false);
+          return;
+        }
+      }
+
       if (company.user_id) {
         const { error: pError } = await supabase
           .from("profiles")
@@ -104,6 +122,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           region_id: form.regionId || null,
           is_active: form.is_active,
           category: form.category,
+          commission_percentage: parseFloat(form.commissionPercentage) || 10.00,
         })
         .eq("id", company.id);
 
@@ -212,6 +231,13 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
             <div>
               <Label>Longitude</Label>
               <Input value={form.longitude} onChange={e => set("longitude", e.target.value)} placeholder="-56.0974" className="mt-1.5" />
+            </div>
+          </div>
+          <div>
+            <Label>Comissão sobre Vendas (%)</Label>
+            <div className="relative mt-1.5">
+              <Input type="number" step="0.1" value={form.commissionPercentage} onChange={e => set("commissionPercentage", e.target.value)} className="pr-8" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">%</span>
             </div>
           </div>
           <div className="flex items-center gap-3 py-2">

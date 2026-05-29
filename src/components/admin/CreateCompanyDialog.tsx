@@ -33,6 +33,17 @@ export function CreateCompanyDialog() {
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      // Check if email already exists
+      const { data: existingCompany } = await supabase
+        .from("companies")
+        .select("id")
+        .eq("email", form.email.trim().toLowerCase())
+        .maybeSingle();
+
+      if (existingCompany) {
+        throw new Error("Este e-mail já está cadastrado para outra empresa!");
+      }
+
       const { data, error } = await supabase.functions.invoke("create-admin", {
         body: {
           email: form.email,

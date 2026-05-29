@@ -96,6 +96,7 @@ export default function DriversPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Veículo</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Placa</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Telefone</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Comissão</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Rating</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Online</th>
@@ -121,6 +122,7 @@ export default function DriversPage() {
                     <td className="px-4 py-3">{vehicleLabel[d.vehicle_type || "motorcycle"] || d.vehicle_type}</td>
                     <td className="px-4 py-3 font-mono text-xs">{d.vehicle_plate || "—"}</td>
                     <td className="px-4 py-3">{d.phone || "—"}</td>
+                    <td className="px-4 py-3 font-semibold text-primary">R$ {Number(d.commission_rate ?? 0.40).toFixed(2).replace('.', ',')}</td>
                     <td className="px-4 py-3">⭐ {Number(d.rating || 0).toFixed(1)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${d.status === "active" ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"}`}>

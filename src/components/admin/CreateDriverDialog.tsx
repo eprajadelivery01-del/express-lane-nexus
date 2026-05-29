@@ -28,7 +28,7 @@ export function CreateDriverDialog({ open, onOpenChange }: CreateDriverDialogPro
     document: "",
     vehicle: "motorcycle",
     licensePlate: "",
-    commissionRate: "15",
+    commissionRate: "0.40",
   });
 
   const set = (key: string, value: string) => setForm((p) => ({ ...p, [key]: value }));
@@ -47,7 +47,7 @@ export function CreateDriverDialog({ open, onOpenChange }: CreateDriverDialogPro
           role: "driver",
           vehicle: form.vehicle,
           licensePlate: form.licensePlate,
-          commissionRate: parseFloat(form.commissionRate) || 15,
+          commissionRate: parseFloat(form.commissionRate) || 0.40,
         },
       });
 
@@ -69,7 +69,7 @@ export function CreateDriverDialog({ open, onOpenChange }: CreateDriverDialogPro
     setStep(0);
     setForm({
       fullName: "", email: "", password: "", phone: "",
-      document: "", vehicle: "motorcycle", licensePlate: "", commissionRate: "15",
+      document: "", vehicle: "motorcycle", licensePlate: "", commissionRate: "0.40",
     });
   };
 
@@ -170,10 +170,10 @@ export function CreateDriverDialog({ open, onOpenChange }: CreateDriverDialogPro
                   <Input className="h-12 rounded-xl uppercase font-mono" placeholder="ABC-1234" value={form.licensePlate} onChange={(e) => set("licensePlate", e.target.value)} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Comissão (%)</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Comissão por Corrida (R$)</Label>
                   <div className="relative">
-                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input type="number" className="pl-10 h-12 rounded-xl" value={form.commissionRate} onChange={(e) => set("commissionRate", e.target.value)} />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">R$</span>
+                    <Input type="number" step="0.01" className="pl-10 h-12 rounded-xl" value={form.commissionRate} onChange={(e) => set("commissionRate", e.target.value)} />
                   </div>
                 </div>
               </div>

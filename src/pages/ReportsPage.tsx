@@ -502,6 +502,85 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {/* Platform Billings Report Section */}
+      <div className="bg-card rounded-3xl p-6 border border-border shadow-xl mb-10 animate-in fade-in duration-500">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+            <span className="text-lg">🪙</span>
+          </div>
+          <div>
+            <h3 className="text-sm font-black text-foreground uppercase tracking-widest text-left">Cobranças Plataforma & Saldos Devidos</h3>
+            <p className="text-xs text-muted-foreground mt-0.5 text-left">Saldos devidos pelos lojistas (% sobre vendas) e entregadores (taxa fixa por entrega)</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Lojistas (Merchants) */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2 text-left">
+              🏢 Cobrança de Lojistas (% sobre Vendas)
+            </h4>
+            <div className="border border-border rounded-2xl overflow-hidden bg-background/50 divide-y divide-border">
+              {companyBreakdown.length > 0 ? (
+                companyBreakdown.map((c: any) => {
+                  const companyObj = (companies ?? []).find(co => co.id === c.companyId);
+                  const commPct = companyObj?.commission_percentage !== undefined && companyObj?.commission_percentage !== null ? Number(companyObj.commission_percentage) : 10.00;
+                  const totalDue = c.revenue * (commPct / 100);
+                  return (
+                    <div key={c.companyId} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors">
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-foreground">{c.name}</p>
+                        <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                          Vendas: R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} • Taxa: {commPct.toFixed(1)}%
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Devido</p>
+                        <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="p-6 text-center text-xs text-muted-foreground">Nenhum lojista com movimentação</div>
+              )}
+            </div>
+          </div>
+
+          {/* Entregadores (Drivers) */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2 text-left">
+              🏍️ Cobrança de Entregadores (Taxa por Entrega)
+            </h4>
+            <div className="border border-border rounded-2xl overflow-hidden bg-background/50 divide-y divide-border">
+              {driverBreakdown.length > 0 ? (
+                driverBreakdown.map((d: any) => {
+                  const driverObj = (drivers ?? []).find(dr => dr.id === d.driverId);
+                  const commRate = driverObj?.commission_rate !== undefined && driverObj?.commission_rate !== null ? Number(driverObj.commission_rate) : 0.40;
+                  const totalDue = d.count * commRate;
+                  return (
+                    <div key={d.driverId} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors">
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-foreground">{d.name}</p>
+                        <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                          Corridas: {d.count} • Taxa por entrega: R$ {commRate.toFixed(2).replace('.', ',')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Devido</p>
+                        <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="p-6 text-center text-xs text-muted-foreground">Nenhum entregador com movimentação</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-card/40 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden mb-12">
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-4">

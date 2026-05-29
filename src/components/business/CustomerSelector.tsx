@@ -107,7 +107,7 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
 
         const { data: deliveriesData } = await supabase
           .from("deliveries")
-          .select("id, customer_name, customer_phone, customer_cpf")
+          .select("id, customer_name, customer_phone, customer_cpf, address")
           .eq("company_id", companyId)
           .or(delOrConditions.join(","))
           .limit(10);
@@ -116,7 +116,7 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
         const merged: any[] = [];
         const seenNames = new Set();
 
-        const addResult = (item: any, source: "loja" | "marketplace") => {
+        const addResult = (item: any, source: "loja" | "marketplace", labels: string[] = []) => {
           if (!item || (!item.name && !item.customer_name)) return;
           const finalName = item.name || item.customer_name;
           const nameLower = finalName.toLowerCase();
@@ -130,21 +130,37 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
             name: finalName,
             phone: item.phone || item.customer_phone || null,
             cpf: item.cpf || item.customer_cpf || null,
-            isMarketplace: source === "marketplace"
+            isMarketplace: source === "marketplace",
+            addressLabels: labels
           });
         };
 
+        // Query addresses for manually added customers
+        const customerUserIds = (customersData || []).map(c => c.user_id).filter(Boolean);
+        const { data: addressesData } = customerUserIds.length > 0
+          ? await supabase
+              .from("addresses")
+              .select("user_id, label")
+              .in("user_id", customerUserIds)
+          : { data: [] };
+ 
         // Add manual customers first
-        (customersData || []).forEach(c => addResult(c, "loja"));
+        (customersData || []).forEach(c => {
+          const matching = addressesData?.filter(a => a.user_id === c.user_id) || [];
+          const labels = Array.from(new Set(matching.map(a => a.label || "Casa")));
+          addResult(c, "loja", labels);
+        });
         
         // Add deliveries history customers
         (deliveriesData || []).forEach(d => {
+          const parsed = parseAddressLabel(d.address || "");
+          const labels = parsed.label ? [parsed.label] : [];
           addResult({
             id: d.id,
             name: d.customer_name,
             customer_phone: d.customer_phone,
             customer_cpf: d.customer_cpf
-          }, "loja");
+          }, "loja", labels);
         });
 
         setResults(merged);
@@ -172,12 +188,12 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
     };
 
     try {
-      // 1. From "addresses" table — query by customer_id (customer.id)
-      if (customer.id) {
+      // 1. From "addresses" table — query by user_id
+      if (customer.user_id) {
         const { data } = await supabase
           .from("addresses")
-          .select("id, customer_id, label, street, number, neighborhood, complement, city")
-          .eq("customer_id", customer.id)
+          .select("id, user_id, label, street, number, neighborhood, complement, city")
+          .eq("user_id", customer.user_id)
           .order("created_at", { ascending: false });
         (data || []).forEach((a: any) => {
           const parts = [
@@ -333,7 +349,7 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
                 <p className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
                   Sugestões Encontradas
                 </p>
-                {results.map((customer, idx) => (
+                 {results.map((customer, idx) => (
                   <button
                     key={idx}
                     type="button"
@@ -344,8 +360,26 @@ export function CustomerSelector({ companyId, value, onChange }: CustomerSelecto
                       <User className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-foreground truncate">{customer.name}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-bold text-foreground truncate">{customer.name}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {(customer as any).addressLabels?.map((label: string, lIdx: number) => (
+                            <span 
+                              key={lIdx} 
+                              className={cn(
+                                "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border shrink-0",
+                                label === "Casa" ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                                label === "Trabalho" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
+                                label === "Casa da Mãe" ? "bg-pink-500/10 text-pink-500 border-pink-500/20" :
+                                "bg-muted text-muted-foreground border-border"
+                              )}
+                            >
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                         <Phone className="h-3 w-3" /> {customer.phone || "Sem Telefone"}
                       </p>
                     </div>

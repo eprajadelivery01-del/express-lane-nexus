@@ -59,7 +59,7 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
       latitude: raw.latitude || raw.current_latitude || null,
       longitude: raw.longitude || raw.current_longitude || null,
       status: raw.status || "active",
-      commission_rate: Number(raw.commission_rate) || 15,
+      commission_rate: raw.commission_rate !== null && raw.commission_rate !== undefined ? Number(raw.commission_rate) : 0.40,
       created_at: driver.created_at,
     } as DriverWithProfile;
   });

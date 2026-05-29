@@ -24,7 +24,7 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
     document: driver?.document || "",
     vehicleType: driver?.vehicle_type || "motorcycle",
     vehiclePlate: driver?.vehicle_plate || "",
-    commission: driver?.commission_rate?.toString() || "15",
+    commission: driver?.commission_rate !== undefined && driver?.commission_rate !== null ? driver.commission_rate.toString() : "0.40",
   });
 
   const set = (key: string, val: string) => setForm(p => ({ ...p, [key]: val }));
@@ -46,6 +46,7 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
           document: form.document,
           vehicle: form.vehicleType,
           license_plate: form.vehiclePlate,
+          commission_rate: parseFloat(form.commission) || 0.40,
         } as any)
         .eq("id", driver.id);
 
@@ -115,8 +116,11 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
               </div>
             </div>
             <div>
-              <Label>Comissão (%)</Label>
-              <Input type="number" value={form.commission} onChange={e => set("commission", e.target.value)} />
+              <Label>Comissão por Corrida (R$)</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">R$</span>
+                <Input type="number" step="0.01" className="pl-10" value={form.commission} onChange={e => set("commission", e.target.value)} />
+              </div>
             </div>
           </div>
         </div>

@@ -159,6 +159,7 @@ export default function CompaniesPage() {
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Telefone</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Email</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Endereço</th>
+                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Comissão</th>
                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">Status</th>
                 <th className="px-4 py-3 text-right font-medium text-muted-foreground">Ações</th>
               </tr>
@@ -184,6 +185,7 @@ export default function CompaniesPage() {
                     <td className="px-4 py-3">{c.phone || "—"}</td>
                     <td className="px-4 py-3">{c.email || "—"}</td>
                     <td className="px-4 py-3 max-w-[200px] truncate">{c.address || "—"}</td>
+                    <td className="px-4 py-3 font-semibold text-primary">{Number(c.commission_percentage ?? 10.00).toFixed(1)}%</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${c.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
                         {c.active ? "Ativa" : "Inativa"}
