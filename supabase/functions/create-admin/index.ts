@@ -161,8 +161,8 @@ Deno.serve(async (req) => {
         user_id: userId,
         full_name: fullName || "",
         phone: phone || null,
-        vehicle: vehicle || "motorcycle",
-        license_plate: licensePlate || null,
+        vehicle_type: vehicle || "motorcycle",
+        vehicle_plate: licensePlate || null,
         commission_rate: commissionRate ?? 15,
         created_by_admin_id: userData.user.id,
         status: "active", // CRITICAL FIX: Ensure driver is born active so they can see deliveries!
