@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     if (!token) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
-        status: 401,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData?.user) {
       return new Response(JSON.stringify({ error: "Sessão inválida" }), {
-        status: 401,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
 
     if (roleErr || !roleRows || roleRows.length === 0) {
       return new Response(JSON.stringify({ error: "Permissão negada" }), {
-        status: 403,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "email, password e role são obrigatórios" }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Senha deve ter ao menos 8 caracteres" }),
         {
-          status: 400,
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     const validRoles = ["admin", "driver", "company", "customer"];
     if (!validRoles.includes(role)) {
       return new Response(JSON.stringify({ error: "Role inválido" }), {
-        status: 400,
+        status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -111,7 +111,7 @@ Deno.serve(async (req) => {
       const { data: existingRole } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", role).maybeSingle();
       if (existingRole) {
          return new Response(JSON.stringify({ error: "Usuário já cadastrado neste painel com este e-mail." }), {
-           status: 400,
+           status: 200,
            headers: { ...corsHeaders, "Content-Type": "application/json" },
          });
       }
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
       }
     } else {
       // Create new user
-      const { data: authData, error: authError } = await supabase.auth.admin
+      const { data: authData, error: createErr } = await supabase.auth.admin
         .createUser({
           email,
           password,
@@ -134,9 +134,9 @@ Deno.serve(async (req) => {
           user_metadata: { full_name: fullName || "", role: role },
         });
 
-      if (authError) {
-        return new Response(JSON.stringify({ error: authError.message }), {
-          status: 400,
+      if (createErr) {
+        return new Response(JSON.stringify({ error: createErr.message }), {
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
