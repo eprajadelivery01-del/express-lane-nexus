@@ -65,6 +65,14 @@ export function initializeGlobalErrorHandlers(appName: string) {
   // 2. Unhandled promise rejections
   window.onunhandledrejection = (event) => {
     const reason = event.reason;
+    const isFailedToFetch = reason?.message === "Failed to fetch" || String(reason).includes("Failed to fetch");
+
+    if (isFailedToFetch) {
+      event.preventDefault(); // Impede de aparecer no console
+      console.warn("Network request failed (Failed to fetch). Ignored to prevent spam.");
+      return;
+    }
+
     reportErrorToTelegram({
       error_message: `Unhandled Rejection: ${reason?.message || reason}`,
       stack_trace: reason?.stack || "No stack trace available",
