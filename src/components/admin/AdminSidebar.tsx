@@ -18,11 +18,12 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+  { label: "Rastreio", icon: Map, href: "/admin/tracking" },
   { label: "Corridas (OS)", icon: Truck, href: "/admin/deliveries", badgeKey: "openRides" },
   { label: "Chat", icon: MessageSquare, href: "/admin/chat", badgeKey: "unreadChats" },
   { label: "Empresas", icon: Building2, href: "/admin/companies" },
   { label: "Entregadores", icon: Bike, href: "/admin/drivers" },
-  { label: "Regiões / Mapa", icon: MapPin, href: "/admin/regions" },
+  { label: "Regiões", icon: MapPin, href: "/admin/regions" },
   { label: "Financeiro", icon: DollarSign, href: "/admin/reports" },
   { label: "Meu Perfil", icon: User, href: "/admin/profile" },
 ];
