@@ -3,6 +3,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useDrivers } from "@/services/drivers";
 import { useCompanies } from "@/services/companies";
 import { CityServiceList } from "@/components/admin/CityServiceList";
+import { useCity } from "@/contexts/CityContext";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Bike, Search, MapPin, Navigation, MessageSquare, Compass, ShieldAlert } from "lucide-react";
@@ -19,9 +20,12 @@ const escapeHtml = (s: unknown): string =>
 export default function TrackingPage() {
   const { data: allDrivers, isLoading: isLoadingDrivers } = useDrivers();
   const { data: companies } = useCompanies();
+  const { selectedCity, selectedCityCoords } = useCity();
   
   const [search, setSearch] = useState("");
-  const [centerCity, setCenterCity] = useState<{ name: string; lat: number; lng: number } | null>(null);
+  const [centerCity, setCenterCity] = useState<{ name: string; lat: number; lng: number } | null>(() => {
+    return selectedCityCoords ? { name: selectedCityCoords.name, lat: selectedCityCoords.lat, lng: selectedCityCoords.lng } : null;
+  });
 
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -50,37 +54,74 @@ export default function TrackingPage() {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const defaultCenter: [number, number] = centerCity
-      ? [centerCity.lng, centerCity.lat]
-      : [-56.0974, -15.5989]; // Default coordinate (Cuiabá area)
+    // Determine initial map center based on: selected city context, first company, or default fallback
+    let initialCenter: [number, number] = [-56.0974, -15.5989]; // Cuiabá fallback
+    if (centerCity) {
+      initialCenter = [centerCity.lng, centerCity.lat];
+    } else if (selectedCityCoords) {
+      initialCenter = [selectedCityCoords.lng, selectedCityCoords.lat];
+    } else if (companies && companies.length > 0) {
+      const companyWithLocation = companies.find(c => c.latitude != null && c.longitude != null);
+      if (companyWithLocation) {
+        initialCenter = [companyWithLocation.longitude!, companyWithLocation.latitude!];
+      }
+    }
 
     const mapInstance = new maplibregl.Map({
       container: mapContainerRef.current,
       style: isDarkTheme
         ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
         : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-      center: defaultCenter,
+      center: initialCenter,
       zoom: 12,
     });
 
     mapInstance.addControl(new maplibregl.NavigationControl(), "bottom-right");
     mapRef.current = mapInstance;
 
+    // Use HTML5 Geolocation API to detect customer/admin current location and focus city automatically
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          // Only automatically focus current position if the user hasn't explicitly set a filter city
+          if (!selectedCityCoords && !centerCity) {
+            mapInstance.flyTo({
+              center: [longitude, latitude],
+              zoom: 13,
+              duration: 1500
+            });
+          }
+        },
+        (error) => {
+          console.warn("Geolocation API access error/denied:", error);
+        }
+      );
+    }
+
     return () => {
       mapInstance.remove();
       mapRef.current = null;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [companies]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Center map on city changes
+  // Center map on city changes (from overlay or city header filter)
   useEffect(() => {
-    if (!mapRef.current || !centerCity) return;
-    mapRef.current.flyTo({
-      center: [centerCity.lng, centerCity.lat],
-      zoom: 13,
-      duration: 1500,
-    });
-  }, [centerCity]);
+    if (!mapRef.current) return;
+    if (centerCity) {
+      mapRef.current.flyTo({
+        center: [centerCity.lng, centerCity.lat],
+        zoom: 13,
+        duration: 1500,
+      });
+    } else if (selectedCityCoords) {
+      mapRef.current.flyTo({
+        center: [selectedCityCoords.lng, selectedCityCoords.lat],
+        zoom: 13,
+        duration: 1500,
+      });
+    }
+  }, [centerCity, selectedCityCoords]);
 
   // Render Markers (Drivers + Companies)
   useEffect(() => {
