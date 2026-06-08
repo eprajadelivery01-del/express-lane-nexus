@@ -2169,6 +2169,7 @@ export type Database = {
         Returns: boolean
       }
       is_driver: { Args: { _user_id: string }; Returns: string }
+      is_driver_secure: { Args: { user_uid: string }; Returns: boolean }
       is_order_visible_to_user: {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
