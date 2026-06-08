@@ -140,6 +140,14 @@ export default function DeliveriesPage() {
   };
 
   const handlePrint = (delivery: DeliveryWithRelations) => {
+    let productValue = Number((delivery as any).estimated_value || 0);
+    if (productValue === 0 && delivery.notes) {
+      const match = delivery.notes.match(/Total Produtos:\s*R\$\s*([\d,.]+)/);
+      if (match) {
+         productValue = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
+      }
+    }
+
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;
     w.document.write(`
@@ -169,7 +177,7 @@ export default function DeliveriesPage() {
         <div class="value">${(delivery as any).payment_method || "Não informada"}</div>
         <hr/>
         <div class="label">Valor do Produto</div>
-        <div class="value">R$ ${Number((delivery as any).estimated_value || 0).toFixed(2).replace('.', ',')}</div>
+        <div class="value">R$ ${productValue.toFixed(2).replace('.', ',')}</div>
         <div class="label">Taxa de Entrega</div>
         <div class="value">R$ ${Number(delivery.value ?? (delivery as any).price ?? 0).toFixed(2).replace('.', ',')}</div>
         <div class="label">Data/Hora da Solicitação</div>
