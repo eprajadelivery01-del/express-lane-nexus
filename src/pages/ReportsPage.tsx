@@ -41,6 +41,26 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function SummaryCard({ label, value, icon, subValue, trend }: { label: string, value: string | number, icon: React.ReactNode, subValue?: string, trend?: string }) {
+  return (
+    <div className="bg-card rounded-3xl p-6 border border-border shadow-sm flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-bold text-muted-foreground uppercase tracking-widest">{label}</span>
+        {icon}
+      </div>
+      <div>
+        <div className="text-3xl font-black text-foreground">{value}</div>
+        {(subValue || trend) && (
+          <div className="flex items-center justify-between mt-3">
+            {subValue && <span className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-widest">{subValue}</span>}
+            {trend && <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full">{trend}</span>}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const { toast } = useToast();
   const [dateFrom, setDateFrom] = useState("");
