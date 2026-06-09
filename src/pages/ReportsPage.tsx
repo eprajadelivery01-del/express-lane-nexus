@@ -13,6 +13,34 @@ import {
   PieChart, Pie, Cell, BarChart, Bar, Legend 
 } from "recharts";
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Pendente",
+  assigned: "Atribuída",
+  in_transit: "Em Rota",
+  delivered: "Finalizada",
+  completed: "Finalizada (Marketplace)",
+  cancelled: "Cancelada",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  pending: "#eab308", // warning
+  assigned: "#3b82f6", // info
+  in_transit: "#8b5cf6", // violet
+  delivered: "#22c55e", // success
+  completed: "#10b981", // emerald
+  cancelled: "#ef4444", // destructive
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const label = STATUS_LABELS[status] || status;
+  const color = STATUS_COLORS[status] || "#8884d8";
+  return (
+    <span style={{ backgroundColor: color + "20", color: color }} className="inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider">
+      {label}
+    </span>
+  );
+}
+
 export default function ReportsPage() {
   const { toast } = useToast();
   const [dateFrom, setDateFrom] = useState("");
