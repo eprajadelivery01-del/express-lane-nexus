@@ -1,47 +1,82 @@
-# Plano para corrigir o painel admin
+# Cupons Globais (Admin)
 
-## Objetivo
-Restaurar o painel para que perfis, entregas e entregadores carreguem sem erro 500, garantindo que as regras de acesso continuem seguras.
+Permitir que o admin crie cupons que valem em **todas as lojas** ou apenas em **um conjunto selecionado de lojas**, e fazer o marketplace respeitar essa regra na hora de aplicar o desconto.
 
-## O que vou fazer
+## Modelo de dados
 
-1. **Corrigir a causa raiz no Supabase**
-   - Ajustar as policies de `deliveries`, `delivery_drivers` e `profiles` para remover dependências circulares entre elas.
-   - Restaurar `get_driver_id(uuid)` para um formato seguro que não quebre consultas RLS.
-   - Revisar `is_driver(uuid)` pelo mesmo motivo, para evitar novos loops de permissão.
+A tabela `public.coupons` já existe (`code`, `discount_type`, `discount_value`, `min_order_value`, `max_discount_value`, `expires_at`, `usage_limit`, `used_count`, `company_id`, `active`).
 
-2. **Validar as consultas que o painel usa**
-   - Testar diretamente as leituras equivalentes a:
-     - `profiles` por `user_id`
-     - `delivery_drivers` ordenado por `created_at`
-     - `deliveries` com `companies(...)` e `delivery_drivers(...)`
-   - Confirmar que voltaram a responder sem 500.
+Regras de escopo:
+- `company_id IS NULL` **e** sem linhas em `coupon_companies` → **cupom global** (vale em qualquer loja).
+- `company_id IS NULL` **e** com linhas em `coupon_companies` → **cupom restrito** às lojas selecionadas.
+- `company_id` preenchido → cupom legado da loja (continua funcionando como hoje).
 
-3. **Blindar o frontend contra regressões**
-   - Revisar os pontos do app que ainda dependem de `profiles.role` como fonte de permissão, porque o projeto já usa `user_roles` como fronteira de confiança.
-   - Manter o painel consultando apenas campos realmente suportados e compatíveis com as policies corrigidas.
+Nova tabela:
 
-4. **Verificar o fluxo do admin**
-   - Confirmar que a autenticação carrega perfil e roles sem travar a tela.
-   - Confirmar que listagens principais do painel voltam a aparecer.
+```
+coupon_companies
+  coupon_id  uuid  FK coupons(id) ON DELETE CASCADE
+  company_id uuid  FK companies(id) ON DELETE CASCADE
+  PRIMARY KEY (coupon_id, company_id)
+```
 
-## Causa provável encontrada
-A migração de endurecimento de segurança criou uma combinação perigosa:
-- `deliveries` depende de `get_driver_id(auth.uid())`
-- `get_driver_id()` lê `delivery_drivers`
-- `delivery_drivers` tem policy que consulta `deliveries`
-- `profiles` também depende de `deliveries`
+RLS:
+- `SELECT` para `authenticated` (cliente precisa ler para validar no checkout).
+- `INSERT/UPDATE/DELETE` apenas para `admin` (via `has_role`).
+- Em `coupons`, adicionar policy de `INSERT/UPDATE/DELETE` para admin (hoje só lojista mexe nos próprios).
 
-Isso pode gerar recursão/avaliação circular nas policies e responder com erro interno 500 no PostgREST.
+## Backend: validação de escopo no checkout
 
-Além disso, `get_driver_id()` foi alterada para `SECURITY INVOKER`, o que piora esse cenário porque ela passa a obedecer as mesmas policies circulares ao tentar resolver o motorista do usuário atual.
+Atualizar `create_order_v3` (passo 6 — aplicação do cupom) para rejeitar quando a loja do pedido não estiver no escopo do cupom:
 
-## Resultado esperado
-- O login/admin deixa de gerar erro 500
-- Entregas e entregadores voltam a carregar
-- O painel continua com acesso restrito por papel e vínculo real
+```
+IF v_coupon.company_id IS NOT NULL AND v_coupon.company_id <> p_company_id THEN
+  v_discount := 0;  -- (ou retornar erro "cupom não válido nesta loja")
+ELSIF v_coupon.company_id IS NULL AND EXISTS (SELECT 1 FROM coupon_companies WHERE coupon_id = v_coupon.id) THEN
+  IF NOT EXISTS (SELECT 1 FROM coupon_companies WHERE coupon_id = v_coupon.id AND company_id = p_company_id) THEN
+     v_discount := 0;
+  END IF;
+END IF;
+```
 
-## Detalhes técnicos
-- Vou aplicar uma nova migration para quebrar a circularidade de RLS.
-- A abordagem mais segura é fazer as policies de leitura usarem subconsultas diretas por `user_id` onde necessário, ou helper functions com privilégio controlado e `search_path` fixo.
-- Depois disso, valido as queries reais do painel no banco e reviso os pontos críticos do frontend que fazem essas leituras.
+Também incrementar `used_count` e respeitar `usage_limit`/`expires_at` (hoje a função não checa — incluir no mesmo bloco).
+
+Nova RPC auxiliar para o marketplace pré-validar antes de submeter:
+`validate_coupon(p_code text, p_company_id uuid, p_subtotal numeric) → jsonb` retornando `{valid, discount, reason}`.
+
+## Admin UI
+
+Nova página `src/pages/admin/CouponsPage.tsx` + rota `/admin/coupons` em `App.tsx` (protegida por `requiredRole="admin"`).
+
+Item no `AdminSidebar` (`Ticket` icon do lucide), entre Regiões e Financeiro.
+
+Layout:
+- Tabela com cupons existentes (código, tipo, valor, escopo "Global" / "N lojas" / nome da loja, validade, usos, status).
+- Botão **Novo cupom** abre dialog com:
+  - código, descrição
+  - tipo (`percentage` / `fixed`) e valor
+  - pedido mínimo, desconto máximo
+  - validade, limite de usos
+  - **escopo**: radio `Todas as lojas` | `Lojas selecionadas` → quando "selecionadas", mostra multi-select (Command/Checkbox) com as lojas ativas vindas de `companies`.
+- Editar/desativar/excluir.
+
+Serviço: `src/services/coupons.ts` com `listCoupons`, `createCoupon`, `updateCoupon`, `deleteCoupon`, `setCouponCompanies` (substitui as linhas em `coupon_companies`), `listCompanyOptions`. Hooks React Query para invalidação.
+
+## Marketplace (app cliente)
+
+O fluxo de checkout do marketplace chama `create_order_v3`, então o desconto passa a respeitar o escopo automaticamente assim que a função for atualizada.
+
+Para feedback imediato no carrinho (antes de finalizar), o componente de aplicar cupom passa a chamar a nova RPC `validate_coupon(code, company_id, subtotal)` e exibir mensagem de erro quando o cupom não vale para a loja.
+
+## Arquivos a criar / editar
+
+- **migration**: criar `coupon_companies` + GRANTs + RLS; ALTER nas policies de `coupons` (admin full access); atualizar `create_order_v3`; criar `validate_coupon`.
+- **novo**: `src/pages/admin/CouponsPage.tsx`, `src/components/admin/CouponDialog.tsx`, `src/services/coupons.ts`.
+- **editar**: `src/App.tsx` (rota), `src/components/admin/AdminSidebar.tsx` (item).
+- **editar marketplace cart**: localizar componente de aplicar cupom (provavelmente em `src/contexts/CartContext.tsx` ou página de checkout do cliente) e trocar a validação local pela RPC.
+
+## Observações
+
+- Não mexe na estrutura de `user_coupons` (continua registrando uso por cliente).
+- Cupons criados por lojistas (`company_id` preenchido) continuam funcionando sem alteração.
+- O usuário precisa ter perfil `admin` em `user_roles` para acessar a nova página (já garantido pelo `ProtectedRoute`).
