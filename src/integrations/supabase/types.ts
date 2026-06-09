@@ -451,6 +451,46 @@ export type Database = {
           },
         ]
       }
+      coupon_companies: {
+        Row: {
+          company_id: string
+          coupon_id: string
+          created_at: string
+        }
+        Insert: {
+          company_id: string
+          coupon_id: string
+          created_at?: string
+        }
+        Update: {
+          company_id?: string
+          coupon_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_companies_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_companies_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coupons: {
         Row: {
           active: boolean | null
@@ -2220,6 +2260,10 @@ export type Database = {
           p_new_status: Database["public"]["Enums"]["order_status"]
           p_order_id: string
         }
+        Returns: Json
+      }
+      validate_coupon: {
+        Args: { p_code: string; p_company_id: string; p_subtotal: number }
         Returns: Json
       }
     }
