@@ -24,6 +24,7 @@ import NotFound from "./pages/NotFound";
 import ScrollToTop from "@/components/shared/ScrollToTop";
 import { PageTransition } from "@/components/shared/PageTransition";
 import AdminChatPage from "./pages/admin/AdminChatPage";
+import CouponsPage from "./pages/admin/CouponsPage";
 import CompaniesPage from "./pages/CompaniesPage";
 
 // Driver (Entregador) pages
@@ -75,6 +76,7 @@ const App = () => (
                    <Route path="/admin/companies" element={<PageTransition><ProtectedRoute requiredRole="admin"><CompaniesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/drivers" element={<PageTransition><ProtectedRoute requiredRole="admin"><DriversPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/regions" element={<PageTransition><ProtectedRoute requiredRole="admin"><RegionsPage /></ProtectedRoute></PageTransition>} />
+                   <Route path="/admin/coupons" element={<PageTransition><ProtectedRoute requiredRole="admin"><CouponsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/reviews" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReviewsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/reports" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/profile" element={<PageTransition><ProtectedRoute requiredRole="admin"><ProfilePage /></ProtectedRoute></PageTransition>} />
