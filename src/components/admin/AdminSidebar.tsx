@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Truck, Map, Building2, Bike, ShoppingBag,
-  MapPin, DollarSign, AlertTriangle, Settings, Menu, X, LogOut, User, MessageSquare, ChevronRight, ExternalLink
+  MapPin, DollarSign, AlertTriangle, Settings, Menu, X, LogOut, User, MessageSquare, ChevronRight, ExternalLink, Ticket
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +24,7 @@ const navItems: NavItem[] = [
   { label: "Empresas", icon: Building2, href: "/admin/companies" },
   { label: "Entregadores", icon: Bike, href: "/admin/drivers" },
   { label: "Regiões", icon: MapPin, href: "/admin/regions" },
+  { label: "Cupons", icon: Ticket, href: "/admin/coupons" },
   { label: "Financeiro", icon: DollarSign, href: "/admin/reports" },
   { label: "Meu Perfil", icon: User, href: "/admin/profile" },
 ];
