@@ -127,7 +127,9 @@ export function useDeliveries(params?: UseDeliveriesParams) {
         }
       }
 
-      const normalizedData = (data ?? []).map((delivery: any) => {
+      const filteredData = (data ?? []).filter((d: any) => d.notes !== "Cancelamento automático de entrega prematura");
+
+      const normalizedData = filteredData.map((delivery: any) => {
         const rawDriver = delivery.delivery_drivers;
         let normalizedDriver = null;
         if (rawDriver) {
