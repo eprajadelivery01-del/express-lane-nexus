@@ -26,6 +26,7 @@ export type Database = {
           neighborhood: string
           number: string
           reference: string | null
+          region_id: string | null
           street: string
           updated_at: string | null
           user_id: string
@@ -41,6 +42,7 @@ export type Database = {
           neighborhood: string
           number: string
           reference?: string | null
+          region_id?: string | null
           street: string
           updated_at?: string | null
           user_id: string
@@ -56,11 +58,20 @@ export type Database = {
           neighborhood?: string
           number?: string
           reference?: string | null
+          region_id?: string | null
           street?: string
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "addresses_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       app_settings: {
         Row: {
@@ -295,6 +306,7 @@ export type Database = {
           created_by_admin_id: string | null
           delivery_fee: number | null
           delivery_mode: string | null
+          delivery_regions_pricing: Json | null
           description: string | null
           document: string | null
           email: string | null
@@ -308,6 +320,7 @@ export type Database = {
           name: string
           opening_hours: Json | null
           phone: string | null
+          prep_time: number
           rating: number | null
           region_id: string | null
           show_in_marketplace: boolean
@@ -330,6 +343,7 @@ export type Database = {
           created_by_admin_id?: string | null
           delivery_fee?: number | null
           delivery_mode?: string | null
+          delivery_regions_pricing?: Json | null
           description?: string | null
           document?: string | null
           email?: string | null
@@ -343,6 +357,7 @@ export type Database = {
           name: string
           opening_hours?: Json | null
           phone?: string | null
+          prep_time?: number
           rating?: number | null
           region_id?: string | null
           show_in_marketplace?: boolean
@@ -365,6 +380,7 @@ export type Database = {
           created_by_admin_id?: string | null
           delivery_fee?: number | null
           delivery_mode?: string | null
+          delivery_regions_pricing?: Json | null
           description?: string | null
           document?: string | null
           email?: string | null
@@ -378,6 +394,7 @@ export type Database = {
           name?: string
           opening_hours?: Json | null
           phone?: string | null
+          prep_time?: number
           rating?: number | null
           region_id?: string | null
           show_in_marketplace?: boolean
@@ -1577,6 +1594,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           price: number
+          sort_order: number | null
           updated_at: string | null
         }
         Insert: {
@@ -1591,6 +1609,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           price: number
+          sort_order?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -1605,6 +1624,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           price?: number
+          sort_order?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -2114,6 +2134,7 @@ export type Database = {
           created_by_admin_id: string | null
           delivery_fee: number | null
           delivery_mode: string | null
+          delivery_regions_pricing: Json | null
           description: string | null
           document: string | null
           email: string | null
@@ -2127,6 +2148,7 @@ export type Database = {
           name: string
           opening_hours: Json | null
           phone: string | null
+          prep_time: number
           rating: number | null
           region_id: string | null
           show_in_marketplace: boolean
