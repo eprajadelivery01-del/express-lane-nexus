@@ -26,6 +26,7 @@ import { PageTransition } from "@/components/shared/PageTransition";
 import AdminChatPage from "./pages/admin/AdminChatPage";
 import CouponsPage from "./pages/admin/CouponsPage";
 import CompaniesPage from "./pages/CompaniesPage";
+import StoreSalesPage from "./pages/StoreSalesPage";
 
 // Driver (Entregador) pages
 import DriverHomePage from "./pages/driver/DriverHomePage";
@@ -74,6 +75,7 @@ const App = () => (
                    <Route path="/admin/tracking" element={<PageTransition><ProtectedRoute requiredRole="admin"><TrackingPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/map" element={<Navigate to="/admin/tracking" replace />} />
                    <Route path="/admin/companies" element={<PageTransition><ProtectedRoute requiredRole="admin"><CompaniesPage /></ProtectedRoute></PageTransition>} />
+                   <Route path="/admin/sales" element={<PageTransition><ProtectedRoute requiredRole="admin"><StoreSalesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/drivers" element={<PageTransition><ProtectedRoute requiredRole="admin"><DriversPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/regions" element={<PageTransition><ProtectedRoute requiredRole="admin"><RegionsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/coupons" element={<PageTransition><ProtectedRoute requiredRole="admin"><CouponsPage /></ProtectedRoute></PageTransition>} />
