@@ -128,9 +128,14 @@ export default function BusinessProfilePage() {
     const newStatus = !isOpen;
     setIsOpen(newStatus);
     try {
-      const { error } = await supabase.from("companies").update({ is_open: newStatus }).eq("id", companyId);
+      // Ao abrir: ativa a loja E garante visibilidade no marketplace
+      // Ao fechar: apenas marca como fechada (mantém active=true para não sumir do admin)
+      const updatePayload = newStatus
+        ? { is_open: true, show_in_marketplace: true, active: true }
+        : { is_open: false, show_in_marketplace: false };
+      const { error } = await supabase.from("companies").update(updatePayload).eq("id", companyId);
       if (error) throw error;
-      toast.success(newStatus ? "Loja aberta para pedidos!" : "Loja fechada temporariamente.");
+      toast.success(newStatus ? "Loja aberta e visível no marketplace!" : "Loja fechada e ocultada do marketplace.");
     } catch {
       setIsOpen(!newStatus);
       toast.error("Erro ao atualizar status");
@@ -151,10 +156,13 @@ export default function BusinessProfilePage() {
       const { error } = await supabase.from("companies").update({
         name: storeName, phone, address, description,
         logo_url: logoUrl, cover_url: coverUrl,
-        category, is_open: isOpen, business_hours: hoursJson, gallery,
+        category, is_open: isOpen,
+        show_in_marketplace: isOpen,
+        active: isOpen ? true : undefined, // ao salvar aberto, garante active=true
+        business_hours: hoursJson, gallery,
       }).eq("id", companyId);
       if (error) throw error;
-      toast.success("Perfil Social publicado!");
+      toast.success("Perfil publicado! " + (isOpen ? "Loja visível no marketplace." : "Loja oculta do marketplace."));
     } catch (err: any) {
       toast.error(err.message || "Erro ao salvar");
     } finally {

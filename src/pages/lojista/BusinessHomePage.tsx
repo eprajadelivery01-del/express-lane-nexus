@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { BusinessLayout } from "@/components/business/BusinessLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Plus, Truck, Clock, CheckCircle, Package, Loader2,
-  Bell, ListFilter, AlertCircle, ShoppingBag
+  Bell, ListFilter, AlertCircle, ShoppingBag, Volume2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,10 +12,76 @@ import { OrderCard } from "@/components/business/OrderCard";
 import { useCompanyOrders, useUpdateOrderStatus } from "@/services/orders";
 import { cn } from "@/lib/utils";
 
+const AUDIO_UNLOCKED_KEY = "epj_audio_unlocked";
+
+// Play a beep using Web Audio API (no external file needed, no autoplay block)
+function playOrderBeep(ctx: AudioContext) {
+  const times = [0, 0.18, 0.36];
+  times.forEach((t) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, ctx.currentTime + t);
+    gain.gain.setValueAtTime(0.6, ctx.currentTime + t);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.15);
+    osc.start(ctx.currentTime + t);
+    osc.stop(ctx.currentTime + t + 0.16);
+  });
+}
+
 export default function BusinessOrdersPage() {
   const { user } = useAuth();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const qc = useQueryClient();
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const [audioUnlocked, setAudioUnlocked] = useState(() => {
+    try { return localStorage.getItem(AUDIO_UNLOCKED_KEY) === "true"; } catch { return false; }
+  });
+
+  const unlockAudio = useCallback(() => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      // Play a silent buffer to unlock
+      const buf = audioCtxRef.current.createBuffer(1, 1, 22050);
+      const src = audioCtxRef.current.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtxRef.current.destination);
+      src.start(0);
+      localStorage.setItem(AUDIO_UNLOCKED_KEY, "true");
+      setAudioUnlocked(true);
+      toast.success("🔔 Notificações sonoras ativadas!");
+    } catch (e) {
+      console.warn("Erro ao ativar áudio:", e);
+    }
+  }, []);
+
+  const playSound = useCallback(() => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      if (audioCtxRef.current.state === "suspended") {
+        audioCtxRef.current.resume().then(() => playOrderBeep(audioCtxRef.current!));
+      } else {
+        playOrderBeep(audioCtxRef.current);
+      }
+    } catch (e) {
+      console.warn("Erro ao tocar som:", e);
+    }
+  }, []);
+
+  // If already unlocked from a previous session, init AudioContext silently
+  useEffect(() => {
+    if (audioUnlocked && !audioCtxRef.current) {
+      try {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      } catch {}
+    }
+  }, [audioUnlocked]);
 
   // Fetch company
   useEffect(() => {
@@ -63,13 +129,11 @@ export default function BusinessOrdersPage() {
         { event: "INSERT", schema: "public", table: "orders", filter: `company_id=eq.${companyId}` },
         (payload) => {
           qc.invalidateQueries({ queryKey: ["orders", "company", companyId] });
-          // Tocar som de novo pedido
-          try {
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-            audio.volume = 1.0;
-            audio.play().catch(e => console.warn("Erro ao reproduzir som:", e));
-          } catch (err) {}
-          toast.success("NOVO PEDIDO RECEBIDO!", {
+          // Tocar som de novo pedido (só se áudio desbloqueado)
+          if (localStorage.getItem(AUDIO_UNLOCKED_KEY) === "true") {
+            playSound();
+          }
+          toast.success("NOVO PEDIDO RECEBIDO! 🛎️", {
             description: "Um novo pedido chegou no marketplace.",
             duration: 10000,
           });
@@ -120,7 +184,21 @@ export default function BusinessOrdersPage() {
   return (
     <BusinessLayout title="Gestão de Pedidos">
       <div className="space-y-8 animate-in fade-in duration-500">
-        
+
+        {/* Banner de ativação de som — aparece UMA vez até o usuário clicar */}
+        {!audioUnlocked && (
+          <button
+            onClick={unlockAudio}
+            className="w-full flex items-center gap-3 px-5 py-4 rounded-2xl bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-all animate-in fade-in duration-500"
+          >
+            <Volume2 className="h-5 w-5 shrink-0 animate-pulse" />
+            <div className="text-left">
+              <p className="text-sm font-black">Clique aqui para ativar as notificações sonoras</p>
+              <p className="text-xs font-medium opacity-70">Necessário apenas uma vez. Você receberá um bip a cada novo pedido.</p>
+            </div>
+          </button>
+        )}
+
         {/* Header Stats & Quick Actions */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>

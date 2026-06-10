@@ -21,7 +21,7 @@ export default function StoreSalesPage() {
         .select(`
           *,
           companies (name),
-          profiles (full_name, phone)
+          customers (name, phone)
         `)
         .order("created_at", { ascending: false });
 
@@ -64,7 +64,7 @@ export default function StoreSalesPage() {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const storeName = order.companies?.name?.toLowerCase() || "";
-        const customerName = order.profiles?.full_name?.toLowerCase() || "";
+        const customerName = order.customers?.name?.toLowerCase() || "";
         const idStr = order.id.toLowerCase();
         if (!storeName.includes(term) && !customerName.includes(term) && !idStr.includes(term)) {
           return false;
@@ -227,7 +227,7 @@ export default function StoreSalesPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium">{order.profiles?.full_name || 'Cliente'}</span>
+                        <span className="font-medium">{order.customers?.name || 'Cliente'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">

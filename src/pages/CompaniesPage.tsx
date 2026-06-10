@@ -22,7 +22,8 @@ export default function CompaniesPage() {
   }
 
   const toggleActive = async (id: string, active: boolean) => {
-    await supabase.from("companies").update({ active: !active }).eq("id", id);
+    const newActive = !active;
+    await supabase.from("companies").update({ active: newActive, is_active: newActive }).eq("id", id);
     qc.invalidateQueries({ queryKey: ["companies"] });
     toast.success(active ? "Empresa desativada" : "Empresa ativada");
   };
