@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Power, Trash2, Edit2, Store } from "lucide-react";
+import { useState } from "react";
+import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 
 export default function CompaniesPage() {
   const { data: companies, isLoading, error } = useCompanies();
