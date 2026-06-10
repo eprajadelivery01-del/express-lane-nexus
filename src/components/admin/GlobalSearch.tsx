@@ -40,21 +40,21 @@ export function GlobalSearch() {
       setIsLoading(true);
       try {
         const searchPromises = [
-          // Search Companies
-          supabase.from("companies").select("id, name, address").ilike("name", `%${query}%`).limit(3),
-          // Search Profiles (Drivers)
-          supabase.from("profiles").select("id, full_name, role").ilike("full_name", `%${query}%`).eq("role", "driver").limit(3),
-          // Search Profiles (Customers)
-          supabase.from("profiles").select("id, full_name, role").ilike("full_name", `%${query}%`).eq("role", "customer").limit(3),
-          // Search Deliveries
-          supabase.from("deliveries").select("id, customer_name, status").ilike("customer_name", `%${query}%`).limit(3)
+          // Search Companies by name, email, phone, or address
+          supabase.from("companies").select("id, name, address").or(`name.ilike.%${query}%,email.ilike.%${query}%,phone.ilike.%${query}%,address.ilike.%${query}%`).limit(3),
+          // Search Profiles (Drivers) by name or phone
+          supabase.from("profiles").select("id, full_name, role").or(`full_name.ilike.%${query}%,phone.ilike.%${query}%`).eq("role", "driver").limit(3),
+          // Search Profiles (Customers) by name or phone
+          supabase.from("profiles").select("id, full_name, role").or(`full_name.ilike.%${query}%,phone.ilike.%${query}%`).eq("role", "customer").limit(3),
+          // Search Deliveries by customer_name, customer_phone, or address
+          supabase.from("deliveries").select("id, customer_name, status").or(`customer_name.ilike.%${query}%,customer_phone.ilike.%${query}%,address.ilike.%${query}%,dropoff_address.ilike.%${query}%`).limit(3)
         ];
 
         const resps = await Promise.all(searchPromises);
         
         const combined: SearchResult[] = [
           ...(resps[0].data || []).map(c => ({ 
-            id: c.id, type: "company" as const, title: c.name, subtitle: c.address, url: `/admin/companies` 
+            id: c.id, type: "company" as const, title: c.name, subtitle: c.address || undefined, url: `/admin/companies` 
           })),
           ...(resps[1].data || []).map(d => ({ 
             id: d.id, type: "driver" as const, title: d.full_name, subtitle: "Entregador", url: `/admin/drivers` 
@@ -63,7 +63,7 @@ export function GlobalSearch() {
             id: c.id, type: "customer" as const, title: c.full_name, subtitle: "Cliente", url: `/admin/customers` 
           })),
           ...(resps[3].data || []).map(del => ({ 
-            id: del.id, type: "delivery" as const, title: `Pedido #${del.id.slice(0, 6)}`, subtitle: del.customer_name, url: `/admin/deliveries` 
+            id: del.id, type: "delivery" as const, title: `Pedido #${del.id.slice(0, 6)}`, subtitle: del.customer_name || undefined, url: `/admin/deliveries` 
           }))
         ];
 

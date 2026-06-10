@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Power, Trash2, Edit2, Store } from "lucide-react";
+import { MoreHorizontal, Power, Trash2, Edit2, Store, Search, X } from "lucide-react";
 import { useState } from "react";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 
@@ -15,6 +15,7 @@ export default function CompaniesPage() {
   const { data: companies, isLoading, error } = useCompanies();
   const qc = useQueryClient();
   const [editingCompany, setEditingCompany] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   if (error) {
     console.error("ERRO DO SUPABASE:", error);
@@ -144,7 +145,15 @@ export default function CompaniesPage() {
     }
   };
 
-
+  const filteredCompanies = (companies ?? []).filter((c) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      c.name?.toLowerCase().includes(term) ||
+      c.phone?.toLowerCase().includes(term) ||
+      c.email?.toLowerCase().includes(term) ||
+      c.address?.toLowerCase().includes(term)
+    );
+  });
 
   return (
     <AdminLayout title="Empresas" subtitle="Gerenciamento de empresas parceiras">
@@ -158,6 +167,23 @@ export default function CompaniesPage() {
           <CreateCompanyDialog />
         </div>
       </div>
+
+      <div className="flex items-center gap-2 bg-card rounded-xl px-3 py-2 border border-border/50 mb-4 max-w-md shadow-sm">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Buscar por nome, telefone, email ou endereço..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground font-medium"
+        />
+        {searchTerm && (
+          <button onClick={() => setSearchTerm("")}>
+            <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+          </button>
+        )}
+      </div>
+
       <div className="rounded-2xl bg-card shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -174,13 +200,13 @@ export default function CompaniesPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Carregando...</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Carregando...</td></tr>
               ) : error ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center font-bold text-red-500">ERRO DO BANCO: {(error as any).message}</td></tr>
-              ) : (companies ?? []).length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">Nenhuma empresa encontrada</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center font-bold text-red-500">ERRO DO BANCO: {(error as any).message}</td></tr>
+              ) : filteredCompanies.length === 0 ? (
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">Nenhuma empresa encontrada</td></tr>
               ) : (
-                (companies ?? []).map((c) => (
+                filteredCompanies.map((c) => (
                   <tr key={c.id} className="border-b border-border hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -242,3 +268,4 @@ export default function CompaniesPage() {
     </AdminLayout>
   );
 }
+

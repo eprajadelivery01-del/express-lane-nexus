@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Power, Trash2, UserCheck, UserX, Edit2, Plus } from "lucide-react";
+import { MoreHorizontal, Power, Trash2, UserCheck, UserX, Edit2, Plus, Search, X } from "lucide-react";
 import { useState } from "react";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 import { RefreshCw } from "lucide-react";
@@ -18,6 +18,7 @@ export default function DriversPage() {
   const [showNewForm, setShowNewForm] = useState(false);
   const [editingDriver, setEditingDriver] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const syncMissingDrivers = async () => {
     setSyncing(true);
@@ -111,12 +112,18 @@ export default function DriversPage() {
     toast.success("Entregador excluído com sucesso!", { id: "delete-driver-toast" });
   };
 
-
   const vehicleLabel: Record<string, string> = {
     motorcycle: "🏍️ Moto", bicycle: "🚲 Bicicleta", car: "🚗 Carro", van: "🚐 Van", truck: "🚛 Caminhão",
   };
 
-
+  const filteredDrivers = (drivers ?? []).filter((d) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      d.full_name?.toLowerCase().includes(term) ||
+      d.phone?.toLowerCase().includes(term) ||
+      d.vehicle_plate?.toLowerCase().includes(term)
+    );
+  });
 
   return (
     <AdminLayout title="Entregadores" subtitle="Gerenciamento de motoboys">
@@ -142,6 +149,23 @@ export default function DriversPage() {
           </Button>
         </div>
       </div>
+
+      <div className="flex items-center gap-2 bg-card rounded-xl px-3 py-2 border border-border/50 mb-4 max-w-md shadow-sm">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Buscar por nome, telefone ou placa..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground font-medium"
+        />
+        {searchTerm && (
+          <button onClick={() => setSearchTerm("")}>
+            <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+          </button>
+        )}
+      </div>
+
       <div className="rounded-2xl bg-card shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -160,11 +184,11 @@ export default function DriversPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Carregando...</td></tr>
-              ) : (drivers ?? []).length === 0 ? (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Nenhum entregador encontrado</td></tr>
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">Carregando...</td></tr>
+              ) : filteredDrivers.length === 0 ? (
+                <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">Nenhum entregador encontrado</td></tr>
               ) : (
-                (drivers ?? []).map((d) => (
+                filteredDrivers.map((d) => (
                   <tr key={d.id} className="border-b border-border hover:bg-muted/30">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -229,3 +253,4 @@ export default function DriversPage() {
     </AdminLayout>
   );
 }
+

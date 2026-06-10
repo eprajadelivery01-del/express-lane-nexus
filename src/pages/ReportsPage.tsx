@@ -302,13 +302,15 @@ export default function ReportsPage() {
 
     const totalCompanyDue = companyBreakdown.reduce((s, c) => {
       const co = (companies ?? []).find(x => x.id === c.companyId);
-      const pct = co?.commission_percentage !== undefined ? Number(co.commission_percentage) : 10;
+      const pct = (co?.commission_percentage !== undefined && co?.commission_percentage !== null)
+        ? Number(co.commission_percentage) : 10.00;
       return s + c.revenue * (pct / 100);
     }, 0);
 
     const totalDriverDue = driverBreakdown.reduce((s, d) => {
       const dr = (drivers ?? []).find(x => x.id === d.driverId);
-      const rate = dr?.commission_rate !== undefined ? Number(dr.commission_rate) : 0.40;
+      const rate = (dr?.commission_rate !== undefined && dr?.commission_rate !== null)
+        ? Number(dr.commission_rate) : 0.40;
       return s + d.count * rate;
     }, 0);
 
@@ -359,6 +361,7 @@ export default function ReportsPage() {
       thead { display: table-header-group; }
       tr { page-break-inside: avoid; }
       .section { page-break-inside: avoid; }
+      .two-col { grid-template-columns: 1fr; }
     }
   </style>
 </head>
