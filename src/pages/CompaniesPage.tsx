@@ -7,9 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Power, Trash2, Edit2 } from "lucide-react";
-import { useState } from "react";
-import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
+import { MoreHorizontal, Power, Trash2, Edit2, Store } from "lucide-react";
 
 export default function CompaniesPage() {
   const { data: companies, isLoading, error } = useCompanies();
@@ -25,7 +23,14 @@ export default function CompaniesPage() {
     const newActive = !active;
     await supabase.from("companies").update({ active: newActive, is_active: newActive }).eq("id", id);
     qc.invalidateQueries({ queryKey: ["companies"] });
-    toast.success(active ? "Empresa desativada" : "Empresa ativada");
+    toast.success(newActive ? "Empresa ativada para aceitar pedidos" : "Empresa desativada (fechada)");
+  };
+
+  const toggleShowInMarketplace = async (id: string, currentShow: boolean) => {
+    const newShow = !currentShow;
+    await supabase.from("companies").update({ show_in_marketplace: newShow }).eq("id", id);
+    qc.invalidateQueries({ queryKey: ["companies"] });
+    toast.success(newShow ? "Empresa será exibida no Marketplace" : "Empresa oculta do Marketplace");
   };
 
   const deleteCompany = async (id: string) => {
@@ -188,9 +193,17 @@ export default function CompaniesPage() {
                     <td className="px-4 py-3 max-w-[200px] truncate">{c.address || "—"}</td>
                     <td className="px-4 py-3 font-semibold text-primary">{Number(c.commission_percentage ?? 10.00).toFixed(1)}%</td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${c.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>
-                        {c.active ? "Ativa" : "Inativa"}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <button 
+                          onClick={() => toggleActive(c.id, !!c.active)}
+                          className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold cursor-pointer transition-colors ${c.active ? "bg-success/10 text-success hover:bg-success/20" : "bg-muted text-muted-foreground hover:bg-muted/80"}`}
+                        >
+                          {c.active ? "Ativa (Aceita Pedidos)" : "Inativa"}
+                        </button>
+                        {c.show_in_marketplace === false && (
+                          <span className="text-[10px] text-muted-foreground font-semibold">Oculta do Market</span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <DropdownMenu>
@@ -201,8 +214,8 @@ export default function CompaniesPage() {
                           <DropdownMenuItem onClick={() => setEditingCompany(c)}>
                             <Edit2 className="h-4 w-4 mr-2" />Editar Informações
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => toggleActive(c.id, !!c.active)}>
-                            <Power className="h-4 w-4 mr-2" />{c.active ? "Desativar" : "Ativar"}
+                          <DropdownMenuItem onClick={() => toggleShowInMarketplace(c.id, c.show_in_marketplace !== false)}>
+                            <Store className="h-4 w-4 mr-2" />{c.show_in_marketplace !== false ? "Ocultar do Marketplace" : "Exibir no Marketplace"}
                           </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive" onClick={() => deleteCompany(c.id)}>
                             <Trash2 className="h-4 w-4 mr-2" />Excluir
