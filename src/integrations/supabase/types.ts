@@ -139,6 +139,27 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_ips_log: {
+        Row: {
+          email_tentativa: string | null
+          id: number
+          ip_address: string | null
+          tentado_em: string | null
+        }
+        Insert: {
+          email_tentativa?: string | null
+          id?: number
+          ip_address?: string | null
+          tentado_em?: string | null
+        }
+        Update: {
+          email_tentativa?: string | null
+          id?: number
+          ip_address?: string | null
+          tentado_em?: string | null
+        }
+        Relationships: []
+      }
       chat_message_logs: {
         Row: {
           created_at: string | null
@@ -321,6 +342,8 @@ export type Database = {
           opening_hours: Json | null
           phone: string | null
           prep_time: number
+          prep_time_max: number | null
+          prep_time_min: number | null
           rating: number | null
           region_id: string | null
           show_in_marketplace: boolean
@@ -358,6 +381,8 @@ export type Database = {
           opening_hours?: Json | null
           phone?: string | null
           prep_time?: number
+          prep_time_max?: number | null
+          prep_time_min?: number | null
           rating?: number | null
           region_id?: string | null
           show_in_marketplace?: boolean
@@ -395,6 +420,8 @@ export type Database = {
           opening_hours?: Json | null
           phone?: string | null
           prep_time?: number
+          prep_time_max?: number | null
+          prep_time_min?: number | null
           rating?: number | null
           region_id?: string | null
           show_in_marketplace?: boolean
@@ -1382,6 +1409,7 @@ export type Database = {
         Row: {
           address_id: string | null
           city_id: string | null
+          client_ip: string | null
           company_id: string
           created_at: string | null
           customer_id: string
@@ -1403,6 +1431,7 @@ export type Database = {
         Insert: {
           address_id?: string | null
           city_id?: string | null
+          client_ip?: string | null
           company_id: string
           created_at?: string | null
           customer_id: string
@@ -1424,6 +1453,7 @@ export type Database = {
         Update: {
           address_id?: string | null
           city_id?: string | null
+          client_ip?: string | null
           company_id?: string
           created_at?: string | null
           customer_id?: string
@@ -2146,6 +2176,7 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_my_account: { Args: never; Returns: undefined }
       find_region_for_point: {
         Args: { _lat: number; _lng: number }
         Returns: {
@@ -2189,6 +2220,8 @@ export type Database = {
           opening_hours: Json | null
           phone: string | null
           prep_time: number
+          prep_time_max: number | null
+          prep_time_min: number | null
           rating: number | null
           region_id: string | null
           show_in_marketplace: boolean
