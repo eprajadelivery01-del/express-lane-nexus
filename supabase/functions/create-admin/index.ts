@@ -56,7 +56,53 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 3) Validate input
+    // Verify the caller is an admin
+    const authHeader_ = req.headers.get("authorization");
+    if (!authHeader_) {
+      return new Response(
+        JSON.stringify({
+          error:
+            "Apenas administradores logados podem criar usuários. Acesso Negado.",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const token_ = authHeader_.replace("Bearer ", "");
+    const {
+      data: { user: caller },
+    } = await supabase.auth.getUser(token_);
+
+    if (!caller) {
+      return new Response(
+        JSON.stringify({ error: "Sessão inválida. Acesso Negado." }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    const { data: callerProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", caller.id)
+      .single();
+
+    if (callerProfile?.role !== "admin") {
+      return new Response(
+        JSON.stringify({
+          error: "Apenas administradores podem criar usuários",
+        }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    } // 3) Validate input
     const body = await req.json();
     const {
       email,
@@ -102,32 +148,53 @@ Deno.serve(async (req) => {
     }
 
     // 4) Check if user exists
-    const { data: existingUserId, error: rpcError } = await supabase.rpc("get_user_id_by_email", { p_email: email });
-    
+    const { data: existingUserId, error: rpcError } = await supabase.rpc(
+      "get_user_id_by_email",
+      { p_email: email },
+    );
+
     let userId = existingUserId;
 
     if (userId) {
       // User exists! Check if they already have the role.
-      const { data: existingRole } = await supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", role).maybeSingle();
+      const { data: existingRole } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", role)
+        .maybeSingle();
       if (existingRole) {
-         return new Response(JSON.stringify({ error: "Usuário já cadastrado neste painel com este e-mail." }), {
-           status: 200,
-           headers: { ...corsHeaders, "Content-Type": "application/json" },
-         });
+        return new Response(
+          JSON.stringify({
+            error: "Usuário já cadastrado neste painel com este e-mail.",
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
-      
+
       // Update password so they can log in with the new credentials
-      const { error: updateAuthErr } = await supabase.auth.admin.updateUserById(userId, { password: password });
+      const { error: updateAuthErr } = await supabase.auth.admin.updateUserById(
+        userId,
+        { password: password },
+      );
       if (updateAuthErr) {
-        return new Response(JSON.stringify({ error: "Erro ao atualizar credenciais do usuário existente." }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "Erro ao atualizar credenciais do usuário existente.",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
       }
     } else {
       // Create new user
-      const { data: authData, error: createErr } = await supabase.auth.admin
-        .createUser({
+      const { data: authData, error: createErr } =
+        await supabase.auth.admin.createUser({
           email,
           password,
           email_confirm: true,
