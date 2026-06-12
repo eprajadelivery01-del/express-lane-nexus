@@ -1,6 +1,6 @@
 import React, { useState, FormEvent, useEffect } from "react";
 import { Plus, ArrowLeft, Loader2, User, Phone, MapPin, DollarSign, Wallet, CheckCircle, RotateCcw, Home, Briefcase, Heart, Handshake } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCity } from "@/contexts/CityContext";
