@@ -2255,10 +2255,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin_safe: { Args: never; Returns: boolean }
       is_company_owner: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      is_company_safe: { Args: never; Returns: boolean }
       is_delivery_visible_to_user: {
         Args: { _delivery_id: string; _user_id: string }
         Returns: boolean
