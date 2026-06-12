@@ -204,7 +204,7 @@ export default function DeliveriesPage() {
       {showNewForm ? (
         <NewDeliveryForm
           isAdmin
-          onSuccess={handleDeliveryCreated}
+          onSaved={handleDeliveryCreated}
           onClose={() => setShowNewForm(false)}
         />
       ) : (
