@@ -1,6 +1,6 @@
 import React, { useState, FormEvent, useEffect } from "react";
-import { Plus, ArrowLeft, Loader2, User, Phone, MapPin, DollarSign, Wallet, CheckCircle, RotateCcw, Home, Briefcase, Heart } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Plus, ArrowLeft, Loader2, User, Phone, MapPin, DollarSign, Wallet, CheckCircle, RotateCcw, Home, Briefcase, Heart, Handshake } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCity } from "@/contexts/CityContext";
@@ -11,14 +11,14 @@ import { cn } from "@/lib/utils";
 
 interface NewDeliveryFormProps {
   onClose: () => void;
-  onSuccess?: () => void;
+  onSaved?: (delivery: any) => void;
   initialData?: any;
   companyId?: string;
   companyData?: any;
   isAdmin?: boolean;
 }
 
-export default function NewDeliveryForm({ onClose, onSuccess, initialData, companyId: propCompanyId, companyData: propCompanyData, isAdmin }: NewDeliveryFormProps) {
+export default function NewDeliveryForm({ onClose, onSaved, initialData, companyId: propCompanyId, companyData: propCompanyData, isAdmin }: NewDeliveryFormProps) {
   const { selectedCity } = useCity();
   const qc = useQueryClient();
   
@@ -86,6 +86,7 @@ export default function NewDeliveryForm({ onClose, onSuccess, initialData, compa
     if (initialData?.notes?.includes("[RECEBER: Pix]")) return "Pix";
     if (initialData?.notes?.includes("[RECEBER: Dinheiro]")) return "Dinheiro";
     if (initialData?.notes?.includes("[RECEBER: Máquina Móvel]")) return "Máquina Móvel";
+    if (initialData?.notes?.includes("[RECEBER: Convênio]")) return "Convênio";
     return "Pix";
   });
 
@@ -95,13 +96,13 @@ export default function NewDeliveryForm({ onClose, onSuccess, initialData, compa
     rawNotes = rawNotes.replace("[RECEBER: Pix]", "");
     rawNotes = rawNotes.replace("[RECEBER: Dinheiro]", "");
     rawNotes = rawNotes.replace("[RECEBER: Máquina Móvel]", "");
+    rawNotes = rawNotes.replace("[RECEBER: Convênio]", "");
     return rawNotes.trim();
   });
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [saveCustomer, setSaveCustomer] = useState(true);
-  const [suggestedCustomer, setSuggestedCustomer] = useState<any>(null);
   const [selectedRegionName, setSelectedRegionName] = useState<string | null>(initialData?.region_name || null);
   const [selectedRegionId, setSelectedRegionId] = useState<string | null>(initialData?.region_id || null);
 
@@ -151,44 +152,71 @@ export default function NewDeliveryForm({ onClose, onSuccess, initialData, compa
   };
 
   useEffect(() => {
-    if (selectedProducts.length > 0 && !isPaid) {
+    if (selectedProducts.length > 0) {
       const total = selectedProducts.reduce((acc, curr) => acc + (curr.product.price || 0) * curr.quantity, 0);
       setCollectValue(total.toFixed(2).replace('.', ','));
     }
-  }, [selectedProducts, isPaid]);
+  }, [selectedProducts]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+
+    // 0. Validar sessão + empresa
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session?.user) {
+      toast.error("Sessão expirada. Faça login novamente.");
+      return;
+    }
+    const cId = isAdmin ? selectedCompanyId : propCompanyId;
+    if (!cId) {
+      toast.error("Empresa não identificada. Sua conta não está vinculada a uma empresa — contate o suporte.");
+      console.error("[NewDeliveryForm] companyId ausente", { isAdmin, propCompanyId, selectedCompanyId, propCompanyData });
+      return;
+    }
+
     if (!selectedRegionId) {
       toast.error("Selecione uma região de entrega.");
       return;
     }
+    if (!customerName.trim()) {
+      toast.error("Informe o nome do cliente.");
+      return;
+    }
+    if (!address.trim()) {
+      toast.error("Informe o endereço de entrega.");
+      return;
+    }
+
+
     setSubmitting(true);
 
     try {
-      const cId = isAdmin ? selectedCompanyId : propCompanyId;
-      if (!cId) throw new Error("Empresa não identificada.");
       const parsedDeliveryValue = parseFloat(deliveryValue.replace(',', '.'));
-      const parsedCollectValue = isPaid ? 0 : parseFloat(collectValue.replace(',', '.'));
-      
+      const parsedProductValue = parseFloat(collectValue.replace(',', '.'));
+      const parsedCollectValue = isPaid ? 0 : parsedProductValue;
+
       let finalAddress = address;
       if (addressType && addressType !== "Outro") {
         finalAddress = `[${addressType}] ${address}`;
       }
 
       let finalNotes = notes.trim();
-
       if (productInputMode === 'catalog' && selectedProducts.length > 0) {
         const productsText = selectedProducts.map(p => {
           const formattedPrice = (p.product.price || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
           return `${p.quantity}x ${p.product.name} (${formattedPrice})`;
         }).join("\n");
         const totalProducts = selectedProducts.reduce((acc, curr) => acc + (curr.product.price || 0) * curr.quantity, 0);
-        const formattedTotal = totalProducts.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const formattedTotal = totalProducts.toFixed(2).replace('.', ',');
+
+        finalNotes = `[PRODUTOS]\n${productsText}\nTotal Produtos: R$ ${formattedTotal}\n\n${finalNotes}`.trim();
+      } else {
+        const formattedTotal = parsedProductValue.toFixed(2).replace('.', ',');
+        finalNotes = `Total Produtos: R$ ${formattedTotal}\n\n${finalNotes}`.trim();
         
-        finalNotes = `[PRODUTOS]\n${productsText}\nTotal Produtos: ${formattedTotal}\n\n${finalNotes}`.trim();
-      } else if (productInputMode === 'manual' && manualProducts.trim()) {
-        finalNotes = `[ITENS: DIGITADOS]\n${manualProducts.trim()}\n\n${finalNotes}`.trim();
+        if (productInputMode === 'manual' && manualProducts.trim()) {
+          finalNotes = `[ITENS: DIGITADOS]\n${manualProducts.trim()}\n\n${finalNotes}`.trim();
+        }
       }
 
       if (isPaid) {
@@ -197,41 +225,68 @@ export default function NewDeliveryForm({ onClose, onSuccess, initialData, compa
         finalNotes = `[RECEBER: ${paymentMethod}] ${finalNotes}`.trim();
       }
 
+      const now = new Date().toISOString();
+      const deliveryId = initialData?.id || crypto.randomUUID();
       const payload: any = {
+        id: deliveryId,
         company_id: cId,
         customer_name: customerName,
         customer_phone: customerPhone.replace(/\D/g, ""),
         customer_cpf: customerCpf.replace(/\D/g, ""),
-        address: finalAddress, 
+        address: finalAddress,
         dropoff_address: finalAddress,
         pickup_address: companyAddress || "Retirada na Loja",
-        value: isNaN(parsedDeliveryValue) ? 0 : parsedDeliveryValue, 
+        value: isNaN(parsedDeliveryValue) ? 0 : parsedDeliveryValue,
         estimated_value: isNaN(parsedCollectValue) ? 0 : parsedCollectValue,
         notes: finalNotes || null,
         status: initialData ? initialData.status : "pending",
         region_id: selectedRegionId,
+        updated_at: now,
       };
 
-      const { error } = initialData 
-        ? await supabase.from("deliveries").update(payload).eq("id", initialData.id)
-        : await supabase.from("deliveries").insert([payload]);
+      if (!initialData) payload.created_at = now;
 
-      if (error) throw error;
+      console.log("[NewDeliveryForm] enviando payload", payload);
+
+      const deliveryWrite = initialData
+        ? await supabase.from("deliveries").update(payload).eq("id", initialData.id).select("*").single()
+        : await supabase.from("deliveries").insert([payload]).select("*").single();
+
+      if (deliveryWrite.error) {
+        const error = deliveryWrite.error;
+        console.error("[NewDeliveryForm] erro Supabase", error);
+        if (error.code === "42501" || /row-level security/i.test(error.message)) {
+          throw new Error("Sem permissão para criar entrega para esta empresa. Verifique se sua conta está vinculada à empresa correta.");
+        }
+        throw new Error(`${error.message}${error.details ? ` — ${error.details}` : ""}`);
+      }
+
+      const savedDelivery = deliveryWrite.data || (initialData ? { ...initialData, ...payload } : payload);
+      onSaved?.(savedDelivery);
+      qc.invalidateQueries({ queryKey: ["deliveries"] });
+      qc.invalidateQueries({ queryKey: ["delivery-stats"] });
+      qc.invalidateQueries({ queryKey: ["business-open-store-deliveries"] });
+      qc.invalidateQueries({ queryKey: ["business-open-store-deliveries-by-name"] });
+      qc.invalidateQueries({ queryKey: ["business-visible-deliveries-fallback"] });
 
       if (saveCustomer && !initialData) {
-        const phoneClean = customerPhone.replace(/\D/g, "");
-        const { data: existing } = await supabase.from("customers").select("id").eq("phone", phoneClean).maybeSingle();
-        const custData = { name: customerName, phone: phoneClean, cpf: customerCpf.replace(/\D/g, "") };
-        if (existing) await supabase.from("customers").update(custData).eq("id", existing.id);
-        else await supabase.from("customers").insert([custData]);
+        try {
+          const phoneClean = customerPhone.replace(/\D/g, "");
+          if (phoneClean) {
+            const { data: existing } = await supabase.from("customers").select("id").eq("phone", phoneClean).maybeSingle();
+            const custData = { name: customerName, phone: phoneClean, cpf: customerCpf.replace(/\D/g, "") };
+            if (existing) await supabase.from("customers").update(custData).eq("id", existing.id);
+            else await supabase.from("customers").insert([custData]);
+          }
+        } catch (customerError) {
+          console.warn("[NewDeliveryForm] entrega criada, mas não foi possível salvar o cliente", customerError);
+        }
       }
 
       toast.success(initialData ? "Entrega atualizada!" : "Entrega solicitada!");
-      qc.invalidateQueries({ queryKey: ["deliveries"] });
-      onSuccess?.();
       setSubmitted(true);
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err?.message || "Erro ao salvar entrega");
     } finally {
       setSubmitting(false);
     }
@@ -260,7 +315,7 @@ export default function NewDeliveryForm({ onClose, onSuccess, initialData, compa
         <div className="bg-primary/5 p-8 border-b border-border">
           <h2 className="text-3xl font-black text-foreground flex items-center gap-3">
              <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center">
-                <Plus className="h-6 w-6 text-white" />
+               <Plus className="h-6 w-6 text-white" />
              </div>
              {initialData ? "Editar Entrega" : "Nova Solicitação"}
           </h2>
@@ -318,54 +373,55 @@ export default function NewDeliveryForm({ onClose, onSuccess, initialData, compa
           </div>
 
           <div className="space-y-4">
-             <div className="space-y-3">
-               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Endereço de Entrega</label>
-               <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, número, bairro..." className="w-full px-5 py-4 rounded-2xl border border-border bg-background outline-none font-bold text-lg" required />
-               
-               <div className="flex gap-2 mt-2">
-                 {[
-                   { id: "Casa", label: "Casa", icon: Home },
-                   { id: "Trabalho", label: "Trabalho", icon: Briefcase },
-                   { id: "Casa da Mãe", label: "Casa da Mãe", icon: Heart },
-                   { id: "Outro", label: "Outro", icon: MapPin },
-                 ].map((type) => {
-                   const isSelected = addressType === type.id;
-                   return (
-                     <button
-                       key={type.id}
-                       type="button"
-                       onClick={() => setAddressType(type.id)}
-                       className={cn(
-                         "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border",
-                         isSelected
-                           ? "bg-primary/10 text-primary border-primary/20"
-                           : "bg-background text-muted-foreground border-border hover:bg-muted/50"
-                       )}
-                     >
-                       <type.icon className="h-3 w-3" />
-                       {type.label}
-                     </button>
-                   );
-                 })}
-               </div>
-             </div>
-             <div className="space-y-1.5">
-               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Região <span className="text-destructive">*</span></label>
-               <RegionPickerGrid cityId={currentCompany?.city_id || selectedCity} onRegionSelect={handleRegionSelect} initialSelectedId={initialData?.region_id} />
-             </div>
-           </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Endereço de Entrega</label>
+              <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Rua, número, bairro..." className="w-full px-5 py-4 rounded-2xl border border-border bg-background outline-none font-bold text-lg" required />
+              
+              <div className="flex gap-2 mt-2">
+                {[
+                  { id: "Casa", label: "Casa", icon: Home },
+                  { id: "Trabalho", label: "Trabalho", icon: Briefcase },
+                  { id: "Casa da Mãe", label: "Casa da Mãe", icon: Heart },
+                  { id: "Outro", label: "Outro", icon: MapPin },
+                ].map((type) => {
+                  const isSelected = addressType === type.id;
+                  return (
+                    <button
+                      key={type.id}
+                      type="button"
+                      onClick={() => setAddressType(type.id)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border",
+                        isSelected
+                          ? "bg-primary/10 text-primary border-primary/20"
+                          : "bg-background text-muted-foreground border-border hover:bg-muted/50"
+                      )}
+                    >
+                      <type.icon className="h-3 w-3" />
+                      {type.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Região <span className="text-destructive">*</span></label>
+              <RegionPickerGrid cityId={currentCompany?.city_id || selectedCity} onRegionSelect={handleRegionSelect} initialSelectedId={initialData?.region_id} />
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
              <div className="space-y-1.5">
                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Taxa de Entrega (R$)</label>
                <input value={deliveryValue} readOnly className="w-full px-5 py-5 rounded-2xl border-2 border-primary/20 bg-primary/5 font-black text-2xl text-primary outline-none" />
              </div>
-             <div className={cn("space-y-1.5", isPaid && "opacity-40 grayscale pointer-events-none")}>
-               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Valor a Cobrar (R$)</label>
-               <input value={isPaid ? "0,00" : collectValue} onChange={e => setCollectValue(e.target.value)} className="w-full px-5 py-5 rounded-2xl border-2 border-warning/20 bg-warning/5 font-black text-2xl text-warning outline-none" />
+             <div className="space-y-1.5">
+               <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Valor do Produto (R$)</label>
+               <input value={collectValue} onChange={e => setCollectValue(e.target.value)} className="w-full px-5 py-5 rounded-2xl border-2 border-warning/20 bg-warning/5 font-black text-2xl text-warning outline-none" />
              </div>
-             <div className="flex flex-col justify-end">
-               <button type="button" onClick={() => setIsPaid(!isPaid)} className={cn("w-full h-[68px] rounded-2xl border-2 flex items-center justify-between px-6 font-black uppercase text-[10px]", isPaid ? "bg-green-500 border-green-500 text-white" : "bg-muted/30 border-border text-muted-foreground")}>
+             <div className="space-y-1.5">
+               <label className="text-[10px] font-black uppercase tracking-widest text-transparent ml-2 select-none">Pagamento</label>
+               <button type="button" onClick={() => setIsPaid(!isPaid)} className={cn("w-full h-[76px] rounded-2xl border-2 flex items-center justify-between px-6 font-black uppercase text-[10px]", isPaid ? "bg-green-500 border-green-500 text-white" : "bg-muted/30 border-border text-muted-foreground")}>
                  <span>Já foi Pago?</span>
                  {isPaid ? <CheckCircle className="h-5 w-5" /> : <Wallet className="h-5 w-5 opacity-40" />}
                </button>
@@ -464,11 +520,12 @@ export default function NewDeliveryForm({ onClose, onSuccess, initialData, compa
           {!isPaid && (
              <div className="space-y-2 p-6 bg-muted/30 border border-border rounded-3xl animate-in fade-in slide-in-from-top-2 duration-300">
                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Forma de Recebimento pelo Entregador</label>
-               <div className="grid grid-cols-3 gap-3">
+               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                  {[
                    { id: "Pix", label: "Pix", icon: Wallet },
                    { id: "Dinheiro", label: "Dinheiro", icon: DollarSign },
                    { id: "Máquina Móvel", label: "Máquina Móvel", icon: Plus },
+                   { id: "Convênio", label: "Convênio", icon: Handshake },
                  ].map((method) => {
                    const isSelected = paymentMethod === method.id;
                    return (
@@ -490,7 +547,7 @@ export default function NewDeliveryForm({ onClose, onSuccess, initialData, compa
                  })}
                </div>
              </div>
-          )}
+           )}
 
           <div className="space-y-1.5">
             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Observações para o Entregador</label>
