@@ -147,6 +147,14 @@ export default function DeliveriesPage() {
          productValue = parseFloat(match[1].replace(/\./g, '').replace(',', '.'));
       }
     }
+    
+    // Fallback for marketplace orders
+    if (productValue === 0 && (delivery as any).orders && Array.isArray((delivery as any).orders) && (delivery as any).orders.length > 0) {
+      productValue = Number((delivery as any).orders[0].total || 0);
+    } else if (productValue === 0 && (delivery as any).orders && !Array.isArray((delivery as any).orders)) {
+      productValue = Number((delivery as any).orders.total || 0);
+    }
+
 
     const w = window.open("", "_blank", "width=400,height=600");
     if (!w) return;

@@ -83,7 +83,22 @@ export function useDeliveries(params?: UseDeliveriesParams) {
       let query = supabase
         .from("deliveries")
         .select(`
-          *,
+          id, 
+          company_id, 
+          driver_id, 
+          customer_name, 
+          address, 
+          value, 
+          status, 
+          created_at, 
+          updated_at, 
+          region_id,
+          notes,
+          estimated_value,
+          orders(
+            total,
+            order_items(quantity, price, products(name))
+          ),
           companies(name, phone),
           delivery_drivers(id, user_id, full_name, phone, vehicle_type, vehicle_plate)
         `, { count: "exact" })
