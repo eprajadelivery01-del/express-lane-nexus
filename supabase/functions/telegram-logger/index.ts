@@ -26,6 +26,19 @@ Deno.serve(async (req) => {
       additional_info = {} 
     } = body ?? {};
 
+    // IGNORAR ERROS INOFENSIVOS DO SUPABASE AUTENTICAÇÃO
+    if (
+      error_message.includes("Invalid Refresh Token") ||
+      error_message.includes("AuthSessionMissingError") ||
+      error_message.includes("refreshAccessToken") ||
+      error_message.includes("Failed to fetch")
+    ) {
+      return new Response(JSON.stringify({ success: true, ignored: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // 1. Fetch credentials from DB if possible, fallback to defaults
     let botToken = DEFAULT_BOT_TOKEN;
     let chatId = DEFAULT_CHAT_ID;

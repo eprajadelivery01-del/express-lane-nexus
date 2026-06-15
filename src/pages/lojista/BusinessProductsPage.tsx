@@ -360,6 +360,9 @@ function ProductForm({ initialData, companyId, onSuccess }: { initialData?: any,
               >
                 <option value="pizza">Pizza</option>
                 <option value="lanches">Lanches</option>
+                <option value="batata recheada">Batata recheada</option>
+                <option value="combo">Combo</option>
+                <option value="caldos">Caldos</option>
                 <option value="japonesa">Japonesa</option>
                 <option value="bebidas">Bebidas</option>
                 <option value="doces">Doces</option>
