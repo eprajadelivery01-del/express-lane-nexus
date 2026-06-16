@@ -202,6 +202,9 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
             >
               <option value="restaurante">Restaurante</option>
               <option value="mercado">Mercado</option>
+              <option value="batata recheada">Batata recheada</option>
+              <option value="combo">Combo</option>
+              <option value="caldos">Caldos</option>
               <option value="farmacia">Farmácia</option>
               <option value="lanches">Lanches</option>
               <option value="pizza">Pizzaria</option>
