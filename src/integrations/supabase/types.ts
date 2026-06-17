@@ -1662,6 +1662,7 @@ export type Database = {
           image_url: string | null
           image_urls: Json | null
           is_active: boolean | null
+          is_featured: boolean | null
           name: string
           price: number
           sort_order: number | null
@@ -1677,6 +1678,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: Json | null
           is_active?: boolean | null
+          is_featured?: boolean | null
           name: string
           price: number
           sort_order?: number | null
@@ -1692,6 +1694,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: Json | null
           is_active?: boolean | null
+          is_featured?: boolean | null
           name?: string
           price?: number
           sort_order?: number | null
