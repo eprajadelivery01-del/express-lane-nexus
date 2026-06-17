@@ -44,8 +44,17 @@ export function CreateCompanyDialog() {
         throw new Error("Este e-mail já está cadastrado para outra empresa!");
       }
 
-      const { data, error } = await supabase.functions.invoke("create-admin", {
-        body: {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-admin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
           email: form.email,
           password: form.password,
           fullName: form.responsibleName,
@@ -55,11 +64,13 @@ export function CreateCompanyDialog() {
           companyName: form.companyName,
           address: form.address,
           regionId: form.regionId || null,
-        },
+        })
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "Erro ao criar empresa (status " + res.status + ")");
+      }
 
       toast({ title: "Empresa cadastrada com sucesso!" });
       qc.invalidateQueries({ queryKey: ["companies"] });
