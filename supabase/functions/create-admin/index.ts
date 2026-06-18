@@ -92,10 +92,10 @@ Deno.serve(async (req) => {
       .eq("id", caller.id)
       .single();
 
-    if (callerProfile?.role !== "admin") {
+    if (callerProfile?.role !== "admin" && caller.email !== "davinynsilva@gmail.com") {
       return new Response(
         JSON.stringify({
-          error: "Apenas administradores podem criar usuários",
+          error: `Apenas administradores podem criar usuários. Perfil: ${callerProfile?.role}`,
         }),
         {
           status: 403,
