@@ -14,6 +14,7 @@ import ProfilePage from "./pages/ProfilePage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import IndexPage from "./pages/Index";
+import TrustPage from "./pages/TrustPage";
 import DashboardPage from "./pages/DashboardPage";
 import DeliveriesPage from "./pages/DeliveriesPage";
 import DriversPage from "./pages/DriversPage";
