@@ -58,6 +58,7 @@ export interface DeliveryWithRelations {
   companies?: {
     name: string | null;
     phone: string | null;
+    city_id?: string | null;
   } | null;
   region_name?: string | null;
 }
@@ -99,8 +100,8 @@ export function useDeliveries(params?: UseDeliveriesParams) {
             total,
             order_items(quantity, price, products(name))
           ),
-          companies(name, phone),
-          delivery_drivers(id, user_id, full_name, phone, vehicle_type, vehicle_plate)
+          companies(name, phone, city_id),
+          delivery_drivers(id, user_id, full_name, phone, vehicle_type, vehicle_plate, city_id)
         `, { count: "exact" })
         .order("created_at", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);

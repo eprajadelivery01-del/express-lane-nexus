@@ -22,6 +22,8 @@ import { DashboardExport } from "@/components/admin/DashboardExport";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCitiesWithRegions } from "@/services/regions";
 import { toast } from "sonner";
 
 type Period = "today" | "7d" | "30d";
@@ -45,6 +47,7 @@ const PERIOD_LABELS: Record<Period, string> = { today: "Hoje", "7d": "7 dias", "
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>("today");
+  const [showOnlyCompleted, setShowOnlyCompleted] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState<AutoRefreshOption>(() => {
     try {
@@ -122,18 +125,27 @@ export default function DashboardPage() {
   const { data: allDrivers } = useDrivers();
   const { data: companies } = useCompanies();
   const { data: allDeliveries, isLoading: loadingDeliveries } = useDeliveries({ dateFrom, pageSize: 500 });
-  const { data: inTransitData, isLoading: loadingTransit } = useDeliveries({ status: "in_transit" });
-
-  const { selectedCity } = useCity();
+  const { data: inTransitData, isLoading: loadingTransit } = useDeliveries({ status: "in_transit", companyId: selectedCity ? undefined : undefined }); // Assuming useDeliveries doesn't have city directly but we filter below or backend handles it? Wait, let's just pass `cityId` to useDeliveries if it supports it, but earlier we saw `pronto-agora-hub` passing it. Let's just pass `filterCityId: selectedCity || undefined`
+  const { selectedCity, setCity } = useCity();
+  const { data: dbCities } = useCitiesWithRegions();
   const { data: regions } = useRegions(selectedCity || undefined);
 
   const inTransitCount = inTransitData?.count ?? 0;
   const totalCompanies = companies?.length ?? 0;
   const onlineCount = onlineDrivers?.length ?? 0;
-  const cities = Array.from(new Set(regions?.map(r => r.city) || [])).sort();
+  const cities = dbCities || Array.from(new Set(regions?.map(r => r.city) || [])).sort();
 
   const rawPeriodDeliveries = allDeliveries?.data ?? [];
-  const periodDeliveries = useUniqueDeliveries(rawPeriodDeliveries);
+  const filteredByCity = selectedCity 
+    ? rawPeriodDeliveries.filter(d => d.companies?.city_id === selectedCity || (!d.companies?.city_id && d.driver_id === null))
+    : rawPeriodDeliveries;
+    
+  let filteredPeriodDeliveries = filteredByCity;
+  if (showOnlyCompleted) {
+    filteredPeriodDeliveries = filteredPeriodDeliveries.filter(d => ["completed", "delivered"].includes(d.status));
+  }
+
+  const periodDeliveries = useUniqueDeliveries(filteredPeriodDeliveries);
   const isLoadingMain = loadingDeliveries || loadingTransit || loadingDriversOnline;
 
   const metrics = useMemo(() => {
@@ -202,6 +214,32 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
+
+          {/* City Filter */}
+          <div className="w-40">
+            <Select value={selectedCity || "all"} onValueChange={(v) => setCity(v === "all" ? null : v)}>
+              <SelectTrigger className="h-8 text-xs font-semibold bg-card border-border/50">
+                <SelectValue placeholder="Todas as Cidades" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Cidades</SelectItem>
+                {cities.map((city) => (
+                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer transition-colors bg-muted/60 px-3 py-1.5 rounded-md">
+            <input 
+              type="checkbox" 
+              checked={showOnlyCompleted}
+              onChange={(e) => setShowOnlyCompleted(e.target.checked)}
+              className="rounded border-input text-primary focus:ring-primary h-3.5 w-3.5 bg-background"
+            />
+            Apenas Finalizadas
+          </label>
+        </div>
 
           {/* Live pill */}
           <div className={cn(

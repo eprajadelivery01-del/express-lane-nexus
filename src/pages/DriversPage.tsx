@@ -11,6 +11,8 @@ import { MoreHorizontal, Power, Trash2, UserCheck, UserX, Edit2, Plus, Search, X
 import { useState } from "react";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 import { RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCitiesWithRegions } from "@/services/regions";
 
 export default function DriversPage() {
   const { data: drivers, isLoading } = useDrivers();
@@ -19,6 +21,9 @@ export default function DriversPage() {
   const [editingDriver, setEditingDriver] = useState<any>(null);
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCity, setSelectedCity] = useState<string>("all");
+  const { data: dbCities } = useCitiesWithRegions();
+  const cities = dbCities || [];
 
   const syncMissingDrivers = async () => {
     setSyncing(true);
@@ -118,11 +123,11 @@ export default function DriversPage() {
 
   const filteredDrivers = (drivers ?? []).filter((d) => {
     const term = searchTerm.toLowerCase();
-    return (
-      d.full_name?.toLowerCase().includes(term) ||
+    const matchesSearch = d.full_name?.toLowerCase().includes(term) ||
       d.phone?.toLowerCase().includes(term) ||
-      d.vehicle_plate?.toLowerCase().includes(term)
-    );
+      d.vehicle_plate?.toLowerCase().includes(term);
+    const matchesCity = selectedCity === "all" || d.city_id === selectedCity;
+    return matchesSearch && matchesCity;
   });
 
   return (
@@ -164,6 +169,20 @@ export default function DriversPage() {
             <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
           </button>
         )}
+      </div>
+
+      <div className="flex items-center gap-2 mb-4">
+        <Select value={selectedCity} onValueChange={setSelectedCity}>
+          <SelectTrigger className="w-48 bg-card border-border/50 shadow-sm font-semibold text-sm">
+            <SelectValue placeholder="Todas as Cidades" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Cidades</SelectItem>
+            {cities.map((city) => (
+              <SelectItem key={city} value={city}>{city}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-2xl bg-card shadow-card overflow-hidden">

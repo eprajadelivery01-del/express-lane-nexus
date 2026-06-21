@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useCitiesWithRegions } from "@/services/regions";
 
 interface EditDriverDialogProps {
   driver: any;
@@ -17,6 +18,8 @@ interface EditDriverDialogProps {
 export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialogProps) {
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
+  const { data: dbCities } = useCitiesWithRegions();
+  const cities = dbCities || [];
 
   const [form, setForm] = useState({
     fullName: driver?.full_name || "",
@@ -24,6 +27,7 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
     document: driver?.document || "",
     vehicleType: driver?.vehicle_type || "motorcycle",
     vehiclePlate: driver?.vehicle_plate || "",
+    cityId: driver?.city_id || "",
     commission: driver?.commission_rate !== undefined && driver?.commission_rate !== null ? driver.commission_rate.toString() : "0.40",
   });
 
@@ -46,6 +50,7 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
           document: form.document,
           vehicle: form.vehicleType,
           license_plate: form.vehiclePlate,
+          city_id: form.cityId || null,
           commission_rate: parseFloat(form.commission) || 0.40,
         } as any)
         .eq("id", driver.id);
@@ -121,6 +126,20 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">R$</span>
                 <Input type="number" step="0.01" className="pl-10" value={form.commission} onChange={e => set("commission", e.target.value)} />
               </div>
+            </div>
+            <div>
+              <Label>Base do Motoboy (Cidade)</Label>
+              <Select value={form.cityId} onValueChange={v => set("cityId", v)}>
+                <SelectTrigger className="mt-1.5 border-primary/20 bg-primary/5 text-primary font-bold">
+                  <SelectValue placeholder="Selecionar Cidade..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas as Cidades</SelectItem>
+                  {cities.map((city) => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>

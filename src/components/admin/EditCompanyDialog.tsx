@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { Building2, Loader2 } from "lucide-react";
-import { useRegions } from "@/services/regions";
+import { useRegions, useCitiesWithRegions } from "@/services/regions";
 
 interface EditCompanyDialogProps {
   company: any;
@@ -19,7 +19,10 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
   const { data: regions } = useRegions();
+  const { data: dbCities } = useCitiesWithRegions();
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
+
+  const cities = dbCities || Array.from(new Set(regions?.map(r => r.city) || [])).sort();
 
   const [form, setForm] = useState({
     name: "",
@@ -30,6 +33,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     latitude: "",
     longitude: "",
     regionId: "",
+    cityId: "",
     is_active: true,
     category: "restaurante",
     commissionPercentage: "10.00",
@@ -47,6 +51,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         latitude: company.latitude?.toString() || "",
         longitude: company.longitude?.toString() || "",
         regionId: company.region_id || "",
+        cityId: company.city_id || "",
         is_active: company.is_active ?? true,
         category: company.category || "restaurante",
         commissionPercentage: company.commission_percentage !== null && company.commission_percentage !== undefined ? company.commission_percentage.toString() : "10.00",
@@ -120,6 +125,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           latitude: form.latitude ? parseFloat(form.latitude) : null,
           longitude: form.longitude ? parseFloat(form.longitude) : null,
           region_id: form.regionId || null,
+          city_id: form.cityId || null,
           is_active: form.is_active,
           category: form.category,
           commission_percentage: !isNaN(parseFloat(form.commissionPercentage)) ? parseFloat(form.commissionPercentage) : 10.00,
@@ -213,18 +219,33 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               <option value="pet">Pet Shop</option>
             </select>
           </div>
-          <div>
-            <Label>Região</Label>
-            <select
-              value={form.regionId}
-              onChange={e => set("regionId", e.target.value)}
-              className="w-full mt-1.5 px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors"
-            >
-              <option value="">Sem região</option>
-              {(regions ?? []).map((r) => (
-                <option key={r.id} value={r.id}>{r.name} — R$ {Number(r.price).toFixed(2)}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Região</Label>
+              <select
+                value={form.regionId}
+                onChange={e => set("regionId", e.target.value)}
+                className="w-full mt-1.5 px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors"
+              >
+                <option value="">Sem região</option>
+                {(regions ?? []).map((r) => (
+                  <option key={r.id} value={r.id}>{r.name} — R$ {Number(r.price).toFixed(2)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label>Base da Loja (Cidade)</Label>
+              <select
+                value={form.cityId}
+                onChange={e => set("cityId", e.target.value)}
+                className="w-full mt-1.5 px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors font-bold text-primary"
+              >
+                <option value="">Selecionar Cidade...</option>
+                {cities.map((city) => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

@@ -10,12 +10,17 @@ import { Button } from "@/components/ui/button";
 import { MoreHorizontal, Power, Trash2, Edit2, Store, Search, X } from "lucide-react";
 import { useState } from "react";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCitiesWithRegions } from "@/services/regions";
 
 export default function CompaniesPage() {
   const { data: companies, isLoading, error } = useCompanies();
   const qc = useQueryClient();
   const [editingCompany, setEditingCompany] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCity, setSelectedCity] = useState<string>("all");
+  const { data: dbCities } = useCitiesWithRegions();
+  const cities = dbCities || [];
 
   if (error) {
     console.error("ERRO DO SUPABASE:", error);
@@ -147,12 +152,12 @@ export default function CompaniesPage() {
 
   const filteredCompanies = (companies ?? []).filter((c) => {
     const term = searchTerm.toLowerCase();
-    return (
-      c.name?.toLowerCase().includes(term) ||
+    const matchesSearch = c.name?.toLowerCase().includes(term) ||
       c.phone?.toLowerCase().includes(term) ||
       c.email?.toLowerCase().includes(term) ||
-      c.address?.toLowerCase().includes(term)
-    );
+      c.address?.toLowerCase().includes(term);
+    const matchesCity = selectedCity === "all" || c.city_id === selectedCity;
+    return matchesSearch && matchesCity;
   });
 
   return (
@@ -182,6 +187,20 @@ export default function CompaniesPage() {
             <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
           </button>
         )}
+      </div>
+
+      <div className="flex items-center gap-2 mb-4">
+        <Select value={selectedCity} onValueChange={setSelectedCity}>
+          <SelectTrigger className="w-48 bg-card border-border/50 shadow-sm font-semibold text-sm">
+            <SelectValue placeholder="Todas as Cidades" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Cidades</SelectItem>
+            {cities.map((city) => (
+              <SelectItem key={city} value={city}>{city}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-2xl bg-card shadow-card overflow-hidden">
