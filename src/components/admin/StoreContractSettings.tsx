@@ -1,5 +1,7 @@
-import { Edit2, ShieldAlert, Store, Loader2, ArrowRightCircle, HandCoins } from "lucide-react";
+import { Edit2, ShieldAlert, Store, Loader2, ArrowRightCircle, HandCoins, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { CompanyPricingMatrixDialog } from "./CompanyPricingMatrixDialog";
 
 interface StoreContractSettingsProps {
   companies: any[];
@@ -8,6 +10,8 @@ interface StoreContractSettingsProps {
 }
 
 export function StoreContractSettings({ companies, isLoading, onEditCompany }: StoreContractSettingsProps) {
+  const [matrixCompany, setMatrixCompany] = useState<any>(null);
+
   const getDeliveryModeBadge = (mode: string) => {
     switch (mode) {
       case "store_pays":
@@ -74,14 +78,24 @@ export function StoreContractSettings({ companies, isLoading, onEditCompany }: S
                     {c.delivery_mode === "fixed_fee" ? `R$ ${Number(c.delivery_fee || 0).toFixed(2)}` : "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => onEditCompany(c)}
-                      className="rounded-xl border-primary/20 text-primary hover:bg-primary/10"
-                    >
-                      <Edit2 className="h-4 w-4 mr-1.5" /> Ajustar
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setMatrixCompany(c)}
+                        className="rounded-xl border-primary/20 text-primary hover:bg-primary/10"
+                      >
+                        <Map className="h-4 w-4 mr-1.5" /> Matriz
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => onEditCompany(c)}
+                        className="rounded-xl border-muted text-muted-foreground hover:bg-muted/50"
+                      >
+                        <Edit2 className="h-4 w-4 mr-1.5" /> Editar
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -89,6 +103,14 @@ export function StoreContractSettings({ companies, isLoading, onEditCompany }: S
           </tbody>
         </table>
       </div>
+      
+      {matrixCompany && (
+        <CompanyPricingMatrixDialog 
+          company={matrixCompany} 
+          open={!!matrixCompany} 
+          onOpenChange={(open) => !open && setMatrixCompany(null)} 
+        />
+      )}
     </div>
   );
 }
