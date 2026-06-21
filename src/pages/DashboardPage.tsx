@@ -124,9 +124,9 @@ export default function DashboardPage() {
   const { data: onlineDrivers, isLoading: loadingDriversOnline } = useOnlineDrivers();
   const { data: allDrivers } = useDrivers();
   const { data: companies } = useCompanies();
-  const { data: allDeliveries, isLoading: loadingDeliveries } = useDeliveries({ dateFrom, pageSize: 500 });
-  const { data: inTransitData, isLoading: loadingTransit } = useDeliveries({ status: "in_transit", companyId: selectedCity ? undefined : undefined }); // Assuming useDeliveries doesn't have city directly but we filter below or backend handles it? Wait, let's just pass `cityId` to useDeliveries if it supports it, but earlier we saw `pronto-agora-hub` passing it. Let's just pass `filterCityId: selectedCity || undefined`
   const { selectedCity, setCity } = useCity();
+  const { data: allDeliveries, isLoading: loadingDeliveries } = useDeliveries({ dateFrom, pageSize: 500 });
+  const { data: inTransitData, isLoading: loadingTransit } = useDeliveries({ status: "in_transit" });
   const { data: dbCities } = useCitiesWithRegions();
   const { data: regions } = useRegions(selectedCity || undefined);
 
