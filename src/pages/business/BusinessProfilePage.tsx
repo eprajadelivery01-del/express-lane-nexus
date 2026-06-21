@@ -131,7 +131,7 @@ export default function BusinessProfilePage() {
       // Ao abrir: ativa a loja E garante visibilidade no marketplace
       // Ao fechar: apenas marca como fechada (mantém active=true para não sumir do admin)
       const updatePayload = newStatus
-        ? { is_open: true, show_in_marketplace: true }
+        ? { is_open: true, show_in_marketplace: true, active: true }
         : { is_open: false, show_in_marketplace: false };
       const { error } = await supabase.from("companies").update(updatePayload).eq("id", companyId);
       if (error) throw error;
@@ -158,6 +158,7 @@ export default function BusinessProfilePage() {
         logo_url: logoUrl, cover_url: coverUrl,
         category, is_open: isOpen,
         show_in_marketplace: isOpen,
+        active: isOpen ? true : undefined, // ao salvar aberto, garante active=true
         business_hours: hoursJson, gallery,
       }).eq("id", companyId);
       if (error) throw error;
