@@ -239,7 +239,6 @@ export default function DashboardPage() {
             />
             Apenas Finalizadas
           </label>
-        </div>
 
           {/* Live pill */}
           <div className={cn(
