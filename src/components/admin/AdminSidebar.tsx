@@ -24,7 +24,7 @@ const navItems: NavItem[] = [
   { label: "Empresas", icon: Building2, href: "/admin/companies" },
   { label: "Vendas (Lojas)", icon: ShoppingBag, href: "/admin/sales" },
   { label: "Entregadores", icon: Bike, href: "/admin/drivers" },
-  { label: "Regiões", icon: MapPin, href: "/admin/regions" },
+  { label: "Bases & Regiões", icon: MapPin, href: "/admin/regions" },
   { label: "Cupons", icon: Ticket, href: "/admin/coupons" },
   { label: "Financeiro", icon: DollarSign, href: "/admin/reports" },
   { label: "Meu Perfil", icon: User, href: "/admin/profile" },
