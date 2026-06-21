@@ -14,6 +14,7 @@ import ProfilePage from "./pages/ProfilePage";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import IndexPage from "./pages/Index";
+import TrustPage from "./pages/TrustPage";
 import DashboardPage from "./pages/DashboardPage";
 import DeliveriesPage from "./pages/DeliveriesPage";
 import DriversPage from "./pages/DriversPage";
@@ -69,6 +70,7 @@ const App = () => (
                    <Route path="/login" element={<LoginPage />} />
                    <Route path="/terms" element={<TermsPage />} />
                    <Route path="/privacy" element={<PrivacyPage />} />
+                   <Route path="/trust" element={<TrustPage />} />
                    <Route path="/invite/:token" element={<InvitePage />} />
                    
                    {/* Admin Routes */}

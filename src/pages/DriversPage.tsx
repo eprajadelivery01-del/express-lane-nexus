@@ -126,7 +126,7 @@ export default function DriversPage() {
     const matchesSearch = d.full_name?.toLowerCase().includes(term) ||
       d.phone?.toLowerCase().includes(term) ||
       d.vehicle_plate?.toLowerCase().includes(term);
-    const matchesCity = selectedCity === "all" || d.city_id === selectedCity;
+    const matchesCity = selectedCity === "all" || (d as any).city_id === selectedCity;
     return matchesSearch && matchesCity;
   });
 
