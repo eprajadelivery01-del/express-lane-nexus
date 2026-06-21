@@ -70,6 +70,7 @@ const App = () => (
                    <Route path="/login" element={<LoginPage />} />
                    <Route path="/terms" element={<TermsPage />} />
                    <Route path="/privacy" element={<PrivacyPage />} />
+                   <Route path="/trust" element={<TrustPage />} />
                    <Route path="/invite/:token" element={<InvitePage />} />
                    
                    {/* Admin Routes */}
