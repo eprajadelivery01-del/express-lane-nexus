@@ -31,19 +31,23 @@ ALTER TABLE public.pricing_rules ENABLE ROW LEVEL SECURITY;
 -- Setup RLS Policies
 
 -- Admins can do anything
+DROP POLICY IF EXISTS "Admins can manage pricing tables" ON public.pricing_tables;
 CREATE POLICY "Admins can manage pricing tables" ON public.pricing_tables
   FOR ALL USING (public.has_role(auth.uid(), 'admin'));
 
+DROP POLICY IF EXISTS "Admins can manage pricing rules" ON public.pricing_rules;
 CREATE POLICY "Admins can manage pricing rules" ON public.pricing_rules
   FOR ALL USING (public.has_role(auth.uid(), 'admin'));
 
 -- Companies can view ONLY their assigned pricing table (or the default one if they have none)
+DROP POLICY IF EXISTS "Companies can view their pricing tables" ON public.pricing_tables;
 CREATE POLICY "Companies can view their pricing tables" ON public.pricing_tables
   FOR SELECT USING (
     id = (SELECT pricing_table_id FROM public.companies WHERE user_id = auth.uid() LIMIT 1)
     OR (is_default = true AND (SELECT pricing_table_id FROM public.companies WHERE user_id = auth.uid() LIMIT 1) IS NULL)
   );
 
+DROP POLICY IF EXISTS "Companies can view their pricing rules" ON public.pricing_rules;
 CREATE POLICY "Companies can view their pricing rules" ON public.pricing_rules
   FOR SELECT USING (
     pricing_table_id = (SELECT pricing_table_id FROM public.companies WHERE user_id = auth.uid() LIMIT 1)
@@ -54,10 +58,12 @@ CREATE POLICY "Companies can view their pricing rules" ON public.pricing_rules
   );
 
 -- Triggers for updated_at
+DROP TRIGGER IF EXISTS update_pricing_tables_updated_at ON public.pricing_tables;
 CREATE TRIGGER update_pricing_tables_updated_at
   BEFORE UPDATE ON public.pricing_tables
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_pricing_rules_updated_at ON public.pricing_rules;
 CREATE TRIGGER update_pricing_rules_updated_at
   BEFORE UPDATE ON public.pricing_rules
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();

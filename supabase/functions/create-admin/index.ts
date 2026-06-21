@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
       companyName,
       address,
       regionId,
+      cityId,
     } = body;
 
     if (!email || !password || !role) {
@@ -232,7 +233,8 @@ Deno.serve(async (req) => {
         vehicle_plate: licensePlate || null,
         commission_rate: commissionRate ?? 15,
         created_by_admin_id: userData.user.id,
-        status: "active", // CRITICAL FIX: Ensure driver is born active so they can see deliveries!
+        status: "active",
+        city_id: cityId || null,
       });
     }
 
@@ -245,6 +247,7 @@ Deno.serve(async (req) => {
         address: address || null,
         region_id: regionId || null,
         created_by_admin_id: userData.user.id,
+        city_id: cityId || null,
       });
     }
 
