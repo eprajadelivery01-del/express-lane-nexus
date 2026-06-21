@@ -37,6 +37,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     is_active: true,
     category: "restaurante",
     commissionPercentage: "10.00",
+    delivery_mode: "marketplace",
+    delivery_fee: "",
   });
 
   // Reset form when company changes
@@ -55,6 +57,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         is_active: company.is_active ?? true,
         category: company.category || "restaurante",
         commissionPercentage: company.commission_percentage !== null && company.commission_percentage !== undefined ? company.commission_percentage.toString() : "10.00",
+        delivery_mode: company.delivery_mode || "marketplace",
+        delivery_fee: company.delivery_fee?.toString() || "",
       });
       // Fetch owner profile
       if (company.user_id) {
@@ -129,6 +133,8 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           is_active: form.is_active,
           category: form.category,
           commission_percentage: !isNaN(parseFloat(form.commissionPercentage)) ? parseFloat(form.commissionPercentage) : 10.00,
+          delivery_mode: form.delivery_mode,
+          delivery_fee: form.delivery_mode === "fixed_fee" && !isNaN(parseFloat(form.delivery_fee)) ? parseFloat(form.delivery_fee) : null,
         })
         .eq("id", company.id);
 
@@ -263,6 +269,29 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
               <Input type="number" step="0.1" value={form.commissionPercentage} onChange={e => set("commissionPercentage", e.target.value)} className="pr-8" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">%</span>
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mt-1.5">
+            <div>
+              <Label>Modelo de Entrega</Label>
+              <select
+                value={form.delivery_mode}
+                onChange={e => set("delivery_mode", e.target.value)}
+                className="w-full mt-1.5 px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors font-bold text-primary"
+              >
+                <option value="marketplace">Padrão (Cliente Paga)</option>
+                <option value="store_pays">Subsidiado (Loja Paga)</option>
+                <option value="fixed_fee">Taxa Fixa (Contrato)</option>
+              </select>
+            </div>
+            {form.delivery_mode === "fixed_fee" && (
+              <div>
+                <Label>Taxa Fixa (R$)</Label>
+                <div className="relative mt-1.5">
+                  <Input type="number" step="0.01" value={form.delivery_fee} onChange={e => set("delivery_fee", e.target.value)} className="pl-8" placeholder="0.00" />
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">R$</span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex items-center gap-3 py-2">
             <label className="flex items-center gap-2 cursor-pointer">

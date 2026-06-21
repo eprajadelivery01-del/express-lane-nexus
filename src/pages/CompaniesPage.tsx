@@ -11,7 +11,9 @@ import { MoreHorizontal, Power, Trash2, Edit2, Store, Search, X } from "lucide-r
 import { useState } from "react";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCitiesWithRegions } from "@/services/regions";
+import { StoreContractSettings } from "@/components/admin/StoreContractSettings";
 
 export default function CompaniesPage() {
   const { data: companies, isLoading, error } = useCompanies();
@@ -189,19 +191,33 @@ export default function CompaniesPage() {
         )}
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <Select value={selectedCity} onValueChange={setSelectedCity}>
-          <SelectTrigger className="w-48 bg-card border-border/50 shadow-sm font-semibold text-sm">
-            <SelectValue placeholder="Todas as Cidades" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas as Cidades</SelectItem>
-            {cities.map((city) => (
-              <SelectItem key={city} value={city}>{city}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <Tabs defaultValue="geral" className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <TabsList className="bg-card border border-border shadow-sm p-1 rounded-xl h-auto">
+            <TabsTrigger value="geral" className="px-4 py-2 rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Visão Geral
+            </TabsTrigger>
+            <TabsTrigger value="contratos" className="px-4 py-2 rounded-lg text-sm font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              Contratos & Cobranças
+            </TabsTrigger>
+          </TabsList>
+
+          <div className="flex items-center gap-2">
+            <Select value={selectedCity} onValueChange={setSelectedCity}>
+              <SelectTrigger className="w-48 bg-card border-border/50 shadow-sm font-semibold text-sm">
+                <SelectValue placeholder="Todas as Cidades" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as Cidades</SelectItem>
+                {cities.map((city) => (
+                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <TabsContent value="geral" className="m-0 focus-visible:outline-none">
 
       <div className="rounded-2xl bg-card shadow-card overflow-hidden">
         <div className="overflow-x-auto">
@@ -277,6 +293,17 @@ export default function CompaniesPage() {
           </table>
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="contratos" className="m-0 focus-visible:outline-none">
+          <StoreContractSettings 
+            companies={filteredCompanies} 
+            isLoading={isLoading} 
+            onEditCompany={(c) => setEditingCompany(c)} 
+          />
+        </TabsContent>
+      </Tabs>
+      
       {editingCompany && (
         <EditCompanyDialog
           company={editingCompany}

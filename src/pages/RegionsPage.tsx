@@ -659,14 +659,6 @@ export default function RegionsPage() {
           )}
 
           <div className="p-4 space-y-6">
-            <CityServiceList 
-              onSelect={(cityName, coords) => {
-                mapRef.current?.flyTo({ center: coords, zoom: 11, duration: 1500 });
-              }}
-            />
-
-            <hr className="border-border" />
-
             <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
               Regiões ({regions?.length ?? 0})
             </h3>

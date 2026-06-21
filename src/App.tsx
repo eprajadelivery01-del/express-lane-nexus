@@ -18,6 +18,7 @@ import DashboardPage from "./pages/DashboardPage";
 import DeliveriesPage from "./pages/DeliveriesPage";
 import DriversPage from "./pages/DriversPage";
 import RegionsPage from "./pages/RegionsPage";
+import BasesPage from "./pages/BasesPage";
 import TrackingPage from "./pages/TrackingPage";
 import ReportsPage from "./pages/ReportsPage";
 import NotFound from "./pages/NotFound";
@@ -79,6 +80,7 @@ const App = () => (
                    <Route path="/admin/companies" element={<PageTransition><ProtectedRoute requiredRole="admin"><CompaniesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/sales" element={<PageTransition><ProtectedRoute requiredRole="admin"><StoreSalesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/drivers" element={<PageTransition><ProtectedRoute requiredRole="admin"><DriversPage /></ProtectedRoute></PageTransition>} />
+                   <Route path="/admin/bases" element={<PageTransition><ProtectedRoute requiredRole="admin"><BasesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/regions" element={<PageTransition><ProtectedRoute requiredRole="admin"><RegionsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/coupons" element={<PageTransition><ProtectedRoute requiredRole="admin"><CouponsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/reviews" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReviewsPage /></ProtectedRoute></PageTransition>} />
