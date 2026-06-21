@@ -344,6 +344,7 @@ export type Database = {
           prep_time: number
           prep_time_max: number | null
           prep_time_min: number | null
+          pricing_table_id: string | null
           rating: number | null
           region_id: string | null
           show_in_marketplace: boolean
@@ -383,6 +384,7 @@ export type Database = {
           prep_time?: number
           prep_time_max?: number | null
           prep_time_min?: number | null
+          pricing_table_id?: string | null
           rating?: number | null
           region_id?: string | null
           show_in_marketplace?: boolean
@@ -422,6 +424,7 @@ export type Database = {
           prep_time?: number
           prep_time_max?: number | null
           prep_time_min?: number | null
+          pricing_table_id?: string | null
           rating?: number | null
           region_id?: string | null
           show_in_marketplace?: boolean
@@ -431,6 +434,13 @@ export type Database = {
           zip_code?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "companies_pricing_table_id_fkey"
+            columns: ["pricing_table_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_tables"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "companies_region_id_fkey"
             columns: ["region_id"]
@@ -1572,6 +1582,85 @@ export type Database = {
         }
         Relationships: []
       }
+      pricing_rules: {
+        Row: {
+          base_value: number
+          created_at: string
+          destination_region_id: string
+          id: string
+          origin_region_id: string
+          pricing_table_id: string
+          return_value: number
+          updated_at: string
+        }
+        Insert: {
+          base_value?: number
+          created_at?: string
+          destination_region_id: string
+          id?: string
+          origin_region_id: string
+          pricing_table_id: string
+          return_value?: number
+          updated_at?: string
+        }
+        Update: {
+          base_value?: number
+          created_at?: string
+          destination_region_id?: string
+          id?: string
+          origin_region_id?: string
+          pricing_table_id?: string
+          return_value?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_rules_destination_region_id_fkey"
+            columns: ["destination_region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_rules_origin_region_id_fkey"
+            columns: ["origin_region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_rules_pricing_table_id_fkey"
+            columns: ["pricing_table_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_tables: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_option_groups: {
         Row: {
           created_at: string
@@ -2171,6 +2260,7 @@ export type Database = {
           p_change_for?: number
           p_company_id: string
           p_coupon_code?: string
+          p_delivery_fee?: number
           p_idempotency_key?: string
           p_items: Json
           p_needs_change?: boolean
@@ -2225,6 +2315,7 @@ export type Database = {
           prep_time: number
           prep_time_max: number | null
           prep_time_min: number | null
+          pricing_table_id: string | null
           rating: number | null
           region_id: string | null
           show_in_marketplace: boolean
