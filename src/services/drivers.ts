@@ -17,6 +17,7 @@ export type DriverWithProfile = {
   longitude: number | null;
   status?: string | null;
   commission_rate?: number | null;
+  city_id?: string | null;
   created_at?: string;
 };
 
@@ -60,6 +61,7 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
       longitude: raw.longitude || raw.current_longitude || null,
       status: raw.status || "active",
       commission_rate: raw.commission_rate !== null && raw.commission_rate !== undefined ? Number(raw.commission_rate) : 0.40,
+      city_id: raw.city_id || null,
       created_at: driver.created_at,
     } as DriverWithProfile;
   });

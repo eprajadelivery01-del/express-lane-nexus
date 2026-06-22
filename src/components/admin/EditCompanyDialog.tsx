@@ -20,9 +20,15 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
   const queryClient = useQueryClient();
   const { data: regions } = useRegions();
   const { data: dbCities } = useCitiesWithRegions();
+  const [pricingTables, setPricingTables] = useState<any[]>([]);
   const [ownerProfile, setOwnerProfile] = useState<any>(null);
 
   const cities = dbCities || Array.from(new Set(regions?.map(r => r.city) || [])).sort();
+
+  useEffect(() => {
+    supabase.from("pricing_tables").select("*").order("name")
+      .then(({ data }) => setPricingTables(data || []));
+  }, []);
 
   const [form, setForm] = useState({
     name: "",
@@ -39,6 +45,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
     commissionPercentage: "10.00",
     delivery_mode: "marketplace",
     delivery_fee: "",
+    pricingTableId: "",
   });
 
   // Reset form when company changes
@@ -59,6 +66,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
         commissionPercentage: company.commission_percentage !== null && company.commission_percentage !== undefined ? company.commission_percentage.toString() : "10.00",
         delivery_mode: company.delivery_mode || "marketplace",
         delivery_fee: company.delivery_fee?.toString() || "",
+        pricingTableId: company.pricing_table_id || "",
       });
       // Fetch owner profile
       if (company.user_id) {
@@ -135,6 +143,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           commission_percentage: !isNaN(parseFloat(form.commissionPercentage)) ? parseFloat(form.commissionPercentage) : 10.00,
           delivery_mode: form.delivery_mode,
           delivery_fee: form.delivery_mode === "fixed_fee" && !isNaN(parseFloat(form.delivery_fee)) ? parseFloat(form.delivery_fee) : null,
+          pricing_table_id: form.pricingTableId || null,
         })
         .eq("id", company.id);
 
@@ -264,7 +273,22 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
             </div>
           </div>
           <div>
-            <Label>Comissão sobre Vendas (%)</Label>
+            <Label>Tabela de Preços (Matriz de Entrega)</Label>
+            <select
+              value={form.pricingTableId}
+              onChange={e => set("pricingTableId", e.target.value)}
+              className="w-full mt-1.5 px-4 py-2.5 rounded-xl border border-border bg-background text-sm outline-none focus:border-primary transition-colors font-bold text-primary"
+            >
+              <option value="">Tabela Padrão do Sistema</option>
+              {pricingTables.map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">Define as taxas de entrega por bairro.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mt-1.5">
+            <div>
+              <Label>Comissão sobre Vendas (%)</Label>
             <div className="relative mt-1.5">
               <Input type="number" step="0.1" value={form.commissionPercentage} onChange={e => set("commissionPercentage", e.target.value)} className="pr-8" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">%</span>

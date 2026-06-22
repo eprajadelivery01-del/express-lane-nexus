@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { toast } from "sonner";
+import { BaseManagerModal } from "@/components/admin/BaseManagerModal";
 
 export default function BasesPage() {
   const { data: cities, isLoading } = useCities();
@@ -21,6 +22,10 @@ export default function BasesPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editCityId, setEditCityId] = useState("");
   const [editCityName, setEditCityName] = useState("");
+
+  const [isManagerOpen, setIsManagerOpen] = useState(false);
+  const [managerCityId, setManagerCityId] = useState("");
+  const [managerCityName, setManagerCityName] = useState("");
 
   const handleCreate = async () => {
     if (!cityName.trim()) return toast.error("Nome da cidade obrigatório");
@@ -165,6 +170,9 @@ export default function BasesPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => { setManagerCityId(city.id); setManagerCityName(city.name); setIsManagerOpen(true); }}>
+                            Gerenciar Base
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => openEdit(city.id, city.name)} className="text-primary hover:bg-primary/10">
                             <Edit2 className="w-4 h-4 mr-1.5" /> Editar
                           </Button>
@@ -205,6 +213,15 @@ export default function BasesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {isManagerOpen && (
+        <BaseManagerModal
+          isOpen={isManagerOpen}
+          onClose={() => setIsManagerOpen(false)}
+          cityId={managerCityId}
+          cityName={managerCityName}
+        />
+      )}
     </AdminLayout>
   );
 }

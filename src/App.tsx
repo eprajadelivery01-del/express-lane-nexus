@@ -29,6 +29,7 @@ import AdminChatPage from "./pages/admin/AdminChatPage";
 import CouponsPage from "./pages/admin/CouponsPage";
 import CompaniesPage from "./pages/CompaniesPage";
 import StoreSalesPage from "./pages/StoreSalesPage";
+import PricingTablesPage from "./pages/admin/PricingTablesPage";
 
 // Driver (Entregador) pages
 import DriverHomePage from "./pages/driver/DriverHomePage";
@@ -84,6 +85,7 @@ const App = () => (
                    <Route path="/admin/drivers" element={<PageTransition><ProtectedRoute requiredRole="admin"><DriversPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/bases" element={<PageTransition><ProtectedRoute requiredRole="admin"><BasesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/regions" element={<PageTransition><ProtectedRoute requiredRole="admin"><RegionsPage /></ProtectedRoute></PageTransition>} />
+                   <Route path="/admin/pricing-tables" element={<PageTransition><ProtectedRoute requiredRole="admin"><PricingTablesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/coupons" element={<PageTransition><ProtectedRoute requiredRole="admin"><CouponsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/reviews" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReviewsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/reports" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute></PageTransition>} />
