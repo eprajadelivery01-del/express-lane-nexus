@@ -18,6 +18,10 @@ export default function BasesPage() {
   const [cityName, setCityName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editCityId, setEditCityId] = useState("");
+  const [editCityName, setEditCityName] = useState("");
+
   const handleCreate = async () => {
     if (!cityName.trim()) return toast.error("Nome da cidade obrigatório");
     setIsSubmitting(true);
@@ -31,6 +35,26 @@ export default function BasesPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEdit = async () => {
+    if (!editCityName.trim()) return toast.error("Nome da cidade obrigatório");
+    setIsSubmitting(true);
+    try {
+      await updateCity({ id: editCityId, updates: { name: editCityName.trim().toUpperCase() } });
+      toast.success("Base atualizada com sucesso");
+      setIsEditOpen(false);
+    } catch (e: any) {
+      toast.error("Erro ao atualizar: " + e.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openEdit = (id: string, name: string) => {
+    setEditCityId(id);
+    setEditCityName(name);
+    setIsEditOpen(true);
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -140,9 +164,14 @@ export default function BasesPage() {
                         </button>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Button variant="ghost" size="sm" onClick={() => handleDelete(city.id, city.name)} className="text-destructive hover:bg-destructive/10">
-                          <Trash2 className="w-4 h-4 mr-1.5" /> Excluir
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button variant="ghost" size="sm" onClick={() => openEdit(city.id, city.name)} className="text-primary hover:bg-primary/10">
+                            <Edit2 className="w-4 h-4 mr-1.5" /> Editar
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDelete(city.id, city.name)} className="text-destructive hover:bg-destructive/10">
+                            <Trash2 className="w-4 h-4 mr-1.5" /> Excluir
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -152,6 +181,30 @@ export default function BasesPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Base</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label>Nome da Cidade</Label>
+              <Input 
+                value={editCityName} 
+                onChange={e => setEditCityName(e.target.value)} 
+                placeholder="Ex: CUIABÁ - MT"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
+              <Button onClick={handleEdit} disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar Alterações"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

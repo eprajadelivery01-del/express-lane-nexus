@@ -12,7 +12,7 @@ import { useState } from "react";
 import { GenerateInviteDialog } from "@/components/admin/GenerateInviteDialog";
 import { RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useCitiesWithRegions } from "@/services/regions";
+import { useCities } from "@/services/cities";
 
 export default function DriversPage() {
   const { data: drivers, isLoading } = useDrivers();
@@ -22,7 +22,7 @@ export default function DriversPage() {
   const [syncing, setSyncing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCity, setSelectedCity] = useState<string>("all");
-  const { data: dbCities } = useCitiesWithRegions();
+  const { data: dbCities } = useCities();
   const cities = dbCities || [];
 
   const syncMissingDrivers = async () => {
@@ -174,12 +174,12 @@ export default function DriversPage() {
       <div className="flex items-center gap-2 mb-4">
         <Select value={selectedCity} onValueChange={setSelectedCity}>
           <SelectTrigger className="w-48 bg-card border-border/50 shadow-sm font-semibold text-sm">
-            <SelectValue placeholder="Todas as Cidades" />
+            <SelectValue placeholder="Todas as Bases" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas as Cidades</SelectItem>
+            <SelectItem value="all">Todas as Bases</SelectItem>
             {cities.map((city) => (
-              <SelectItem key={city} value={city}>{city}</SelectItem>
+              <SelectItem key={city.id} value={city.name}>{city.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>

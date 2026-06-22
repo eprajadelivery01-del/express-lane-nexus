@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
-import { useCitiesWithRegions } from "@/services/regions";
+import { useCities } from "@/services/cities";
 
 interface EditDriverDialogProps {
   driver: any;
@@ -18,7 +18,7 @@ interface EditDriverDialogProps {
 export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialogProps) {
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
-  const { data: dbCities } = useCitiesWithRegions();
+  const { data: dbCities } = useCities();
   const cities = dbCities || [];
 
   const [form, setForm] = useState({
@@ -134,9 +134,9 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
                   <SelectValue placeholder="Selecionar Cidade..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas as Cidades</SelectItem>
+                  <SelectItem value="all">Todas as Cidades</SelectItem>
                   {cities.map((city) => (
-                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                    <SelectItem key={city.id} value={city.name}>{city.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
