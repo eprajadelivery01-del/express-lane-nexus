@@ -178,12 +178,104 @@ export default function AdminInvoicesPage() {
     }
   };
 
+  const generateRetroactive = async () => {
+    if (!confirm("Deseja gerar as faturas retroativas (Abril, Maio e Junho de 2026)? Isso vai varrer todos os pedidos e entregas das lojas. Pode demorar alguns segundos.")) return;
+    setIsLoading(true);
+    
+    try {
+      const monthsToProcess = [
+        { month: 4, year: 2026, label: "04/2026" },
+        { month: 5, year: 2026, label: "05/2026" },
+        { month: 6, year: 2026, label: "06/2026" }
+      ];
+
+      for (const comp of companies) {
+        const companyId = comp.id;
+        
+        // Fetch commission rate
+        const { data: compData } = await supabase
+          .from('companies')
+          .select('commission_rate')
+          .eq('id', companyId)
+          .single();
+        const commissionRate = Number(compData?.commission_rate || 0);
+
+        for (const period of monthsToProcess) {
+          const startDate = new Date(period.year, period.month - 1, 1).toISOString();
+          const endDate = new Date(period.year, period.month, 1).toISOString();
+
+          // Fetch deliveries
+          const { data: deliveriesData } = await supabase
+            .from('deliveries')
+            .select('delivery_fee')
+            .eq('company_id', companyId)
+            .eq('status', 'completed')
+            .gte('created_at', startDate)
+            .lt('created_at', endDate);
+
+          // Fetch marketplace orders
+          const { data: ordersData } = await supabase
+            .from('orders')
+            .select('total_amount, delivery_fee')
+            .eq('company_id', companyId)
+            .eq('status', 'delivered')
+            .gte('created_at', startDate)
+            .lt('created_at', endDate);
+
+          const totalDeliveriesValue = (deliveriesData || []).reduce((sum, del) => sum + (Number(del.delivery_fee) || 0), 0);
+          
+          const totalCommissionsValue = (ordersData || []).reduce((sum, ord) => {
+            const orderValue = (Number(ord.total_amount) || 0) - (Number(ord.delivery_fee) || 0);
+            return sum + (orderValue * (commissionRate / 100));
+          }, 0);
+
+          const totalCombined = totalDeliveriesValue + totalCommissionsValue;
+
+          // Only create invoice if there is some activity
+          if (totalCombined > 0) {
+            // Check if it already exists
+            const { data: existing } = await supabase
+              .from('merchant_invoices')
+              .select('id')
+              .eq('company_id', companyId)
+              .eq('reference_month', period.label)
+              .maybeSingle();
+
+            if (!existing) {
+               await supabase.from('merchant_invoices').insert({
+                 company_id: companyId,
+                 reference_month: period.label,
+                 deliveries_amount: totalCombined,
+                 subscription_amount: 0,
+                 total_amount: totalCombined,
+                 status: 'pending',
+                 notes: 'Gerado automaticamente (Retroativo)'
+               });
+            }
+          }
+        }
+      }
+      toast.success("Faturas retroativas geradas com sucesso!");
+    } catch(err: any) {
+      console.error(err);
+      toast.error("Erro ao gerar retroativos: " + err.message);
+    } finally {
+      setIsLoading(false);
+      fetchData();
+    }
+  };
+
   return (
     <AdminLayout title="Faturas Lojistas" subtitle="Controle de mensalidades e repasses">
       <div className="p-6 max-w-6xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-bold">Todas as Faturas</h2>
-          <Button onClick={() => openEdit()}><Plus className="w-4 h-4 mr-2" /> Nova Fatura</Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={generateRetroactive} disabled={isLoading}>
+              Gerar Retroativos
+            </Button>
+            <Button onClick={() => openEdit()}><Plus className="w-4 h-4 mr-2" /> Nova Fatura</Button>
+          </div>
         </div>
 
         {isLoading ? (
