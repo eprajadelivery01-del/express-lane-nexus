@@ -29,6 +29,14 @@ export default function AdminInvoicesPage() {
   const [status, setStatus] = useState("pending");
   const [notes, setNotes] = useState("");
 
+  // Filters
+  const [filterMonth, setFilterMonth] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterSearch, setFilterSearch] = useState("");
+  const [hideZero, setHideZero] = useState(false);
+  const [sortField, setSortField] = useState<"company" | "month" | "total">("total");
+  const [sortAsc, setSortAsc] = useState(false);
+
   const fetchData = async () => {
     setIsLoading(true);
     const [{ data: invs }, { data: comps }] = await Promise.all([
@@ -294,10 +302,60 @@ export default function AdminInvoicesPage() {
     }
   };
 
+  // Compute unique months from invoices
+  const uniqueMonths = [...new Set(invoices.map(i => i.reference_month))].sort((a, b) => {
+    const [mA, yA] = a.split("/").map(Number);
+    const [mB, yB] = b.split("/").map(Number);
+    return yB - yA || mB - mA;
+  });
+
+  // Filter & sort invoices
+  const filteredInvoices = invoices
+    .filter(inv => {
+      if (filterMonth !== "all" && inv.reference_month !== filterMonth) return false;
+      if (filterStatus !== "all" && inv.status !== filterStatus) return false;
+      if (hideZero && Number(inv.total_amount) === 0) return false;
+      if (filterSearch) {
+        const name = (inv.companies?.name || "").toLowerCase();
+        if (!name.includes(filterSearch.toLowerCase())) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      let cmp = 0;
+      if (sortField === "company") {
+        cmp = (a.companies?.name || "").localeCompare(b.companies?.name || "");
+      } else if (sortField === "month") {
+        const [mA, yA] = (a.reference_month || "").split("/").map(Number);
+        const [mB, yB] = (b.reference_month || "").split("/").map(Number);
+        cmp = (yA - yB) || (mA - mB);
+      } else if (sortField === "total") {
+        cmp = Number(a.total_amount) - Number(b.total_amount);
+      }
+      return sortAsc ? cmp : -cmp;
+    });
+
+  // Summary
+  const totalPendente = filteredInvoices.filter(i => i.status !== "paid").reduce((s, i) => s + Number(i.total_amount), 0);
+  const totalPago = filteredInvoices.filter(i => i.status === "paid").reduce((s, i) => s + Number(i.total_amount), 0);
+  const totalGeral = filteredInvoices.reduce((s, i) => s + Number(i.total_amount), 0);
+
+  const handleSort = (field: "company" | "month" | "total") => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(true);
+    }
+  };
+
+  const sortIcon = (field: string) => sortField === field ? (sortAsc ? " ▲" : " ▼") : "";
+
   return (
     <AdminLayout title="Faturas Lojistas" subtitle="Controle de mensalidades e repasses">
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="p-6 max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-xl font-bold">Todas as Faturas</h2>
           <div className="flex gap-2">
             <Button variant="outline" onClick={generateRetroactive} disabled={isLoading}>
@@ -307,6 +365,93 @@ export default function AdminInvoicesPage() {
           </div>
         </div>
 
+        {/* Summary Cards */}
+        {!isLoading && invoices.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="p-4 border-l-4 border-l-warning">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Pendente</p>
+              <p className="text-2xl font-bold text-warning">R$ {totalPendente.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">{filteredInvoices.filter(i => i.status !== "paid").length} faturas</p>
+            </Card>
+            <Card className="p-4 border-l-4 border-l-green-500">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Pago</p>
+              <p className="text-2xl font-bold text-green-500">R$ {totalPago.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">{filteredInvoices.filter(i => i.status === "paid").length} faturas</p>
+            </Card>
+            <Card className="p-4 border-l-4 border-l-primary">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide">Total Geral</p>
+              <p className="text-2xl font-bold text-primary">R$ {totalGeral.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground">{filteredInvoices.length} faturas exibidas</p>
+            </Card>
+          </div>
+        )}
+
+        {/* Filters Bar */}
+        {!isLoading && invoices.length > 0 && (
+          <Card className="p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Buscar Loja</Label>
+                <Input
+                  placeholder="Nome da loja..."
+                  value={filterSearch}
+                  onChange={e => setFilterSearch(e.target.value)}
+                  className="h-9"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Mês</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm outline-none focus:ring-2 focus:ring-primary transition-all"
+                  value={filterMonth}
+                  onChange={e => setFilterMonth(e.target.value)}
+                >
+                  <option value="all">Todos os meses</option>
+                  {uniqueMonths.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm outline-none focus:ring-2 focus:ring-primary transition-all"
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value)}
+                >
+                  <option value="all">Todos</option>
+                  <option value="pending">Pendente</option>
+                  <option value="paid">Pago</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2 h-9">
+                <input
+                  type="checkbox"
+                  id="hideZero"
+                  checked={hideZero}
+                  onChange={e => setHideZero(e.target.checked)}
+                  className="rounded border-input accent-primary"
+                />
+                <Label htmlFor="hideZero" className="text-xs cursor-pointer">Ocultar R$ 0,00</Label>
+              </div>
+              <div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 text-xs w-full"
+                  onClick={() => {
+                    setFilterMonth("all");
+                    setFilterStatus("all");
+                    setFilterSearch("");
+                    setHideZero(false);
+                  }}
+                >
+                  Limpar Filtros
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Table */}
         {isLoading ? (
           <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
         ) : invoices.length === 0 ? (
@@ -314,23 +459,34 @@ export default function AdminInvoicesPage() {
             <FileText className="w-12 h-12 mb-4 opacity-20" />
             <p>Nenhuma fatura lançada ainda.</p>
           </div>
+        ) : filteredInvoices.length === 0 ? (
+          <div className="bg-card border border-border rounded-xl p-12 text-center text-muted-foreground flex flex-col items-center justify-center">
+            <FileText className="w-12 h-12 mb-4 opacity-20" />
+            <p>Nenhuma fatura encontrada com os filtros selecionados.</p>
+          </div>
         ) : (
           <div className="rounded-md border border-border overflow-hidden bg-card">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="p-4 text-left">Loja</th>
-                  <th className="p-4 text-left">Referência</th>
+                  <th className="p-4 text-left cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort("company")}>
+                    Loja{sortIcon("company")}
+                  </th>
+                  <th className="p-4 text-left cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort("month")}>
+                    Referência{sortIcon("month")}
+                  </th>
                   <th className="p-4 text-right">Mensalidade</th>
                   <th className="p-4 text-right">Entregas</th>
-                  <th className="p-4 text-right">Total</th>
+                  <th className="p-4 text-right cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort("total")}>
+                    Total{sortIcon("total")}
+                  </th>
                   <th className="p-4 text-center">Status</th>
                   <th className="p-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {invoices.map(inv => (
-                  <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/20">
+                {filteredInvoices.map(inv => (
+                  <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
                     <td className="p-4 font-medium">{inv.companies?.name || "Loja Excluída"}</td>
                     <td className="p-4">{inv.reference_month}</td>
                     <td className="p-4 text-right text-muted-foreground">R$ {Number(inv.subscription_amount).toFixed(2)}</td>
