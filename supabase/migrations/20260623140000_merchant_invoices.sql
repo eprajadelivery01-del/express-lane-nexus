@@ -31,6 +31,6 @@ CREATE POLICY "Company owners can view their invoices"
     FOR SELECT
     USING (
         company_id IN (
-            SELECT id FROM public.companies WHERE owner_id = auth.uid()
+            SELECT id FROM public.companies WHERE user_id = auth.uid()
         )
     );
