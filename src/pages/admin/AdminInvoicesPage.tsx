@@ -123,7 +123,7 @@ export default function AdminInvoicesPage() {
   // Format YYYY-MM to MM/YYYY for display/storage
   const formatMonthForStorage = (yyyyMm: string) => {
     if (!yyyyMm || !yyyyMm.includes("-")) return yyyyMm;
-    const [year, month] = yyyMm.split("-");
+    const [year, month] = yyyyMm.split("-");
     return `${month}/${year}`;
   };
 
