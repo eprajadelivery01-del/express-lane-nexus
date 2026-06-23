@@ -49,7 +49,7 @@ export default function AdminInvoicesPage() {
 
     const payload = { 
       company_id: companyId,
-      reference_month: referenceMonth,
+      reference_month: formatMonthForStorage(referenceMonth),
       deliveries_amount: dAmount,
       subscription_amount: sAmount,
       total_amount: tAmount,
@@ -88,7 +88,14 @@ export default function AdminInvoicesPage() {
     if (invoice) {
       setCurrentInvoice(invoice);
       setCompanyId(invoice.company_id);
-      setReferenceMonth(invoice.reference_month);
+      
+      // Convert back MM/YYYY to YYYY-MM for input type="month"
+      let parsedMonth = invoice.reference_month;
+      if (parsedMonth && parsedMonth.includes("/")) {
+        const [m, y] = parsedMonth.split("/");
+        parsedMonth = `${y}-${m}`;
+      }
+      setReferenceMonth(parsedMonth);
       setDeliveriesAmount(invoice.deliveries_amount?.toString() || "0");
       setSubscriptionAmount(invoice.subscription_amount?.toString() || "0");
       setStatus(invoice.status || "pending");
@@ -98,14 +105,22 @@ export default function AdminInvoicesPage() {
       setCompanyId("");
       
       const now = new Date();
-      const monthStr = `${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()}`;
-      setReferenceMonth(monthStr);
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      setReferenceMonth(`${year}-${month}`);
       setDeliveriesAmount("0");
       setSubscriptionAmount("0");
       setStatus("pending");
       setNotes("");
     }
     setIsDialogOpen(true);
+  };
+
+  // Format YYYY-MM to MM/YYYY for display/storage
+  const formatMonthForStorage = (yyyyMm: string) => {
+    if (!yyyyMm || !yyyyMm.includes("-")) return yyyMm;
+    const [year, month] = yyyMm.split("-");
+    return `${month}/${year}`;
   };
 
   // Helper function to sum deliveries automatically for the selected month
@@ -115,12 +130,12 @@ export default function AdminInvoicesPage() {
       return;
     }
     
-    // Convert MM/YYYY to date range
-    const parts = referenceMonth.split("/");
-    if (parts.length !== 2) return toast.error("Mês deve estar no formato MM/YYYY");
+    // Parse YYYY-MM
+    const [yearStr, monthStr] = referenceMonth.split("-");
+    if (!yearStr || !monthStr) return toast.error("Mês inválido");
     
-    const month = parseInt(parts[0], 10);
-    const year = parseInt(parts[1], 10);
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
     
     const startDate = new Date(year, month - 1, 1).toISOString();
     const endDate = new Date(year, month, 1).toISOString();
@@ -189,6 +204,8 @@ export default function AdminInvoicesPage() {
         { month: 6, year: 2026, label: "06/2026" }
       ];
 
+      let generatedCount = 0;
+
       for (const comp of companies) {
         const companyId = comp.id;
         
@@ -234,31 +251,35 @@ export default function AdminInvoicesPage() {
 
           const totalCombined = totalDeliveriesValue + totalCommissionsValue;
 
-          // Only create invoice if there is some activity
-          if (totalCombined > 0) {
-            // Check if it already exists
-            const { data: existing } = await supabase
-              .from('merchant_invoices')
-              .select('id')
-              .eq('company_id', companyId)
-              .eq('reference_month', period.label)
-              .maybeSingle();
+          // Create invoice even if 0, so the admin sees the retroactives were checked
+          // Check if it already exists
+          const { data: existing } = await supabase
+            .from('merchant_invoices')
+            .select('id')
+            .eq('company_id', companyId)
+            .eq('reference_month', period.label)
+            .maybeSingle();
 
-            if (!existing) {
-               await supabase.from('merchant_invoices').insert({
-                 company_id: companyId,
-                 reference_month: period.label,
-                 deliveries_amount: totalCombined,
-                 subscription_amount: 0,
-                 total_amount: totalCombined,
-                 status: 'pending',
-                 notes: 'Gerado automaticamente (Retroativo)'
-               });
-            }
+          if (!existing) {
+             await supabase.from('merchant_invoices').insert({
+               company_id: companyId,
+               reference_month: period.label,
+               deliveries_amount: totalCombined,
+               subscription_amount: 0,
+               total_amount: totalCombined,
+               status: 'pending',
+               notes: 'Gerado automaticamente (Retroativo)'
+             });
+             generatedCount++;
           }
         }
       }
-      toast.success("Faturas retroativas geradas com sucesso!");
+      
+      if (generatedCount > 0) {
+        toast.success(`${generatedCount} faturas retroativas geradas com sucesso!`);
+      } else {
+        toast.info("Nenhuma fatura nova precisou ser gerada (todas já existem).");
+      }
     } catch(err: any) {
       console.error(err);
       toast.error("Erro ao gerar retroativos: " + err.message);
@@ -339,18 +360,24 @@ export default function AdminInvoicesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
             <div className="col-span-2 md:col-span-1">
               <Label>Loja</Label>
-              <select 
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" 
-                value={companyId} 
-                onChange={e => setCompanyId(e.target.value)}
-              >
-                <option className="bg-background text-foreground" value="">Selecione a loja...</option>
-                {companies.map(c => <option className="bg-background text-foreground" key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <div className="relative">
+                <select 
+                  className="flex h-10 w-full appearance-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
+                  value={companyId} 
+                  onChange={e => setCompanyId(e.target.value)}
+                >
+                  <option className="bg-background text-muted-foreground" value="">Selecione uma loja...</option>
+                  {companies.map(c => <option className="bg-background text-foreground" key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground">
+                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                </div>
+              </div>
             </div>
             <div className="col-span-2 md:col-span-1">
-              <Label>Mês de Referência (MM/YYYY)</Label>
-              <Input value={referenceMonth} onChange={e => setReferenceMonth(e.target.value)} placeholder="06/2026" />
+              <Label>Mês de Referência</Label>
+              <Input type="month" value={referenceMonth} onChange={e => setReferenceMonth(e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Selecione o mês e ano da fatura.</p>
             </div>
             
             <div className="col-span-2 md:col-span-1">
