@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 export default function AdminInvoicesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -19,6 +22,7 @@ export default function AdminInvoicesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState<any>(null);
   const [companyId, setCompanyId] = useState("");
+  const [openCompanyCombobox, setOpenCompanyCombobox] = useState(false);
   const [referenceMonth, setReferenceMonth] = useState("");
   const [deliveriesAmount, setDeliveriesAmount] = useState("0");
   const [subscriptionAmount, setSubscriptionAmount] = useState("0");
@@ -60,7 +64,7 @@ export default function AdminInvoicesPage() {
     if (currentInvoice) {
       const { error } = await supabase.from("merchant_invoices").update(payload).eq("id", currentInvoice.id);
       if (error) {
-        toast.error("Erro ao atualizar fatura");
+        toast.error("Erro ao atualizar fatura: " + error.message);
         console.error(error);
         return;
       }
@@ -68,7 +72,7 @@ export default function AdminInvoicesPage() {
     } else {
       const { error } = await supabase.from("merchant_invoices").insert(payload);
       if (error) {
-        toast.error("Erro ao criar fatura");
+        toast.error("Erro ao criar fatura: " + error.message);
         console.error(error);
         return;
       }
@@ -118,7 +122,7 @@ export default function AdminInvoicesPage() {
 
   // Format YYYY-MM to MM/YYYY for display/storage
   const formatMonthForStorage = (yyyyMm: string) => {
-    if (!yyyyMm || !yyyyMm.includes("-")) return yyyMm;
+    if (!yyyyMm || !yyyyMm.includes("-")) return yyyyMm;
     const [year, month] = yyyMm.split("-");
     return `${month}/${year}`;
   };
@@ -261,7 +265,7 @@ export default function AdminInvoicesPage() {
             .maybeSingle();
 
           if (!existing) {
-             await supabase.from('merchant_invoices').insert({
+             const { error: insertErr } = await supabase.from('merchant_invoices').insert({
                company_id: companyId,
                reference_month: period.label,
                deliveries_amount: totalCombined,
@@ -270,6 +274,7 @@ export default function AdminInvoicesPage() {
                status: 'pending',
                notes: 'Gerado automaticamente (Retroativo)'
              });
+             if (insertErr) throw new Error(insertErr.message);
              generatedCount++;
           }
         }
@@ -360,18 +365,47 @@ export default function AdminInvoicesPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
             <div className="col-span-2 md:col-span-1">
               <Label>Loja</Label>
-              <div className="relative">
-                <select 
-                  className="flex h-10 w-full appearance-none rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary outline-none transition-all" 
-                  value={companyId} 
-                  onChange={e => setCompanyId(e.target.value)}
-                >
-                  <option className="bg-background text-muted-foreground" value="">Selecione uma loja...</option>
-                  {companies.map(c => <option className="bg-background text-foreground" key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-muted-foreground">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                </div>
+              <div className="relative mt-1">
+                <Popover open={openCompanyCombobox} onOpenChange={setOpenCompanyCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openCompanyCombobox}
+                      className="w-full justify-between font-normal text-left h-10 px-3"
+                    >
+                      {companyId ? companies.find((c) => c.id === companyId)?.name : "Pesquisar loja..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar loja pelo nome..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhuma loja encontrada.</CommandEmpty>
+                        <CommandGroup>
+                          {companies.map((c) => (
+                            <CommandItem
+                              key={c.id}
+                              value={c.name}
+                              onSelect={() => {
+                                setCompanyId(c.id);
+                                setOpenCompanyCombobox(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  companyId === c.id ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {c.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <div className="col-span-2 md:col-span-1">
