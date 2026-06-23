@@ -19,7 +19,7 @@ export default function MerchantInvoicesPage() {
     const { data: companies } = await supabase
       .from('companies')
       .select('id')
-      .eq('owner_id', user.id);
+      .eq('user_id', user.id);
       
     if (!companies || companies.length === 0) {
       setIsLoading(false);
@@ -32,6 +32,7 @@ export default function MerchantInvoicesPage() {
       .from("merchant_invoices")
       .select("*")
       .in("company_id", companyIds)
+      .not("sent_at", "is", null)
       .order("created_at", { ascending: false });
       
     if (data) setInvoices(data);

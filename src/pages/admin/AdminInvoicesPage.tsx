@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Plus, Edit2, Trash2, FileText, CheckCircle, Clock } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, FileText, CheckCircle, Clock, Send, SendHorizonal } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AdminInvoicesPage() {
   const [invoices, setInvoices] = useState<any[]>([]);
@@ -36,6 +37,9 @@ export default function AdminInvoicesPage() {
   const [hideZero, setHideZero] = useState(false);
   const [sortField, setSortField] = useState<"company" | "month" | "total">("total");
   const [sortAsc, setSortAsc] = useState(false);
+
+  // Selection for sending
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -302,6 +306,61 @@ export default function AdminInvoicesPage() {
     }
   };
 
+  // Send invoices to merchants
+  const handleSendInvoices = async (ids: string[]) => {
+    if (ids.length === 0) return toast.error("Nenhuma fatura selecionada.");
+    
+    const now = new Date().toISOString();
+    let sentCount = 0;
+    
+    for (const id of ids) {
+      const { error } = await supabase
+        .from('merchant_invoices')
+        .update({ sent_at: now } as any)
+        .eq('id', id);
+      if (!error) sentCount++;
+    }
+    
+    if (sentCount > 0) {
+      toast.success(`${sentCount} fatura(s) enviada(s) para os lojistas!`);
+      setSelectedIds(new Set());
+      fetchData();
+    } else {
+      toast.error("Erro ao enviar faturas.");
+    }
+  };
+
+  const handleSendAll = () => {
+    const unsent = filteredInvoices.filter(i => !i.sent_at).map(i => i.id);
+    if (unsent.length === 0) return toast.info("Todas as faturas visíveis já foram enviadas.");
+    if (!confirm(`Enviar ${unsent.length} fatura(s) pendentes de envio para os lojistas?`)) return;
+    handleSendInvoices(unsent);
+  };
+
+  const handleSendSelected = () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return toast.error("Selecione pelo menos uma fatura.");
+    if (!confirm(`Enviar ${ids.length} fatura(s) selecionada(s) para os lojistas?`)) return;
+    handleSendInvoices(ids);
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredInvoices.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredInvoices.map(i => i.id)));
+    }
+  };
+
   // Compute unique months from invoices
   const uniqueMonths = [...new Set(invoices.map(i => i.reference_month))].sort((a, b) => {
     const [mA, yA] = a.split("/").map(Number);
@@ -357,7 +416,15 @@ export default function AdminInvoicesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <h2 className="text-xl font-bold">Todas as Faturas</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            {selectedIds.size > 0 && (
+              <Button variant="default" className="bg-blue-600 hover:bg-blue-700" onClick={handleSendSelected}>
+                <Send className="w-4 h-4 mr-2" /> Enviar {selectedIds.size} Selecionada(s)
+              </Button>
+            )}
+            <Button variant="outline" onClick={handleSendAll} disabled={isLoading}>
+              <SendHorizonal className="w-4 h-4 mr-2" /> Enviar Todas
+            </Button>
             <Button variant="outline" onClick={generateRetroactive} disabled={isLoading}>
               Gerar Retroativos
             </Button>
@@ -469,6 +536,12 @@ export default function AdminInvoicesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
+                  <th className="p-3 w-10">
+                    <Checkbox
+                      checked={selectedIds.size === filteredInvoices.length && filteredInvoices.length > 0}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="p-4 text-left cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort("company")}>
                     Loja{sortIcon("company")}
                   </th>
@@ -480,18 +553,41 @@ export default function AdminInvoicesPage() {
                   <th className="p-4 text-right cursor-pointer select-none hover:text-primary transition-colors" onClick={() => handleSort("total")}>
                     Total{sortIcon("total")}
                   </th>
+                  <th className="p-4 text-center">Envio</th>
                   <th className="p-4 text-center">Status</th>
                   <th className="p-4 text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredInvoices.map(inv => (
-                  <tr key={inv.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                  <tr key={inv.id} className={`border-b last:border-0 hover:bg-muted/20 transition-colors ${selectedIds.has(inv.id) ? 'bg-primary/5' : ''}`}>
+                    <td className="p-3 w-10">
+                      <Checkbox
+                        checked={selectedIds.has(inv.id)}
+                        onCheckedChange={() => toggleSelect(inv.id)}
+                      />
+                    </td>
                     <td className="p-4 font-medium">{inv.companies?.name || "Loja Excluída"}</td>
                     <td className="p-4">{inv.reference_month}</td>
                     <td className="p-4 text-right text-muted-foreground">R$ {Number(inv.subscription_amount).toFixed(2)}</td>
                     <td className="p-4 text-right text-muted-foreground">R$ {Number(inv.deliveries_amount).toFixed(2)}</td>
                     <td className="p-4 text-right font-bold text-foreground">R$ {Number(inv.total_amount).toFixed(2)}</td>
+                    <td className="p-4 text-center">
+                      {inv.sent_at ? (
+                        <span className="inline-flex items-center bg-blue-500/10 text-blue-500 px-2 py-1 rounded-full text-xs font-semibold">
+                          <Send className="w-3 h-3 mr-1" /> Enviada
+                        </span>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-7 text-muted-foreground hover:text-blue-500"
+                          onClick={() => handleSendInvoices([inv.id])}
+                        >
+                          <Send className="w-3 h-3 mr-1" /> Enviar
+                        </Button>
+                      )}
+                    </td>
                     <td className="p-4 text-center">
                       {inv.status === 'paid' ? (
                         <span className="inline-flex items-center bg-success/10 text-success px-2 py-1 rounded-full text-xs font-semibold">
