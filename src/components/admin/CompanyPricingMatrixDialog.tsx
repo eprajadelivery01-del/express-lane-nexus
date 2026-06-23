@@ -78,7 +78,7 @@ export function CompanyPricingMatrixDialog({ company, open, onOpenChange }: Comp
 
       const { error } = await supabase
         .from("companies")
-        .update({ delivery_regions_pricing: payload })
+        .update({ delivery_regions_pricing: payload as any })
         .eq("id", company.id);
 
       if (error) throw error;
