@@ -131,11 +131,11 @@ export default function AdminInvoicesPage() {
       // Fetch company commission rate
       const { data: compData } = await supabase
         .from('companies')
-        .select('commission_rate')
+        .select('commission_percentage')
         .eq('id', companyId)
         .single();
         
-      const commissionRate = Number(compData?.commission_rate || 0);
+      const commissionRate = Number(compData?.commission_percentage || 0);
 
       // Fetch deliveries
       const { data: deliveriesData, error: delError } = await supabase
@@ -193,12 +193,15 @@ export default function AdminInvoicesPage() {
         const companyId = comp.id;
         
         // Fetch commission rate
-        const { data: compData } = await supabase
+        const { data: compData, error: compErr } = await supabase
           .from('companies')
-          .select('commission_rate')
+          .select('commission_percentage')
           .eq('id', companyId)
           .single();
-        const commissionRate = Number(compData?.commission_rate || 0);
+        
+        if (compErr) console.error("Error fetching company", compErr);
+
+        const commissionRate = Number(compData?.commission_percentage || 0);
 
         for (const period of monthsToProcess) {
           const startDate = new Date(period.year, period.month - 1, 1).toISOString();
