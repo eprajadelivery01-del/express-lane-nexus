@@ -101,6 +101,7 @@ export default function PricingTablesPage() {
   };
 
   const handleSaveRule = async () => {
+    if (regions.length === 0) return toast.error("Você precisa cadastrar Regiões no sistema primeiro.");
     if (!originId || !destinationId || !baseValue) return toast.error("Preencha origem, destino e valor base");
     
     const payload = {
@@ -201,16 +202,16 @@ export default function PricingTablesPage() {
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
                 <div className="col-span-2 md:col-span-1">
                   <Label className="text-xs">Origem</Label>
-                  <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" value={originId} onChange={e => setOriginId(e.target.value)}>
-                    <option value="">Selecione...</option>
-                    {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm" value={originId} onChange={e => setOriginId(e.target.value)}>
+                    <option className="bg-background text-foreground" value="">Selecione...</option>
+                    {regions.map(r => <option className="bg-background text-foreground" key={r.id} value={r.id}>{r.name}</option>)}
                   </select>
                 </div>
                 <div className="col-span-2 md:col-span-1">
                   <Label className="text-xs">Destino</Label>
-                  <select className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm" value={destinationId} onChange={e => setDestinationId(e.target.value)}>
-                    <option value="">Selecione...</option>
-                    {regions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  <select className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm" value={destinationId} onChange={e => setDestinationId(e.target.value)}>
+                    <option className="bg-background text-foreground" value="">Selecione...</option>
+                    {regions.map(r => <option className="bg-background text-foreground" key={r.id} value={r.id}>{r.name}</option>)}
                   </select>
                 </div>
                 <div>
