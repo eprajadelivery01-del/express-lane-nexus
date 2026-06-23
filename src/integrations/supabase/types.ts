@@ -595,6 +595,7 @@ export type Database = {
         Row: {
           cpf: string | null
           created_at: string | null
+          fcm_token: string | null
           id: string
           name: string
           phone: string | null
@@ -604,6 +605,7 @@ export type Database = {
         Insert: {
           cpf?: string | null
           created_at?: string | null
+          fcm_token?: string | null
           id?: string
           name: string
           phone?: string | null
@@ -613,6 +615,7 @@ export type Database = {
         Update: {
           cpf?: string | null
           created_at?: string | null
+          fcm_token?: string | null
           id?: string
           name?: string
           phone?: string | null
@@ -804,6 +807,7 @@ export type Database = {
           current_latitude: number | null
           current_longitude: number | null
           document: string | null
+          fcm_token: string | null
           full_name: string
           id: string
           is_online: boolean | null
@@ -834,6 +838,7 @@ export type Database = {
           current_latitude?: number | null
           current_longitude?: number | null
           document?: string | null
+          fcm_token?: string | null
           full_name: string
           id?: string
           is_online?: boolean | null
@@ -864,6 +869,7 @@ export type Database = {
           current_latitude?: number | null
           current_longitude?: number | null
           document?: string | null
+          fcm_token?: string | null
           full_name?: string
           id?: string
           is_online?: boolean | null
