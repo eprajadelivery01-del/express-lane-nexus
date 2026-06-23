@@ -30,6 +30,7 @@ import CouponsPage from "./pages/admin/CouponsPage";
 import CompaniesPage from "./pages/CompaniesPage";
 import StoreSalesPage from "./pages/StoreSalesPage";
 import PricingTablesPage from "./pages/admin/PricingTablesPage";
+import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
 
 // Driver (Entregador) pages
 import DriverHomePage from "./pages/driver/DriverHomePage";
@@ -48,6 +49,7 @@ import LojistaCustPage from "./pages/lojista/BusinessCustomersPage";
 import LojistaFinancePage from "./pages/lojista/BusinessFinancePage";
 import LojistaHistoryPage from "./pages/lojista/BusinessHistoryPage";
 import LojistaOrdersPage from "./pages/lojista/BusinessHomePage";
+import MerchantInvoicesPage from "./pages/lojista/MerchantInvoicesPage";
 import { GlobalChatListener } from "@/hooks/useGlobalChatNotifications";
 import { GlobalAttackMonitor } from "@/hooks/GlobalAttackMonitor";
 
@@ -87,6 +89,7 @@ const App = () => (
                    <Route path="/admin/regions" element={<PageTransition><ProtectedRoute requiredRole="admin"><RegionsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/pricing-tables" element={<PageTransition><ProtectedRoute requiredRole="admin"><PricingTablesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/coupons" element={<PageTransition><ProtectedRoute requiredRole="admin"><CouponsPage /></ProtectedRoute></PageTransition>} />
+                   <Route path="/admin/invoices" element={<PageTransition><ProtectedRoute requiredRole="admin"><AdminInvoicesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/reviews" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReviewsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/reports" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/profile" element={<PageTransition><ProtectedRoute requiredRole="admin"><ProfilePage /></ProtectedRoute></PageTransition>} />
@@ -101,6 +104,7 @@ const App = () => (
                    <Route path="/business/chat" element={<PageTransition><ProtectedRoute requiredRole="company"><BusinessChatPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/business/customers" element={<PageTransition><ProtectedRoute requiredRole="company"><LojistaCustPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/business/finance" element={<PageTransition><ProtectedRoute requiredRole="company"><LojistaFinancePage /></ProtectedRoute></PageTransition>} />
+                   <Route path="/business/invoices" element={<PageTransition><ProtectedRoute requiredRole="company"><MerchantInvoicesPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/business/history" element={<PageTransition><ProtectedRoute requiredRole="company"><LojistaHistoryPage /></ProtectedRoute></PageTransition>} />
 
                    {/* Driver (Entregador) Routes */}

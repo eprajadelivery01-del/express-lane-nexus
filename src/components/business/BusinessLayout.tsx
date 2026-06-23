@@ -28,6 +28,7 @@ const tabs = [
   { label: "Cardápio/Produtos", icon: Package, href: "/business/products", category: "Marketplace" },
   { label: "Meus Clientes", icon: Users, href: "/business/customers", category: "Marketplace" },
   { label: "Financeiro", icon: DollarSign, href: "/business/finance", category: "Gestão" },
+  { label: "Faturas", icon: ClipboardList, href: "/business/invoices", category: "Gestão" },
   { label: "Histórico", icon: ClipboardList, href: "/business/history", category: "Gestão" },
   { label: "Identidade Visual", icon: Store, href: "/business/profile", category: "Configurações" },
 ];
