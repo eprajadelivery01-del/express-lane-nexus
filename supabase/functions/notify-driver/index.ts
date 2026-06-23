@@ -48,11 +48,10 @@ serve(async (req) => {
       return new Response(JSON.stringify({ message: 'Status is not pending, ignoring' }), { status: 200 });
     }
 
-    // Find online drivers with fcm_token
+    // Find ALL drivers with fcm_token (including offline, as requested by user)
     let query = adminClient
       .from('delivery_drivers')
       .select('fcm_token')
-      .eq('is_online', true)
       .not('fcm_token', 'is', null);
 
     if (record.region_id) {
