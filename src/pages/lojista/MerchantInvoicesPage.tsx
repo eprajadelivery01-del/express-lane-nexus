@@ -61,7 +61,11 @@ export default function MerchantInvoicesPage() {
                   <div>
                     <h3 className="font-bold text-lg">Fatura: {inv.reference_month}</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Gerada em {new Date(inv.created_at).toLocaleDateString()}
+                      {inv.period_start && inv.period_end ? (
+                        <>Período: {new Date(inv.period_start + "T00:00:00").toLocaleDateString()} a {new Date(inv.period_end + "T00:00:00").toLocaleDateString()}</>
+                      ) : (
+                        <>Gerada em {new Date(inv.created_at).toLocaleDateString()}</>
+                      )}
                     </p>
                   </div>
                   {inv.status === 'paid' ? (

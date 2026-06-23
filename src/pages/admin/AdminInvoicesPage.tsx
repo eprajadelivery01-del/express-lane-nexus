@@ -24,7 +24,8 @@ export default function AdminInvoicesPage() {
   const [currentInvoice, setCurrentInvoice] = useState<any>(null);
   const [companyId, setCompanyId] = useState("");
   const [openCompanyCombobox, setOpenCompanyCombobox] = useState(false);
-  const [referenceMonth, setReferenceMonth] = useState("");
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
   const [deliveriesAmount, setDeliveriesAmount] = useState("0");
   const [subscriptionAmount, setSubscriptionAmount] = useState("0");
   const [status, setStatus] = useState("pending");
@@ -57,21 +58,27 @@ export default function AdminInvoicesPage() {
   }, []);
 
   const handleSave = async () => {
-    if (!companyId || !referenceMonth) return toast.error("Preencha a loja e o mês de referência");
+    if (!companyId || !periodStart || !periodEnd) return toast.error("Preencha a loja e o período (data início e fim)");
+    if (periodStart > periodEnd) return toast.error("A data de início deve ser anterior à data final");
     
     const dAmount = parseFloat(deliveriesAmount) || 0;
     const sAmount = parseFloat(subscriptionAmount) || 0;
     const tAmount = dAmount + sAmount;
 
+    // Generate a readable reference label
+    const refLabel = formatPeriodLabel(periodStart, periodEnd);
+
     const payload = { 
       company_id: companyId,
-      reference_month: formatMonthForStorage(referenceMonth),
+      reference_month: refLabel,
+      period_start: periodStart,
+      period_end: periodEnd,
       deliveries_amount: dAmount,
       subscription_amount: sAmount,
       total_amount: tAmount,
       status,
       notes
-    };
+    } as any;
     
     if (currentInvoice) {
       const { error } = await supabase.from("merchant_invoices").update(payload).eq("id", currentInvoice.id);
@@ -104,14 +111,8 @@ export default function AdminInvoicesPage() {
     if (invoice) {
       setCurrentInvoice(invoice);
       setCompanyId(invoice.company_id);
-      
-      // Convert back MM/YYYY to YYYY-MM for input type="month"
-      let parsedMonth = invoice.reference_month;
-      if (parsedMonth && parsedMonth.includes("/")) {
-        const [m, y] = parsedMonth.split("/");
-        parsedMonth = `${y}-${m}`;
-      }
-      setReferenceMonth(parsedMonth);
+      setPeriodStart(invoice.period_start || "");
+      setPeriodEnd(invoice.period_end || "");
       setDeliveriesAmount(invoice.deliveries_amount?.toString() || "0");
       setSubscriptionAmount(invoice.subscription_amount?.toString() || "0");
       setStatus(invoice.status || "pending");
@@ -120,10 +121,13 @@ export default function AdminInvoicesPage() {
       setCurrentInvoice(null);
       setCompanyId("");
       
+      // Default: first day of current month to today
       const now = new Date();
-      const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      setReferenceMonth(`${year}-${month}`);
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      setPeriodStart(`${y}-${m}-01`);
+      setPeriodEnd(`${y}-${m}-${d}`);
       setDeliveriesAmount("0");
       setSubscriptionAmount("0");
       setStatus("pending");
@@ -132,29 +136,24 @@ export default function AdminInvoicesPage() {
     setIsDialogOpen(true);
   };
 
-  // Format YYYY-MM to MM/YYYY for display/storage
-  const formatMonthForStorage = (yyyyMm: string) => {
-    if (!yyyyMm || !yyyyMm.includes("-")) return yyyyMm;
-    const [year, month] = yyyyMm.split("-");
-    return `${month}/${year}`;
+  // Format period label for display
+  const formatPeriodLabel = (start: string, end: string) => {
+    if (!start || !end) return "";
+    const s = new Date(start + "T00:00:00");
+    const e = new Date(end + "T00:00:00");
+    const fmt = (d: Date) => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    return `${fmt(s)} - ${fmt(e)}`;
   };
 
-  // Helper function to sum deliveries automatically for the selected month
+  // Helper function to sum deliveries automatically for the selected period
   const autoCalculateDeliveries = async () => {
-    if (!companyId || !referenceMonth) {
-      toast.error("Selecione a loja e defina o mês primeiro para calcular.");
+    if (!companyId || !periodStart || !periodEnd) {
+      toast.error("Selecione a loja e defina o período para calcular.");
       return;
     }
     
-    // Parse YYYY-MM
-    const [yearStr, monthStr] = referenceMonth.split("-");
-    if (!yearStr || !monthStr) return toast.error("Mês inválido");
-    
-    const month = parseInt(monthStr, 10);
-    const year = parseInt(yearStr, 10);
-    
-    const startDate = new Date(year, month - 1, 1).toISOString();
-    const endDate = new Date(year, month, 1).toISOString();
+    const startDate = new Date(periodStart + "T00:00:00").toISOString();
+    const endDate = new Date(periodEnd + "T23:59:59").toISOString();
 
     setIsLoading(true);
 
@@ -175,7 +174,7 @@ export default function AdminInvoicesPage() {
         .eq('company_id', companyId)
         .eq('status', 'completed')
         .gte('created_at', startDate)
-        .lt('created_at', endDate);
+        .lte('created_at', endDate);
 
       if (delError) throw delError;
 
@@ -186,7 +185,7 @@ export default function AdminInvoicesPage() {
         .eq('company_id', companyId)
         .eq('status', 'delivered')
         .gte('created_at', startDate)
-        .lt('created_at', endDate);
+        .lte('created_at', endDate);
 
       if (ordError) throw ordError;
 
@@ -660,10 +659,19 @@ export default function AdminInvoicesPage() {
                 </Popover>
               </div>
             </div>
-            <div className="col-span-2 md:col-span-1">
-              <Label>Mês de Referência</Label>
-              <Input type="month" value={referenceMonth} onChange={e => setReferenceMonth(e.target.value)} />
-              <p className="text-xs text-muted-foreground mt-1">Selecione o mês e ano da fatura.</p>
+            <div className="col-span-2">
+              <Label>Período de Cobrança</Label>
+              <div className="grid grid-cols-2 gap-3 mt-1">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Data Início</Label>
+                  <Input type="date" value={periodStart} onChange={e => setPeriodStart(e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Data Fim</Label>
+                  <Input type="date" value={periodEnd} onChange={e => setPeriodEnd(e.target.value)} />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Escolha o período: diário, semanal, quinzenal ou mensal.</p>
             </div>
             
             <div className="col-span-2 md:col-span-1">
