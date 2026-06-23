@@ -125,27 +125,57 @@ export default function AdminInvoicesPage() {
     const startDate = new Date(year, month - 1, 1).toISOString();
     const endDate = new Date(year, month, 1).toISOString();
 
-    const { data, error } = await supabase
-      .from('deliveries')
-      .select('delivery_fee')
-      .eq('company_id', companyId)
-      .eq('status', 'completed')
-      .gte('created_at', startDate)
-      .lt('created_at', endDate);
+    setIsLoading(true);
 
-    if (error) {
-      console.error(error);
-      toast.error("Erro ao calcular entregas");
-      return;
+    try {
+      // Fetch company commission rate
+      const { data: compData } = await supabase
+        .from('companies')
+        .select('commission_rate')
+        .eq('id', companyId)
+        .single();
+        
+      const commissionRate = Number(compData?.commission_rate || 0);
+
+      // Fetch deliveries
+      const { data: deliveriesData, error: delError } = await supabase
+        .from('deliveries')
+        .select('delivery_fee')
+        .eq('company_id', companyId)
+        .eq('status', 'completed')
+        .gte('created_at', startDate)
+        .lt('created_at', endDate);
+
+      if (delError) throw delError;
+
+      // Fetch marketplace orders
+      const { data: ordersData, error: ordError } = await supabase
+        .from('orders')
+        .select('total_amount, delivery_fee')
+        .eq('company_id', companyId)
+        .eq('status', 'delivered')
+        .gte('created_at', startDate)
+        .lt('created_at', endDate);
+
+      if (ordError) throw ordError;
+
+      const totalDeliveriesValue = (deliveriesData || []).reduce((sum, del) => sum + (Number(del.delivery_fee) || 0), 0);
+      
+      // Comissões = soma do (total_amount do pedido - delivery_fee) * (commissionRate / 100)
+      const totalCommissionsValue = (ordersData || []).reduce((sum, ord) => {
+        const orderValue = (Number(ord.total_amount) || 0) - (Number(ord.delivery_fee) || 0);
+        return sum + (orderValue * (commissionRate / 100));
+      }, 0);
+
+      const combinedTotal = totalDeliveriesValue + totalCommissionsValue;
+      setDeliveriesAmount(combinedTotal.toFixed(2));
+      toast.success(`Cálculo: Entregas R$ ${totalDeliveriesValue.toFixed(2)} + Comissões R$ ${totalCommissionsValue.toFixed(2)}`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erro ao calcular: " + err.message);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Usually the delivery_fee is what the driver earns or what the customer pays. 
-    // The admin might have a platform fee, but since we don't know the exact logic, 
-    // we'll sum the delivery_fee as a baseline, or just let them know it's a manual process.
-    // For now, let's sum up a percentage or the total delivery fee just as a helper.
-    const total = data.reduce((sum, del) => sum + (Number(del.delivery_fee) || 0), 0);
-    setDeliveriesAmount(total.toFixed(2));
-    toast.success(`Calculado ${data.length} entregas concluídas.`);
   };
 
   return (
@@ -233,7 +263,7 @@ export default function AdminInvoicesPage() {
               <Input type="number" step="0.01" value={subscriptionAmount} onChange={e => setSubscriptionAmount(e.target.value)} placeholder="0.00" />
             </div>
             <div className="col-span-2 md:col-span-1">
-              <Label>Valor devido por Entregas (R$)</Label>
+              <Label>Valor devido por Entregas e Comissões (R$)</Label>
               <div className="flex gap-2">
                 <Input type="number" step="0.01" value={deliveriesAmount} onChange={e => setDeliveriesAmount(e.target.value)} placeholder="0.00" />
                 <Button variant="outline" size="icon" title="Auto calcular entregas concluídas" onClick={autoCalculateDeliveries}>
