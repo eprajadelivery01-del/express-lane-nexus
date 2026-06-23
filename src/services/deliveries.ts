@@ -113,10 +113,12 @@ export function useDeliveries(params?: UseDeliveriesParams) {
       }
       if (companyId) query = query.eq("company_id", companyId);
       if (driverId) query = query.eq("driver_id", driverId);
-      if (dateFrom) query = query.gte("created_at", new Date(dateFrom).toISOString());
+      if (dateFrom) {
+        const start = new Date(`${dateFrom}T00:00:00`);
+        query = query.gte("created_at", start.toISOString());
+      }
       if (dateTo) {
-        const end = new Date(dateTo);
-        end.setHours(23, 59, 59, 999);
+        const end = new Date(`${dateTo}T23:59:59.999`);
         query = query.lte("created_at", end.toISOString());
       }
 

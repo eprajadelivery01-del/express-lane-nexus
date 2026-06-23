@@ -139,6 +139,7 @@ export function EditCompanyDialog({ company, open, onOpenChange }: EditCompanyDi
           region_id: form.regionId || null,
           city_id: form.cityId || null,
           is_active: form.is_active,
+          active: form.is_active,
           category: form.category,
           commission_percentage: !isNaN(parseFloat(form.commissionPercentage)) ? parseFloat(form.commissionPercentage) : 10.00,
           delivery_mode: form.delivery_mode,
