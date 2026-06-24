@@ -100,7 +100,17 @@ export default function TrackingPage() {
     }
 
     return () => {
-      mapInstance.remove();
+      try {
+        if (markersRef.current) {
+          markersRef.current.forEach((m) => m.remove());
+          markersRef.current = [];
+        }
+        if (mapInstance) {
+          mapInstance.remove();
+        }
+      } catch (e) {
+        console.warn("Maplibre remove error safely caught:", e);
+      }
       mapRef.current = null;
     };
   }, [companies]); // eslint-disable-line react-hooks/exhaustive-deps

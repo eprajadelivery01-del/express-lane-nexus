@@ -106,7 +106,17 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
     });
 
     return () => {
-      map.current?.remove();
+      try {
+        if (markersRef.current) {
+          markersRef.current.forEach((m) => m.remove());
+          markersRef.current = [];
+        }
+        if (map.current) {
+          map.current.remove();
+        }
+      } catch (e) {
+        console.warn("Maplibre remove error safely caught:", e);
+      }
       map.current = null;
     };
   }, []);

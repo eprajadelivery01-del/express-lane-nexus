@@ -60,7 +60,15 @@ export function MapView({ centerCity, darkTheme = false }: MapViewProps) {
     map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
     return () => {
-      map.current?.remove();
+      try {
+        if (markersRef.current) markersRef.current.forEach((m) => m.remove());
+        if (labelsRef.current) labelsRef.current.forEach((m) => m.remove());
+        markersRef.current = [];
+        labelsRef.current = [];
+        if (map.current) map.current.remove();
+      } catch (e) {
+        console.warn("Maplibre remove error safely caught:", e);
+      }
       map.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
