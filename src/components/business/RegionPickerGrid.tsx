@@ -5,19 +5,30 @@ import { cn } from "@/lib/utils";
 
 interface RegionPickerGridProps {
   cityId?: string;
+  companyId?: string;
   onRegionSelect?: (fee: number, regionId: string, regionName: string) => void;
   disabled?: boolean;
   initialSelectedId?: string | null;
 }
 
-export const RegionPickerGrid = memo(({ cityId, onRegionSelect, disabled, initialSelectedId }: RegionPickerGridProps) => {
+export const RegionPickerGrid = memo(({ cityId, companyId, onRegionSelect, disabled, initialSelectedId }: RegionPickerGridProps) => {
   const [loading, setLoading] = useState(true);
   const [regions, setRegions] = useState<any[]>([]);
+  const [pricingRules, setPricingRules] = useState<any[]>([]);
+  const [companySettings, setCompanySettings] = useState<any>(null);
   const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId ?? null);
 
   useEffect(() => {
     const fetchRegions = async () => {
       setLoading(true);
+      const { data: comp } = await supabase.from('companies').select('pricing_table_id, delivery_mode, delivery_fee').eq('id', companyId).single();
+      setCompanySettings(comp);
+
+      if (comp?.pricing_table_id) {
+        const { data: rules } = await supabase.from('pricing_rules').select('*').eq('pricing_table_id', comp.pricing_table_id);
+        setPricingRules(rules ?? []);
+      }
+
       const { data } = await supabase.from('regions').select('*').order('name');
       const filtered = (data ?? []).filter(
         (r: any) => r.is_active !== false && (!cityId || r.city_id === cityId)
@@ -26,11 +37,20 @@ export const RegionPickerGrid = memo(({ cityId, onRegionSelect, disabled, initia
       setLoading(false);
     };
     fetchRegions();
-  }, [cityId]);
+  }, [cityId, companyId]);
+
+  const getRegionFee = (region: any) => {
+    if (companySettings?.delivery_mode === 'fixed_fee' && companySettings?.delivery_fee != null) {
+      return Number(companySettings.delivery_fee);
+    }
+    const rule = pricingRules.find(r => r.destination_region_id === region.id);
+    if (rule) return Number(rule.base_value);
+    return Number(region.price ?? region.delivery_fee ?? null);
+  };
 
   const handleSelect = (region: any) => {
     if (disabled) return;
-    const fee = Number(region.price ?? region.delivery_fee ?? 0);
+    const fee = getRegionFee(region);
     setSelectedId(region.id);
     onRegionSelect?.(fee, region.id, region.name);
   };
