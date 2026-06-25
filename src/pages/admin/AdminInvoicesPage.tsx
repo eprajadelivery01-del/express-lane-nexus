@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Plus, Edit2, Trash2, FileText, CheckCircle, Clock, Send, Printer } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, FileText, CheckCircle, Clock, Send, Printer, SendHorizonal } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PrintableInvoiceDialog } from "@/components/admin/PrintableInvoiceDialog";
 import { Input } from "@/components/ui/input";
