@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Plus, Edit2, Trash2, FileText, CheckCircle, Clock, Send, SendHorizonal } from "lucide-react";
+import { Loader2, Plus, Edit2, Trash2, FileText, CheckCircle, Clock, Send, Printer } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PrintableInvoiceDialog } from "@/components/admin/PrintableInvoiceDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
@@ -22,6 +23,11 @@ export default function AdminInvoicesPage() {
   // Edit/Create Invoice Dialog
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState<any>(null);
+  
+  // Print Dialog
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+  const [invoiceToPrint, setInvoiceToPrint] = useState<any>(null);
+
   const [companyId, setCompanyId] = useState("");
   const [openCompanyCombobox, setOpenCompanyCombobox] = useState(false);
   const [periodStart, setPeriodStart] = useState("");
@@ -599,6 +605,9 @@ export default function AdminInvoicesPage() {
                       )}
                     </td>
                     <td className="p-4 text-right">
+                      <Button variant="ghost" size="icon" title="Ver Detalhes / Imprimir" onClick={() => { setInvoiceToPrint(inv); setIsPrintDialogOpen(true); }}>
+                        <Printer className="w-4 h-4" />
+                      </Button>
                       <Button variant="ghost" size="icon" onClick={() => openEdit(inv)}><Edit2 className="w-4 h-4" /></Button>
                       <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(inv.id)}><Trash2 className="w-4 h-4" /></Button>
                     </td>
@@ -712,6 +721,12 @@ export default function AdminInvoicesPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <PrintableInvoiceDialog 
+        isOpen={isPrintDialogOpen} 
+        onClose={() => setIsPrintDialogOpen(false)} 
+        invoice={invoiceToPrint} 
+      />
     </AdminLayout>
   );
 }
