@@ -36,7 +36,7 @@ export function MarketingReceiptListener() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, profile, toast]);
+  }, [user?.id, profile?.role]);
 
   return null;
 }
