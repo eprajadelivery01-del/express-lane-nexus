@@ -1223,6 +1223,69 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_invoices: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          deliveries_amount: number | null
+          id: string
+          notes: string | null
+          period_end: string | null
+          period_start: string | null
+          reference_month: string
+          sent_at: string | null
+          status: string | null
+          subscription_amount: number | null
+          total_amount: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          deliveries_amount?: number | null
+          id?: string
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          reference_month: string
+          sent_at?: string | null
+          status?: string | null
+          subscription_amount?: number | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          deliveries_amount?: number | null
+          id?: string
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          reference_month?: string
+          sent_at?: string | null
+          status?: string | null
+          subscription_amount?: number | null
+          total_amount?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "store_public_info"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
