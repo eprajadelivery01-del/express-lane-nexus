@@ -26,6 +26,7 @@ const navItems: NavItem[] = [
   { label: "Entregadores", icon: Bike, href: "/admin/drivers" },
   { label: "Bases", icon: Globe, href: "/admin/bases" },
   { label: "Regiões", icon: MapPin, href: "/admin/regions" },
+  { label: "Tabelas de Preços", icon: Calculator, href: "/admin/pricing-tables" },
   { label: "Faturas", icon: FileText, href: "/admin/invoices" },
   { label: "Cupons", icon: Ticket, href: "/admin/coupons" },
   { label: "Notificações", icon: Bell, href: "/admin/notifications" },
