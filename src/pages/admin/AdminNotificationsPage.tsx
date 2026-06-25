@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Send, Bell, Image as ImageIcon, Tag, Smile } from "lucide-react";
+import { Send, Bell, Image as ImageIcon, Tag, Smile, UploadCloud, Loader2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function AdminNotificationsPage() {
@@ -20,6 +20,36 @@ export function AdminNotificationsPage() {
   const [emoji, setEmoji] = useState("🎉");
   const [imageUrl, setImageUrl] = useState("");
   const [couponCode, setCouponCode] = useState("");
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    
+    setUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `marketing/${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("store-assets")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("store-assets")
+        .getPublicUrl(filePath);
+
+      setImageUrl(publicUrl);
+      toast({ title: "Imagem anexada!" });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     fetchHistory();
@@ -90,7 +120,7 @@ export function AdminNotificationsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6 pb-12">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Central de Notificações</h1>
         <p className="text-muted-foreground">Envie ofertas, cupons e anúncios em tempo real para o app dos clientes.</p>
@@ -141,14 +171,43 @@ export function AdminNotificationsPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium flex items-center gap-1 mb-1"><ImageIcon className="h-4 w-4"/> Link da Imagem (Opcional)</label>
-                <Input 
-                  placeholder="https://exemplo.com/imagem.png" 
-                  value={imageUrl} 
-                  onChange={e => setImageUrl(e.target.value)}
-                  type="url"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Insira um link de imagem válida para o banner.</p>
+                <label className="text-sm font-medium flex items-center gap-1 mb-1"><ImageIcon className="h-4 w-4"/> Imagem de Capa (Opcional)</label>
+                {imageUrl ? (
+                  <div className="relative w-full h-40 rounded-xl overflow-hidden border border-border group bg-muted">
+                    <img src={imageUrl} className="w-full h-full object-cover" alt="Capa da notificação" />
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl("")}
+                      className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer hover:bg-muted/50 border-muted-foreground/30 hover:border-primary/50 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6 text-muted-foreground">
+                      {uploading ? (
+                        <>
+                          <Loader2 className="h-8 w-8 mb-3 animate-spin text-primary" />
+                          <p className="text-sm">Enviando imagem...</p>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="w-8 h-8 mb-3 text-muted-foreground" />
+                          <p className="text-sm font-semibold mb-1">Clique para fazer upload</p>
+                          <p className="text-xs">PNG, JPG ou WEBP (Max 2MB)</p>
+                        </>
+                      )}
+                    </div>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleFileUpload}
+                      disabled={uploading}
+                    />
+                  </label>
+                )}
               </div>
 
               <div>
