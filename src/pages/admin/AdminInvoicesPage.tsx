@@ -42,7 +42,7 @@ export default function AdminInvoicesPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterSearch, setFilterSearch] = useState("");
   const [hideZero, setHideZero] = useState(false);
-  const [sortField, setSortField] = useState<"company" | "month" | "total">("total");
+  const [sortField, setSortField] = useState<"company" | "month" | "total" | "recent">("recent");
   const [sortAsc, setSortAsc] = useState(false);
 
   // Selection for sending
@@ -395,6 +395,8 @@ export default function AdminInvoicesPage() {
         cmp = (yA - yB) || (mA - mB);
       } else if (sortField === "total") {
         cmp = Number(a.total_amount) - Number(b.total_amount);
+      } else if (sortField === "recent") {
+        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
       return sortAsc ? cmp : -cmp;
     });
@@ -404,12 +406,12 @@ export default function AdminInvoicesPage() {
   const totalPago = filteredInvoices.filter(i => i.status === "paid").reduce((s, i) => s + Number(i.total_amount), 0);
   const totalGeral = filteredInvoices.reduce((s, i) => s + Number(i.total_amount), 0);
 
-  const handleSort = (field: "company" | "month" | "total") => {
+  const handleSort = (field: "company" | "month" | "total" | "recent") => {
     if (sortField === field) {
       setSortAsc(!sortAsc);
     } else {
       setSortField(field);
-      setSortAsc(true);
+      setSortAsc(field === "company"); // name sorts asc by default, others desc
     }
   };
 
