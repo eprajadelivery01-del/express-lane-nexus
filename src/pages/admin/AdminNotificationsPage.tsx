@@ -96,14 +96,15 @@ export function AdminNotificationsPage() {
         <p className="text-muted-foreground">Envie ofertas, cupons e anúncios em tempo real para o app dos clientes.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Formulário de Envio */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Send className="h-5 w-5" /> Disparar Nova Notificação</CardTitle>
-            <CardDescription>Esta mensagem aparecerá instantaneamente no App Cliente.</CardDescription>
+        <div className="lg:col-span-2">
+        <Card className="border-primary/20 shadow-md">
+          <CardHeader className="bg-primary/5 border-b pb-4">
+            <CardTitle className="flex items-center gap-2 text-primary"><Send className="h-5 w-5" /> Disparar Nova Notificação</CardTitle>
+            <CardDescription className="text-sm">Preencha os dados abaixo. A mensagem aparecerá instantaneamente no App Cliente.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSendNotification} className="space-y-4">
               
               <div className="grid grid-cols-12 gap-4">
@@ -161,20 +162,22 @@ export function AdminNotificationsPage() {
                 <p className="text-xs text-muted-foreground mt-1">O cliente terá um botão para copiar esse código com 1 clique.</p>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full mt-4 h-12 text-md font-bold" disabled={loading}>
                 {loading ? "Enviando..." : "Disparar Notificação agora"}
               </Button>
             </form>
           </CardContent>
         </Card>
+        </div>
 
         {/* Histórico */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" /> Histórico de Envios</CardTitle>
-            <CardDescription>Últimas notificações disparadas para os clientes.</CardDescription>
+        <div className="lg:col-span-1">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-3 border-b">
+            <CardTitle className="flex items-center gap-2 text-base"><Bell className="h-4 w-4" /> Histórico de Envios</CardTitle>
+            <CardDescription className="text-xs">Últimas notificações disparadas.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4 max-h-[600px] overflow-y-auto custom-scrollbar">
             {history.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">Nenhuma notificação enviada ainda.</p>
             ) : (
@@ -203,6 +206,7 @@ export function AdminNotificationsPage() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
