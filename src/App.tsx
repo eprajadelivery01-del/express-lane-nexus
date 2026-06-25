@@ -31,6 +31,9 @@ import CompaniesPage from "./pages/CompaniesPage";
 import StoreSalesPage from "./pages/StoreSalesPage";
 import PricingTablesPage from "./pages/admin/PricingTablesPage";
 import AdminInvoicesPage from "./pages/admin/AdminInvoicesPage";
+import { AdminReportsPage } from "./pages/admin/AdminReportsPage";
+import { AdminProfilePage } from "./pages/admin/AdminProfilePage";
+import { AdminNotificationsPage } from "./pages/admin/AdminNotificationsPage";
 
 // Driver (Entregador) pages
 import DriverHomePage from "./pages/driver/DriverHomePage";
@@ -52,6 +55,7 @@ import LojistaOrdersPage from "./pages/lojista/BusinessHomePage";
 import MerchantInvoicesPage from "./pages/lojista/MerchantInvoicesPage";
 import { GlobalChatListener } from "@/hooks/useGlobalChatNotifications";
 import { GlobalAttackMonitor } from "@/hooks/GlobalAttackMonitor";
+import { MarketingReceiptListener } from "@/components/admin/MarketingReceiptListener";
 
 const ReviewsPage = () => <div>Reviews - Em construção</div>;
 
@@ -68,6 +72,7 @@ const App = () => (
             <AuthProvider>
               <GlobalChatListener />
               <GlobalAttackMonitor />
+              <MarketingReceiptListener />
               <Routes>
                    <Route path="/" element={<Navigate to="/admin" replace />} />
                    <Route path="/login" element={<LoginPage />} />
@@ -93,6 +98,7 @@ const App = () => (
                    <Route path="/admin/reviews" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReviewsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/reports" element={<PageTransition><ProtectedRoute requiredRole="admin"><ReportsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/profile" element={<PageTransition><ProtectedRoute requiredRole="admin"><ProfilePage /></ProtectedRoute></PageTransition>} />
+                   <Route path="/admin/notifications" element={<PageTransition><ProtectedRoute requiredRole="admin"><AdminNotificationsPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/admin/chat" element={<PageTransition><ProtectedRoute requiredRole="admin"><AdminChatPage /></ProtectedRoute></PageTransition>} />
                    <Route path="/chat" element={<PageTransition><ProtectedRoute requiredRole="admin"><AdminChatPage /></ProtectedRoute></PageTransition>} />
 
