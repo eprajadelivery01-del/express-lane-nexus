@@ -73,7 +73,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
     <>
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-lg bg-card shadow-card"
+        className="fixed top-[calc(1rem+env(safe-area-inset-top))] left-4 z-50 lg:hidden p-2 rounded-lg bg-card shadow-card"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -86,7 +86,7 @@ export function AdminSidebar({ onCollapsedChange }: AdminSidebarProps) {
       )}
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 bg-card border-r border-border flex flex-col transition-all duration-300 lg:translate-x-0 lg:static lg:z-auto",
+        "fixed inset-y-0 left-0 z-50 bg-card border-r border-border flex flex-col transition-all duration-300 lg:translate-x-0 lg:static lg:z-auto pt-[env(safe-area-inset-top)]",
         mobileOpen ? "translate-x-0" : "-translate-x-full",
         collapsed ? "w-[68px]" : "w-64"
       )}>

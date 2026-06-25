@@ -10,7 +10,7 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ title, subtitle }: AdminHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border">
+    <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border pt-[env(safe-area-inset-top)]">
       <div className="flex items-center justify-between px-6 py-4">
         <div>
           <h1 className="text-xl font-bold text-foreground">{title}</h1>
