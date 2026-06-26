@@ -156,7 +156,7 @@ export default function BusinessHomePage() {
                        </div>
                        <div className="text-left md:text-right">
                           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1">Valor</p>
-                          <p className="text-lg font-black text-foreground">R$ {Number(delivery.value || (delivery as any).price || 0).toFixed(2)}</p>
+                          <p className="text-lg font-black text-foreground">R$ {formatDeliveryValue(delivery)}</p>
                        </div>
                        <div className="flex items-center gap-2">
                           {["pending", "broadcasted"].includes(delivery.status) && (
