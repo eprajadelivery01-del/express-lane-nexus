@@ -137,7 +137,7 @@ export default function ReportsPage() {
       const cId = d.company_id || "unknown";
       const cName = (d as any).companies?.name || "Sem empresa";
       if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
-      map[cId].revenue += Number(d.value ?? 0);
+      map[cId].revenue += getDeliveryValue(d);
       map[cId].count += 1;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
