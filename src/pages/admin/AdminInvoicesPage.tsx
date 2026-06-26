@@ -187,7 +187,7 @@ export default function AdminInvoicesPage() {
       // Fetch marketplace orders
       const { data: ordersData, error: ordError } = await supabase
         .from('orders')
-        .select('total, delivery_fee')
+        .select('total')
         .eq('company_id', companyId)
         .eq('status', 'delivered')
         .gte('created_at', startDate)
@@ -197,9 +197,9 @@ export default function AdminInvoicesPage() {
 
       const totalDeliveriesValue = (deliveriesData || []).reduce((sum, del) => sum + (Number(del.value) || 0), 0);
       
-      // Comissões = soma do (total do pedido - delivery_fee) * (commissionRate / 100)
+      // Comissões = soma do total do pedido * (commissionRate / 100)
       const totalCommissionsValue = (ordersData || []).reduce((sum, ord) => {
-        const orderValue = (Number(ord.total) || 0) - (Number(ord.delivery_fee) || 0);
+        const orderValue = (Number(ord.total) || 0);
         return sum + (orderValue * (commissionRate / 100));
       }, 0);
 
@@ -257,7 +257,7 @@ export default function AdminInvoicesPage() {
           // Fetch marketplace orders
           const { data: ordersData } = await supabase
             .from('orders')
-            .select('total, delivery_fee')
+            .select('total')
             .eq('company_id', companyId)
             .eq('status', 'delivered')
             .gte('created_at', startDate)
@@ -266,7 +266,7 @@ export default function AdminInvoicesPage() {
           const totalDeliveriesValue = (deliveriesData || []).reduce((sum, del) => sum + (Number(del.value) || 0), 0);
           
           const totalCommissionsValue = (ordersData || []).reduce((sum, ord) => {
-            const orderValue = (Number(ord.total) || 0) - (Number(ord.delivery_fee) || 0);
+            const orderValue = (Number(ord.total) || 0);
             return sum + (orderValue * (commissionRate / 100));
           }, 0);
 
