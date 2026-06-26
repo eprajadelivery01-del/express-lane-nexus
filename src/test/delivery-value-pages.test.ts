@@ -4,8 +4,9 @@ import { resolve } from "node:path";
 
 /**
  * Guardrail: garante que toda página que exibe o valor da corrida usa o
- * fallback `value || price || 0`. Se alguém reintroduzir `value ?? 0`
- * (sem fallback para price), este teste quebra e impede o regresso do bug.
+ * helper centralizado `formatDeliveryValue` / `getDeliveryValue` de
+ * `@/lib/delivery` (ou, no mínimo, o fallback inline `value || price`).
+ * Se alguém reintroduzir `value ?? 0` sem fallback, este teste quebra.
  */
 const AFFECTED_FILES = [
   "src/pages/DeliveriesPage.tsx",
@@ -21,17 +22,18 @@ const AFFECTED_FILES = [
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
 describe("fallback value→price está presente em todas as páginas afetadas", () => {
-  it.each(AFFECTED_FILES)("%s contém o fallback value || price", (file) => {
+  it.each(AFFECTED_FILES)("%s usa o helper @/lib/delivery ou fallback inline", (file) => {
     const src = read(file);
-    // Aceita variações de nome de variável (delivery, d, del, detailDelivery)
-    const hasFallback = /\.value\s*\|\|\s*\([^)]*\)\.price/.test(src);
-    expect(hasFallback, `Esperava encontrar \`.value || (...).price\` em ${file}`).toBe(true);
+    const usesHelper = /from\s+["']@\/lib\/delivery["']/.test(src);
+    const usesInlineFallback = /\.value\s*\|\|\s*\([^)]*\)\.price/.test(src);
+    expect(
+      usesHelper || usesInlineFallback,
+      `Esperava \`import ... from "@/lib/delivery"\` ou fallback inline em ${file}`,
+    ).toBe(true);
   });
 
   it.each(AFFECTED_FILES)("%s não usa o padrão antigo `.value ?? 0` para exibir R$", (file) => {
     const src = read(file);
-    // Procura linhas que misturam R$, toFixed e o padrão buggy `.value ?? 0`
-    // ignorando o caso onde já existe fallback `||` antes.
     const lines = src.split("\n");
     const offenders = lines.filter(
       (l) =>
@@ -43,5 +45,23 @@ describe("fallback value→price está presente em todas as páginas afetadas", 
       offenders,
       `Linhas reintroduziram o bug em ${file}:\n${offenders.join("\n")}`,
     ).toHaveLength(0);
+  });
+});
+
+/**
+ * Telas de Financeiro/Faturas: a coluna `value` é a fonte autoritativa
+ * de cobrança. NÃO devem usar o fallback para não alterar valores já
+ * faturados aos lojistas.
+ */
+const BILLING_FILES = [
+  "src/pages/lojista/BusinessFinancePage.tsx",
+  "src/pages/admin/AdminInvoicesPage.tsx",
+  "src/components/admin/PrintableInvoiceDialog.tsx",
+];
+
+describe("telas de cobrança preservam d.value autoritativo", () => {
+  it.each(BILLING_FILES)("%s não importa o helper @/lib/delivery", (file) => {
+    const src = read(file);
+    expect(/from\s+["']@\/lib\/delivery["']/.test(src)).toBe(false);
   });
 });
