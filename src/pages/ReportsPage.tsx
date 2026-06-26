@@ -150,7 +150,7 @@ export default function ReportsPage() {
       const driver = (drivers ?? []).find(dr => dr.id === d.driver_id);
       const name = driver?.full_name || `Motorista ${d.driver_id.slice(0, 6)}`;
       if (!map[d.driver_id]) map[d.driver_id] = { name, driverId: d.driver_id, revenue: 0, count: 0 };
-      map[d.driver_id].revenue += Number(d.value ?? 0);
+      map[d.driver_id].revenue += getDeliveryValue(d);
       map[d.driver_id].count += 1;
     });
     return Object.values(map).sort((a, b) => b.count - a.count);
