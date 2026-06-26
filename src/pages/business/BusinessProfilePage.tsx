@@ -65,11 +65,16 @@ export default function BusinessProfilePage() {
         setCategory(company.category || "restaurante");
         setIsOpen(company.is_open ?? true);
         setBusinessHours(company.business_hours || "");
-        setGallery(company.gallery || []);
+        let parsedGallery = company.gallery || [];
+        if (typeof parsedGallery === 'string') {
+          try { parsedGallery = typeof parsedGallery === 'string' ? JSON.parse(parsedGallery) : parsedGallery; } catch(e) { parsedGallery = []; }
+        }
+        setGallery(Array.isArray(parsedGallery) ? parsedGallery : []);
 
-        if (company.business_hours && company.business_hours.includes("{")) {
+        if (company.business_hours && typeof company.business_hours === 'string' && company.business_hours.includes("{")) {
           try {
-            setWorkingDays(JSON.parse(company.business_hours));
+            const parsed = typeof company.business_hours === 'string' ? JSON.parse(company.business_hours) : company.business_hours;
+            if (Array.isArray(parsed)) setWorkingDays(parsed);
           } catch (e) { console.error("Erro ao parsear horários"); }
         }
       }
@@ -426,4 +431,6 @@ export default function BusinessProfilePage() {
     </BusinessLayout>
   );
 }
+
+
 
