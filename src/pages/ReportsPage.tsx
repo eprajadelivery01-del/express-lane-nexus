@@ -94,8 +94,8 @@ export default function ReportsPage() {
     return rawDeliveries.filter((d) => {
       if (regionFilter && d.region_id !== regionFilter) return false;
       if (paymentFilter && d.payment_method !== paymentFilter) return false;
-      if (minVal && Number(d.value ?? 0) < Number(minVal)) return false;
-      if (maxVal && Number(d.value ?? 0) > Number(maxVal)) return false;
+      if (minVal && getDeliveryValue(d) < Number(minVal)) return false;
+      if (maxVal && getDeliveryValue(d) > Number(maxVal)) return false;
       return true;
     });
   }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal]);
