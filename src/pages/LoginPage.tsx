@@ -25,8 +25,18 @@ export default function LoginPage() {
       navigate("/pending-approval", { replace: true });
     } else if (hasRole("admin")) {
       navigate("/admin", { replace: true });
-    } else if (hasRole("company")) {
-      navigate("/business", { replace: true });
+    } else {
+      toast({
+        title: "Portal Restrito",
+        description: "Sua conta não possui permissões administrativas. Acesse o Painel do Lojista.",
+        variant: "destructive"
+      });
+
+      setTimeout(() => {
+        supabase.auth.signOut().then(() => {
+          window.location.reload();
+        });
+      }, 3000);
     }
   }, [user, authLoading, rolesLoaded, roles, userStatus, hasRole, navigate, toast]);
 
@@ -38,11 +48,11 @@ export default function LoginPage() {
       if (error) {
         toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
         // Log brute-force tracking
-        try { await supabase.rpc("log_failed_login", { p_email: email, p_app_name: "Central de Comando (Admin)" } as any); } catch {}
+        await supabase.rpc("log_failed_login", { p_email: email, p_app_name: "Central de Comando (Admin)" } as any).catch(() => {});
       }
     } catch (error: any) {
       toast({ title: "Erro ao entrar", description: error.message, variant: "destructive" });
-      try { await supabase.rpc("log_failed_login", { p_email: email, p_app_name: "Central de Comando (Admin)" } as any); } catch {}
+      await supabase.rpc("log_failed_login", { p_email: email, p_app_name: "Central de Comando (Admin)" } as any).catch(() => {});
     } finally {
       setLoading(false);
     }
