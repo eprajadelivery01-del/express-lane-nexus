@@ -13,6 +13,12 @@ export async function reportErrorToTelegram(payload: ErrorPayload, appName = "Ce
   // Prevent infinite loops if reporting itself fails
   if (isReporting) return;
   
+  // Ignore errors from Lovable preview environments to avoid false alarms
+  const currentUrl = payload.url || window.location.href;
+  if (currentUrl.includes("lovableproject.com")) {
+    return;
+  }
+
   // Ignore specific harmless user-facing errors
   const msg = payload.error_message?.toLowerCase() || "";
   if (
