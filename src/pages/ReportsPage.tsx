@@ -7,6 +7,7 @@ import { useRegions } from "@/services/regions";
 import { BarChart3, Download, Loader2, Filter, Search, Printer } from "lucide-react";
 import { format, startOfDay, endOfDay, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { getDeliveryValue, formatDeliveryValue } from "@/lib/delivery";
 import { useMemo } from "react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
