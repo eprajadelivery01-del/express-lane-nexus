@@ -960,7 +960,7 @@ export default function ReportsPage() {
                        <StatusBadge status={d.status} />
                     </td>
                     <td className="p-6 text-right">
-                      <p className="text-sm font-black text-foreground">R$ {Number(d.value ?? 0).toFixed(2)}</p>
+                      <p className="text-sm font-black text-foreground">R$ {Number(d.value || (d as any).price || 0).toFixed(2)}</p>
                       <p className="text-[10px] font-bold text-muted-foreground mt-1 tracking-widest uppercase">Comissão: R$ {Number((d as any).commission ?? 0).toFixed(2)}</p>
                     </td>
                   </tr>
