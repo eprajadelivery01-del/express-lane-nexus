@@ -332,7 +332,7 @@ export default function DeliveriesPage() {
                         <DeliveryStatusBadge status={delivery.status as DeliveryStatus} />
                       </td>
                       <td className="p-4 hidden sm:table-cell">
-                        <span className="text-sm font-semibold text-foreground">R$ {Number(delivery.value ?? 0).toFixed(2)}</span>
+                        <span className="text-sm font-semibold text-foreground">R$ {Number(delivery.value || (delivery as any).price || 0).toFixed(2)}</span>
                       </td>
                       <td className="p-4 hidden lg:table-cell">
                         <span className="text-xs text-muted-foreground">
@@ -503,7 +503,7 @@ export default function DeliveriesPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 bg-muted/30 p-4 rounded-2xl border border-border">
                 <DetailField label="Cliente" value={detailDelivery.customer_name || "—"} icon={<UserCheck className="h-3.5 w-3.5 text-primary" />} />
                 <DetailField label="Empresa" value={detailDelivery.companies?.name || "—"} icon={<Package className="h-3.5 w-3.5 text-primary" />} />
-                <DetailField label="Valor da Corrida" value={`R$ ${Number(detailDelivery.value ?? 0).toFixed(2)}`} icon={<Clock className="h-3.5 w-3.5 text-primary" />} />
+                <DetailField label="Valor da Corrida" value={`R$ ${Number(detailDelivery.value || (detailDelivery as any).price || 0).toFixed(2)}`} icon={<Clock className="h-3.5 w-3.5 text-primary" />} />
                 <DetailField label="Criado em" value={format(new Date(detailDelivery.created_at), "dd/MM/yyyy HH:mm")} icon={<Calendar className="h-3.5 w-3.5 text-primary" />} />
                 {detailDelivery.region_name && (
                   <div className="sm:col-span-2">
