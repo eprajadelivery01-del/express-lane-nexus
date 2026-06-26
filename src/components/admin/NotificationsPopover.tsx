@@ -127,7 +127,7 @@ export function NotificationsPopover() {
                     </p>
                     <div className="flex items-center justify-between mt-2">
                        <span className="text-[10px] font-medium px-2 py-0.5 bg-muted rounded-full">
-                         R$ {Number(d.value).toFixed(2)}
+                         R$ {Number(d.value || (d as any).price || 0).toFixed(2)}
                        </span>
                     </div>
                   </div>
