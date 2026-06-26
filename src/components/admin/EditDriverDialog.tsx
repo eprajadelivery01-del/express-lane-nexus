@@ -136,7 +136,7 @@ export function EditDriverDialog({ driver, open, onOpenChange }: EditDriverDialo
                 <SelectContent>
                   <SelectItem value="all">Todas as Cidades</SelectItem>
                   {cities.map((city) => (
-                    <SelectItem key={city.id} value={city.name}>{city.name}</SelectItem>
+                    <SelectItem key={city.id} value={city.id}>{city.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

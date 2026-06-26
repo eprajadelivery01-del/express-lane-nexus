@@ -179,7 +179,7 @@ export default function DriversPage() {
           <SelectContent>
             <SelectItem value="all">Todas as Bases</SelectItem>
             {cities.map((city) => (
-              <SelectItem key={city.id} value={city.name}>{city.name}</SelectItem>
+              <SelectItem key={city.id} value={city.id}>{city.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
