@@ -19,11 +19,14 @@
 export type DeliveryValueShape = {
   value?: number | string | null;
   price?: number | string | null;
+  delivery_fee?: number | string | null;
 };
 
 /** Retorna o valor numérico da corrida com fallback `value → price → 0`. */
 export function getDeliveryValue(d: DeliveryValueShape | null | undefined): number {
   if (!d) return 0;
+  const f = Number(d.delivery_fee);
+  if (f) return f;
   const v = Number(d.value);
   if (v) return v;
   const p = Number(d.price);
