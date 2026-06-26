@@ -123,7 +123,7 @@ export default function ReportsPage() {
           count: 0 
         };
       }
-      groups[dateStr].total += Number(d.value ?? 0);
+      groups[dateStr].total += getDeliveryValue(d);
       groups[dateStr].commission += Number((d as any).commission ?? 0);
       groups[dateStr].count += 1;
     });
