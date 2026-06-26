@@ -99,7 +99,7 @@ export default function ReportsPage() {
     });
   }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal]);
 
-  const totalValue = deliveries.reduce((s, d) => s + Number(d.value ?? 0), 0);
+  const totalValue = deliveries.reduce((s, d) => s + Number(d.value || (d as any).price || 0), 0);
   const totalCommission = deliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
   const completedCount = deliveries.filter((d) => d.status === "delivered").length;
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
