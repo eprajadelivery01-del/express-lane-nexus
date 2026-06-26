@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatDeliveryValue } from "@/lib/delivery";
 import { DriverLayout } from "@/components/driver/DriverLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDeliveries, useUpdateDeliveryStatus } from "@/services/deliveries";
@@ -191,7 +192,7 @@ function DeliveryCard({ delivery, onAction, loading, isAssigned }: { delivery: a
           {(delivery.value != null || (delivery as any).price != null) && (
             <div className="bg-success/10 text-success px-2 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
               <DollarSign className="h-3 w-3" />
-              {Number(delivery.value || (delivery as any).price || 0).toFixed(2)}
+              {formatDeliveryValue(delivery)}
             </div>
           )}
           <span className="text-[10px] font-bold text-muted-foreground uppercase">{getStatusLabel(delivery.status)}</span>

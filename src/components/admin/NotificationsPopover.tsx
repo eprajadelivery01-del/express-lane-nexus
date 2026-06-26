@@ -3,6 +3,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { formatDeliveryValue } from "@/lib/delivery";
 import { Link } from "react-router-dom";
 
 interface Notification {
@@ -127,7 +128,7 @@ export function NotificationsPopover() {
                     </p>
                     <div className="flex items-center justify-between mt-2">
                        <span className="text-[10px] font-medium px-2 py-0.5 bg-muted rounded-full">
-                         R$ {Number(d.value || (d as any).price || 0).toFixed(2)}
+                         R$ {formatDeliveryValue(d)}
                        </span>
                     </div>
                   </div>

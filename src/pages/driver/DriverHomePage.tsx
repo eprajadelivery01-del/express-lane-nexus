@@ -1,4 +1,5 @@
 import { DriverLayout } from "@/components/driver/DriverLayout";
+import { formatDeliveryValue } from "@/lib/delivery";
 import { useAuth } from "@/contexts/AuthContext";
 import { Power, Loader2, MessageSquare, MapPin, ChevronRight, Truck, DollarSign, CheckCircle, Package } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
@@ -283,7 +284,7 @@ export default function DriverHomePage() {
                       {(del.value != null || (del as any).price != null) && (
                         <div className="bg-success/10 text-success px-2 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
                           <DollarSign className="h-3 w-3" />
-                          {Number(del.value || (del as any).price || 0).toFixed(2)}
+                          {formatDeliveryValue(del)}
                         </div>
                       )}
                     </div>

@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { formatDeliveryValue } from "@/lib/delivery";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 8;
@@ -105,7 +106,7 @@ export function NotificationsPanel() {
 
                     <div className="flex items-center gap-3">
                       <span className="text-[10px] font-bold text-success tabular-nums bg-success/5 px-1.5 py-0.5 rounded border border-success/10">
-                        R$ {Number(d.value || (d as any).price || 0).toFixed(2)}
+                        R$ {formatDeliveryValue(d)}
                       </span>
                       {d.driver_id && (
                         <span className="text-[10px] text-muted-foreground flex items-center gap-1">
