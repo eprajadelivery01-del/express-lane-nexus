@@ -178,7 +178,7 @@ export default function BusinessHistoryPage() {
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-foreground truncate">{d.customer_name}</p>
                           <span className="text-sm font-bold text-foreground shrink-0">
-                            R$ {Number(d.value).toFixed(2)}
+                            R$ {Number(d.value || (d as any).price || 0).toFixed(2)}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 truncate">

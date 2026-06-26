@@ -99,7 +99,7 @@ export default function ReportsPage() {
     });
   }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal]);
 
-  const totalValue = deliveries.reduce((s, d) => s + Number(d.value ?? 0), 0);
+  const totalValue = deliveries.reduce((s, d) => s + Number(d.value || (d as any).price || 0), 0);
   const totalCommission = deliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
   const completedCount = deliveries.filter((d) => d.status === "delivered").length;
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
@@ -215,7 +215,7 @@ export default function ReportsPage() {
       (d as any).companies?.name || "",
       d.address,
       d.status,
-      Number(d.value ?? 0).toFixed(2),
+      Number(d.value || (d as any).price || 0).toFixed(2),
       Number((d as any).commission ?? 0).toFixed(2),
     ]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
@@ -296,7 +296,7 @@ export default function ReportsPage() {
         <td>${(d as any).companies?.name || "Marketplace"}</td>
         <td style="max-width:200px;overflow:hidden">${d.address || "—"}</td>
         <td style="text-align:center">${STATUS_LABELS[d.status as keyof typeof STATUS_LABELS] || d.status}</td>
-        <td style="text-align:right;font-weight:700">R$ ${Number(d.value ?? 0).toFixed(2)}</td>
+        <td style="text-align:right;font-weight:700">R$ ${Number(d.value || (d as any).price || 0).toFixed(2)}</td>
         <td style="text-align:right">R$ ${Number((d as any).commission ?? 0).toFixed(2)}</td>
       </tr>`).join("");
 
@@ -960,7 +960,7 @@ export default function ReportsPage() {
                        <StatusBadge status={d.status} />
                     </td>
                     <td className="p-6 text-right">
-                      <p className="text-sm font-black text-foreground">R$ {Number(d.value ?? 0).toFixed(2)}</p>
+                      <p className="text-sm font-black text-foreground">R$ {Number(d.value || (d as any).price || 0).toFixed(2)}</p>
                       <p className="text-[10px] font-bold text-muted-foreground mt-1 tracking-widest uppercase">Comissão: R$ {Number((d as any).commission ?? 0).toFixed(2)}</p>
                     </td>
                   </tr>
