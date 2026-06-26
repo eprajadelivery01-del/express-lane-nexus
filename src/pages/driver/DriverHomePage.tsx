@@ -1,4 +1,5 @@
 import { DriverLayout } from "@/components/driver/DriverLayout";
+import { formatDeliveryValue } from "@/lib/delivery";
 import { useAuth } from "@/contexts/AuthContext";
 import { Power, Loader2, MessageSquare, MapPin, ChevronRight, Truck, DollarSign, CheckCircle, Package } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
