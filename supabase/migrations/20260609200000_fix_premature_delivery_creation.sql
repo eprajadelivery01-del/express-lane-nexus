@@ -259,9 +259,6 @@ BEGIN
             v_address := NEW.delivery_address;
         END IF;
     EXCEPTION WHEN OTHERS THEN
-        v_address := NEW.delivery_address;
-    END;
-
     v_address := COALESCE(v_address, 'Endereço não informado');
 
     -- ── Resolve company (pickup) data ─────────────────────────────
@@ -270,6 +267,24 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN
         -- leave v_company null; pickup fields will be null
     END;
+
+    -- Calculate driver earnings based on delivery_mode
+    DECLARE
+        v_driver_fee numeric;
+    BEGIN
+        IF v_company.delivery_mode = 'fixed_fee' THEN
+             v_driver_fee := NEW.delivery_fee;
+        ELSIF v_company.delivery_mode = 'percentage' THEN
+             v_driver_fee := NEW.delivery_fee * (v_company.delivery_fee / 100);
+        ELSIF v_company.delivery_mode = 'pricing_table' THEN
+             v_driver_fee := NEW.delivery_fee;
+        ELSE 
+             v_driver_fee := NEW.delivery_fee;
+        END IF;
+
+        IF v_driver_fee IS NULL THEN
+            v_driver_fee := 0;
+        END IF;
 
     -- ── Create the delivery with full customer & address data ──────
     INSERT INTO public.deliveries (
@@ -304,7 +319,7 @@ BEGIN
         COALESCE(v_company.address, ''),
         v_company.latitude,
         v_company.longitude,
-        NEW.total,
+        v_driver_fee,
         NEW.delivery_fee,
         NEW.region_id,
         'pending',
