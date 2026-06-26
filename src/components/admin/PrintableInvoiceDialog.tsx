@@ -50,7 +50,7 @@ export function PrintableInvoiceDialog({
         // Busca comissões dos pedidos
         const { data: ordData } = await supabase
           .from('orders')
-          .select('id, created_at, total, delivery_fee, status')
+          .select('id, created_at, total, status')
           .eq('company_id', invoice.company_id)
           .eq('status', 'delivered')
           .gte('created_at', startDate)
@@ -207,13 +207,13 @@ export function PrintableInvoiceDialog({
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {orders.map(ord => {
-                      const orderValue = (Number(ord.total) || 0) - (Number(ord.delivery_fee) || 0);
+                      const orderValue = (Number(ord.total) || 0);
                       const commissionValue = orderValue * (commissionRate / 100);
                       return (
                         <tr key={ord.id} className="hover:bg-gray-50">
                           <td className="p-2 whitespace-nowrap">{new Date(ord.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</td>
                           <td className="p-2 text-right">R$ {Number(ord.total).toFixed(2)}</td>
-                          <td className="p-2 text-right">R$ {Number(ord.delivery_fee).toFixed(2)}</td>
+                          <td className="p-2 text-right">R$ 0.00</td>
                           <td className="p-2 text-right text-gray-500">R$ {orderValue.toFixed(2)}</td>
                           <td className="p-2 text-right font-bold text-primary">R$ {commissionValue.toFixed(2)}</td>
                         </tr>
@@ -225,7 +225,7 @@ export function PrintableInvoiceDialog({
                       <td colSpan={4} className="p-2 text-right font-bold text-gray-700">Total Comissões:</td>
                       <td className="p-2 text-right font-bold text-primary">
                         R$ {orders.reduce((sum, ord) => {
-                          const orderValue = (Number(ord.total) || 0) - (Number(ord.delivery_fee) || 0);
+                          const orderValue = (Number(ord.total) || 0);
                           return sum + (orderValue * (commissionRate / 100));
                         }, 0).toFixed(2)}
                       </td>
