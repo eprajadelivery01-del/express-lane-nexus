@@ -216,7 +216,7 @@ export default function ReportsPage() {
       (d as any).companies?.name || "",
       d.address,
       d.status,
-      Number(d.value || (d as any).price || 0).toFixed(2),
+      formatDeliveryValue(d),
       Number((d as any).commission ?? 0).toFixed(2),
     ]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
