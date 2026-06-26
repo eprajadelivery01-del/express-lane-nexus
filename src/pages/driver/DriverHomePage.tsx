@@ -280,10 +280,10 @@ export default function DriverHomePage() {
                         </span>
                         <h4 className="text-base font-bold text-foreground leading-tight">{del.customer_name}</h4>
                       </div>
-                      {del.value != null && (
+                      {(del.value != null || (del as any).price != null) && (
                         <div className="bg-success/10 text-success px-2 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
                           <DollarSign className="h-3 w-3" />
-                          {Number(del.value).toFixed(2)}
+                          {Number(del.value || (del as any).price || 0).toFixed(2)}
                         </div>
                       )}
                     </div>
