@@ -45,6 +45,7 @@ export interface DeliveryWithRelations {
   picked_up_at: string | null;
   cancellation_reason: string | null;
   payment_method?: string | null;
+  delivery_fee?: number | null;
   created_at: string;
   updated_at: string | null;
   delivery_drivers?: {
@@ -91,6 +92,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
           address, 
           value, 
           price,
+          delivery_fee,
           status, 
           created_at, 
           updated_at, 

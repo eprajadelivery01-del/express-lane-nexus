@@ -155,7 +155,7 @@ export default function DashboardPage() {
     const cancelled = periodDeliveries.filter(d => d.status === "cancelled").length;
     const revenue = periodDeliveries
       .filter(d => d.status === "delivered")
-      .reduce((sum, d) => sum + Number(d.value ?? 0), 0);
+      .reduce((sum, d) => sum + (Number(d.delivery_fee) || Number(d.price) || Number(d.value ?? 0)), 0);
     const conversionRate = total > 0 ? (delivered / total) * 100 : 0;
 
     const criticalAlerts = periodDeliveries.filter((d: any) => {
