@@ -9,7 +9,7 @@ export function MarketingReceiptListener() {
 
   useEffect(() => {
     // Only listen if the user is an admin
-    if (!user || profile?.role !== 'admin') return;
+    if (!user || (profile as any)?.role !== 'admin') return;
 
     const channel = supabase.channel('marketing-receipts', {
       config: {
@@ -36,7 +36,7 @@ export function MarketingReceiptListener() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, profile?.role]);
+  }, [user?.id, (profile as any)?.role]);
 
   return null;
 }

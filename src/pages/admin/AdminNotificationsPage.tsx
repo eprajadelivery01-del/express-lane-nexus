@@ -57,7 +57,7 @@ export function AdminNotificationsPage() {
 
   const fetchHistory = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("marketing_notifications")
         .select("*")
         .order("created_at", { ascending: false })
@@ -90,7 +90,7 @@ export function AdminNotificationsPage() {
         created_by: user?.id
       };
 
-      const { error } = await supabase.from("marketing_notifications").insert(payload);
+      const { error } = await (supabase as any).from("marketing_notifications").insert(payload);
 
       if (error) throw error;
 
