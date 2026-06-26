@@ -296,7 +296,7 @@ export default function ReportsPage() {
         <td>${(d as any).companies?.name || "Marketplace"}</td>
         <td style="max-width:200px;overflow:hidden">${d.address || "—"}</td>
         <td style="text-align:center">${STATUS_LABELS[d.status as keyof typeof STATUS_LABELS] || d.status}</td>
-        <td style="text-align:right;font-weight:700">R$ ${Number(d.value ?? 0).toFixed(2)}</td>
+        <td style="text-align:right;font-weight:700">R$ ${Number(d.value || (d as any).price || 0).toFixed(2)}</td>
         <td style="text-align:right">R$ ${Number((d as any).commission ?? 0).toFixed(2)}</td>
       </tr>`).join("");
 
