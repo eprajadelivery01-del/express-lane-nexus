@@ -69,6 +69,9 @@ export function initializeGlobalErrorHandlers(appName: string) {
 
   // 1. Unhandled exceptions
   window.onerror = (message, source, lineno, colno, error) => {
+    const errorMsg = String(message);
+    if (errorMsg === 'Script error.') return false;
+
     reportErrorToTelegram({
       error_message: String(message),
       stack_trace: error?.stack || `At ${source}:${lineno}:${colno}`,
