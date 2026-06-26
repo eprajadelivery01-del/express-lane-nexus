@@ -17,7 +17,6 @@ export async function calculateDeliveryFee(lat: number, lng: number) {
 export async function createOrder(orderData: {
   company_id: string;
   customer_id: string;
-  delivery_fee?: number;
   items: { product_id: string; quantity: number; price: number }[];
   total: number;
 }) {
@@ -26,7 +25,6 @@ export async function createOrder(orderData: {
     .insert({
       company_id: orderData.company_id,
       customer_id: orderData.customer_id,
-      delivery_fee: orderData.delivery_fee,
       total: orderData.total,
       status: "pending",
     })
