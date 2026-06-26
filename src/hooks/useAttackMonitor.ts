@@ -5,6 +5,8 @@ interface AttackMonitorConfig {
   maxClicksPerSecond?: number;
   maxRouteChangesPerMinute?: number;
   maxErrorsPerMinute?: number;
+  enableInjectionDetection?: boolean;
+  enableScrapingDetection?: boolean;
 }
 
 export function useAttackMonitor(config: AttackMonitorConfig = {}) {
@@ -12,11 +14,14 @@ export function useAttackMonitor(config: AttackMonitorConfig = {}) {
     maxClicksPerSecond = 8,
     maxRouteChangesPerMinute = 20,
     maxErrorsPerMinute = 10,
+    enableInjectionDetection = true,
+    enableScrapingDetection = true,
   } = config;
 
   const clicksRef = useRef<number[]>([]);
   const routeChangesRef = useRef<number[]>([]);
   const errorsRef = useRef<number[]>([]);
+  const copyRef = useRef<number[]>([]);
   const isReportingRef = useRef(false);
 
   const reportAttack = useCallback(async (reason: string, details: Record<string, unknown>) => {
@@ -112,7 +117,92 @@ export function useAttackMonitor(config: AttackMonitorConfig = {}) {
     };
   }, [maxErrorsPerMinute, reportAttack]);
 
-  // Expor função para caso queira registrar eventos suspeitos manualmente
+  // Monitorar XSS / SQLi via Inputs
+  useEffect(() => {
+    if (!enableInjectionDetection) return;
+
+    const handleInput = (e: Event) => {
+      const target = e.target as HTMLInputElement | HTMLTextAreaElement;
+      if (!target || typeof target.value !== 'string') return;
+
+      const value = target.value;
+      const suspiciousPattern = /(<script.*?>.*?<\/script>|javascript:|UNION\s+SELECT|DROP\s+TABLE|INSERT\s+INTO|DELETE\s+FROM)/i;
+      
+      if (suspiciousPattern.test(value)) {
+        reportAttack("Tentativa de Injeção de Código (XSS/SQLi)", {
+          target: target.name || target.id || target.tagName,
+          payload: value
+        });
+      }
+    };
+
+    document.addEventListener('change', handleInput, true);
+    return () => document.removeEventListener('change', handleInput, true);
+  }, [enableInjectionDetection, reportAttack]);
+
+  // Monitorar Scraping (Cópia excessiva)
+  useEffect(() => {
+    if (!enableScrapingDetection) return;
+
+    const handleCopy = () => {
+      const selection = window.getSelection()?.toString() || "";
+      if (selection.length > 500) {
+        const now = Date.now();
+        copyRef.current = copyRef.current.filter(t => now - t < 60000);
+        copyRef.current.push(now);
+
+        if (copyRef.current.length >= 3) {
+          reportAttack("Possível Scraping de Dados Detectado (Cópia em Massa)", {
+            copiesInLastMinute: copyRef.current.length,
+            lastCopiedLength: selection.length
+          });
+          copyRef.current = [];
+        }
+      }
+    };
+
+    document.addEventListener('copy', handleCopy);
+    return () => document.removeEventListener('copy', handleCopy);
+  }, [enableScrapingDetection, reportAttack]);
+
+  // Monitorar Bots de Navegação (Route Changes Rápidas)
+  useEffect(() => {
+    const handleRouteChange = () => {
+      const now = Date.now();
+      routeChangesRef.current = routeChangesRef.current.filter(t => now - t < 60000);
+      routeChangesRef.current.push(now);
+
+      if (routeChangesRef.current.length >= maxRouteChangesPerMinute) {
+        reportAttack("Navegação Anormal / Bot de Varredura", {
+          routeChangesInLastMinute: routeChangesRef.current.length,
+          lastPath: window.location.pathname
+        });
+        routeChangesRef.current = [];
+      }
+    };
+
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function (...args) {
+      handleRouteChange();
+      return originalPushState.apply(history, args);
+    };
+
+    history.replaceState = function (...args) {
+      handleRouteChange();
+      return originalReplaceState.apply(history, args);
+    };
+
+    window.addEventListener('popstate', handleRouteChange);
+
+    return () => {
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+      window.removeEventListener('popstate', handleRouteChange);
+    };
+  }, [maxRouteChangesPerMinute, reportAttack]);
+
   return {
     reportSuspiciousActivity: (reason: string, details: Record<string, unknown> = {}) => reportAttack(reason, details)
   };
