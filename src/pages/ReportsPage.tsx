@@ -100,11 +100,13 @@ export default function ReportsPage() {
     });
   }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal]);
 
-  const totalValue = deliveries.reduce((s, d) => s + getDeliveryValue(d), 0);
-  const totalCommission = deliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
-  const completedCount = deliveries.filter((d) => d.status === "delivered").length;
+  const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || d.status === "completed"), [deliveries]);
+
+  const totalValue = validDeliveries.reduce((s, d) => s + getDeliveryValue(d), 0);
+  const totalCommission = validDeliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
+  const completedCount = validDeliveries.length;
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
-  const ticketMedio = deliveries.length > 0 ? totalValue / deliveries.length : 0;
+  const ticketMedio = completedCount > 0 ? totalValue / completedCount : 0;
 
   // Chart Data Processing
   const timeSeriesData = useMemo(() => {
@@ -123,8 +125,11 @@ export default function ReportsPage() {
           count: 0 
         };
       }
-      groups[dateStr].total += getDeliveryValue(d);
-      groups[dateStr].commission += Number((d as any).commission ?? 0);
+      const isCompleted = d.status === "delivered" || d.status === "completed";
+      if (isCompleted) {
+        groups[dateStr].total += getDeliveryValue(d);
+        groups[dateStr].commission += Number((d as any).commission ?? 0);
+      }
       groups[dateStr].count += 1;
     });
 
@@ -134,6 +139,9 @@ export default function ReportsPage() {
   const companyBreakdown = useMemo(() => {
     const map: Record<string, { name: string; companyId: string; revenue: number; count: number }> = {};
     deliveries.forEach(d => {
+      const isCompleted = d.status === "delivered" || d.status === "completed";
+      if (!isCompleted) return;
+
       const cId = d.company_id || "unknown";
       const cName = (d as any).companies?.name || "Sem empresa";
       if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
@@ -146,6 +154,9 @@ export default function ReportsPage() {
   const driverBreakdown = useMemo(() => {
     const map: Record<string, { name: string; driverId: string; revenue: number; count: number }> = {};
     deliveries.forEach(d => {
+      const isCompleted = d.status === "delivered" || d.status === "completed";
+      if (!isCompleted) return;
+
       if (!d.driver_id) return;
       const driver = (drivers ?? []).find(dr => dr.id === d.driver_id);
       const name = driver?.full_name || `Motorista ${d.driver_id.slice(0, 6)}`;
