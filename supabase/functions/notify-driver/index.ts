@@ -74,24 +74,14 @@ serve(async (req) => {
     const address = record.pickup_address || record.delivery_address || 'Novo local de coleta';
     
     const message = {
-      notification: {
-        title: 'ÉpraJá - Nova corrida!',
-        body: `Retirada: ${address}`
-      },
       data: {
         type: 'delivery',
-        deliveryId: record.id
+        deliveryId: record.id,
+        address: address, // Added address to data so the app can display it
+        title: 'ÉpraJá - Nova corrida!'
       },
       android: {
-        priority: 'high' as const,
-        notification: {
-          channelId: 'delivery-channel-v2',
-          sound: 'ring',
-          priority: 'max' as const,
-          defaultSound: false,
-          defaultVibrateTimings: true,
-          visibility: 'public' as const
-        }
+        priority: 'high' as const
       },
       tokens: tokens
     };
