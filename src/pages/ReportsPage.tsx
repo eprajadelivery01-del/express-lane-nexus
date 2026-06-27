@@ -75,6 +75,10 @@ const getOrderTotal = (d: any) => {
   if (d.estimated_value != null && Number(d.estimated_value) > 0) {
     return Number(d.estimated_value);
   }
+  // Manual orders often store the total in 'value'
+  if (d.value != null && Number(d.value) > 0) {
+    return Number(d.value);
+  }
   return 0;
 };
 

@@ -27,10 +27,10 @@ export function getDeliveryValue(d: DeliveryValueShape | null | undefined): numb
   if (!d) return 0;
   const f = Number(d.delivery_fee);
   if (f) return f;
-  const v = Number(d.value);
-  if (v) return v;
   const p = Number(d.price);
   if (p) return p;
+  const v = Number(d.value);
+  if (v) return v;
   return 0;
 }
 
