@@ -62,6 +62,13 @@ function SummaryCard({ label, value, icon, subValue, trend }: { label: string, v
   );
 }
 
+const getOrderTotal = (d: any) => {
+  if (d.orders && typeof d.orders.total === 'number') {
+    return d.orders.total;
+  }
+  return getDeliveryValue(d);
+};
+
 export default function ReportsPage() {
   const { toast } = useToast();
   const [dateFrom, setDateFrom] = useState("");
@@ -102,7 +109,7 @@ export default function ReportsPage() {
 
   const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || d.status === "completed"), [deliveries]);
 
-  const totalValue = validDeliveries.reduce((s, d) => s + getDeliveryValue(d), 0);
+  const totalValue = validDeliveries.reduce((s, d) => s + getOrderTotal(d), 0);
   const totalCommission = validDeliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
   const completedCount = validDeliveries.length;
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
@@ -127,7 +134,7 @@ export default function ReportsPage() {
       }
       const isCompleted = d.status === "delivered" || d.status === "completed";
       if (isCompleted) {
-        groups[dateStr].total += getDeliveryValue(d);
+        groups[dateStr].total += getOrderTotal(d);
         groups[dateStr].commission += Number((d as any).commission ?? 0);
       }
       groups[dateStr].count += 1;
@@ -145,7 +152,7 @@ export default function ReportsPage() {
       const cId = d.company_id || "unknown";
       const cName = (d as any).companies?.name || "Sem empresa";
       if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
-      map[cId].revenue += getDeliveryValue(d);
+      map[cId].revenue += getOrderTotal(d);
       map[cId].count += 1;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
@@ -972,8 +979,8 @@ export default function ReportsPage() {
                        <StatusBadge status={d.status} />
                     </td>
                     <td className="p-6 text-right">
-                      <p className="text-sm font-black text-foreground">R$ {formatDeliveryValue(d)}</p>
-                      <p className="text-[10px] font-bold text-muted-foreground mt-1 tracking-widest uppercase">Comissão: R$ {Number((d as any).commission ?? 0).toFixed(2)}</p>
+                      <p className="text-sm font-black text-foreground">Venda: R$ {getOrderTotal(d).toFixed(2)}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground mt-1 tracking-widest uppercase">Frete: R$ {formatDeliveryValue(d)}</p>
                     </td>
                   </tr>
                 ))}
