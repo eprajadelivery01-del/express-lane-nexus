@@ -4,11 +4,10 @@ import { useDeliveries } from "@/services/deliveries";
 import { useCompanies } from "@/services/companies";
 import { useDrivers } from "@/services/drivers";
 import { useRegions } from "@/services/regions";
-import { BarChart3, Download, Loader2, Filter, Search, Printer, Settings } from "lucide-react";
+import { BarChart3, Download, Loader2, Filter, Search, Printer } from "lucide-react";
 import { format, startOfDay, endOfDay, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { getDeliveryValue, formatDeliveryValue } from "@/lib/delivery";
-import { supabase } from "@/lib/supabase";
 import { useMemo } from "react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -249,7 +248,7 @@ export default function ReportsPage() {
       d.address,
       d.status,
       formatDeliveryValue(d),
-      "R$ " + Number((d as any).commission ?? 0).toFixed(2)
+      Number((d as any).commission ?? 0).toFixed(2),
     ]);
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
@@ -260,25 +259,6 @@ export default function ReportsPage() {
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Relatório exportado!" });
-  };
-
-  const [isFixing, setIsFixing] = useState(false);
-  const handleFixDeliveries = async () => {
-    if (!window.confirm("Isso irá alterar TODOS os fretes de R$ 5,00 do banco de dados para R$ 6,00 retroativamente. Tem certeza?")) return;
-    setIsFixing(true);
-    try {
-      const { error } = await supabase
-        .from('deliveries')
-        .update({ value: 6, price: 6 })
-        .eq('value', 5);
-      if (error) throw error;
-      toast({ title: 'Sucesso', description: 'Todos os fretes de R$ 5,00 foram atualizados para R$ 6,00.' });
-      setTimeout(() => window.location.reload(), 1500);
-    } catch (e: any) {
-      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
-    } finally {
-      setIsFixing(false);
-    }
   };
 
   const handlePrint = () => {
@@ -959,13 +939,6 @@ export default function ReportsPage() {
              </div>
           </div>
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleFixDeliveries}
-              disabled={isFixing}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-orange-500/10 text-orange-500 text-xs font-black hover:bg-orange-500/20 active:scale-[0.98] transition-all border border-orange-500/20"
-            >
-              {isFixing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />} Corrigir R$ 5,00
-            </button>
             <button
               onClick={handlePrint}
               className="flex items-center gap-3 px-6 py-2.5 rounded-2xl bg-foreground text-background text-sm font-black hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
