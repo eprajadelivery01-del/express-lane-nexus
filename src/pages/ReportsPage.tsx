@@ -19,7 +19,7 @@ const STATUS_LABELS: Record<string, string> = {
   assigned: "Atribuída",
   in_transit: "Em Rota",
   delivered: "Finalizada",
-  completed: "Finalizada (Marketplace)",
+  completed: "Finalizada",
   cancelled: "Cancelada",
 };
 
