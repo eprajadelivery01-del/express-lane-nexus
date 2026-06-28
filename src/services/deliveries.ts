@@ -188,7 +188,7 @@ export function useDeliveryStats() {
       today.setHours(0, 0, 0, 0);
 
       const [todayRes, totalRes] = await Promise.all([
-        supabase.from("deliveries").select("status, price, value, delivery_fee").gte("created_at", today.toISOString()),
+        supabase.from("deliveries").select("status, price, value").gte("created_at", today.toISOString()),
         supabase.from("deliveries").select("id", { count: "exact", head: true }),
       ]);
 
@@ -207,7 +207,7 @@ export function useDeliveryStats() {
         inTransit: normalizedData.filter((d) => d.status === "in_transit" || d.status === "collecting").length,
         delivered: normalizedData.filter((d) => d.status === "delivered").length,
         cancelled: normalizedData.filter((d) => d.status === "cancelled").length,
-        todayRevenue: normalizedData.filter((d) => d.status === "delivered").reduce((sum, d) => sum + (Number(d.delivery_fee) || Number(d.price) || Number((d as any).value) || 0), 0),
+        todayRevenue: normalizedData.filter((d) => d.status === "delivered").reduce((sum, d) => sum + (Number(d.price) || Number((d as any).value) || 0), 0),
       };
     },
     refetchInterval: 30000,

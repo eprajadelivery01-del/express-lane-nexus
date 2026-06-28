@@ -120,7 +120,7 @@ export default function ReportsPage() {
     });
   }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal]);
 
-  const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || d.status === "completed"), [deliveries]);
+  const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || (d.status as string) === "completed"), [deliveries]);
 
   const totalValue = validDeliveries.reduce((s, d) => s + getOrderTotal(d), 0);
   const totalCommission = validDeliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
@@ -145,7 +145,7 @@ export default function ReportsPage() {
           count: 0 
         };
       }
-      const isCompleted = d.status === "delivered" || d.status === "completed";
+      const isCompleted = d.status === "delivered" || (d.status as string) === "completed";
       if (isCompleted) {
         groups[dateStr].total += getOrderTotal(d);
         groups[dateStr].commission += Number((d as any).commission ?? 0);
@@ -159,7 +159,7 @@ export default function ReportsPage() {
   const companyBreakdown = useMemo(() => {
     const map: Record<string, { name: string; companyId: string; revenue: number; count: number }> = {};
     deliveries.forEach(d => {
-      const isCompleted = d.status === "delivered" || d.status === "completed";
+      const isCompleted = d.status === "delivered" || (d.status as string) === "completed";
       if (!isCompleted) return;
 
       const cId = d.company_id || "unknown";
@@ -174,7 +174,7 @@ export default function ReportsPage() {
   const driverBreakdown = useMemo(() => {
     const map: Record<string, { name: string; driverId: string; revenue: number; count: number }> = {};
     deliveries.forEach(d => {
-      const isCompleted = d.status === "delivered" || d.status === "completed";
+      const isCompleted = d.status === "delivered" || (d.status as string) === "completed";
       if (!isCompleted) return;
 
       if (!d.driver_id) return;
