@@ -2404,6 +2404,15 @@ export type Database = {
         Args: { lat: number; lng: number }
         Returns: number
       }
+      get_driver_earnings_summary: {
+        Args: { p_driver_id: string; p_end_date: string; p_start_date: string }
+        Returns: {
+          gross_earnings: number
+          net_earnings: number
+          platform_fee: number
+          total_deliveries: number
+        }[]
+      }
       get_driver_id: { Args: { _user_id: string }; Returns: string }
       get_invitation_by_token: { Args: { _token: string }; Returns: Json }
       get_user_id_by_email: { Args: { p_email: string }; Returns: string }
