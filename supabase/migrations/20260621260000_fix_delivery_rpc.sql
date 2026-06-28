@@ -13,6 +13,7 @@ DECLARE
   v_now TIMESTAMPTZ := now();
   v_order_status TEXT;
   v_order_id UUID;
+  v_company_id UUID;
 BEGIN
   -- 1. Validate authentication
   IF auth.uid() IS NULL THEN
@@ -57,7 +58,7 @@ BEGIN
     ELSIF v_db_status = 'completed' THEN 
       v_order_status := 'delivered';
     ELSIF v_db_status = 'cancelled' THEN 
-      v_order_status := 'cancelled';
+      v_order_status := 'preparing';
     END IF;
 
     IF v_order_status IS NOT NULL AND v_order_id IS NOT NULL THEN
@@ -65,7 +66,14 @@ BEGIN
       SET 
         status = v_order_status::public.order_status,
         updated_at = v_now
-      WHERE id = v_order_id;
+      WHERE id = v_order_id
+      RETURNING company_id INTO v_company_id;
+
+      IF v_db_status = 'cancelled' AND v_company_id IS NOT NULL THEN
+        INSERT INTO public.notifications (user_id, title, message, type)
+        SELECT user_id, 'Entrega Cancelada pelo Entregador', 'O motoboy cancelou a entrega. O pedido voltou para "Em Preparo". Chame outro entregador ou cancele o pedido.', 'delivery_cancelled'
+        FROM public.company_users WHERE company_id = v_company_id;
+      END IF;
     END IF;
   EXCEPTION WHEN OTHERS THEN
     -- Fallback to standard status or just ignore if enum values don't match
