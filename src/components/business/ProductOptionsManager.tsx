@@ -136,7 +136,7 @@ export function ProductOptionsManager({ productId, productName, onClose }: {
   const updateGroup = async (group: Group, field: keyof Group, value: any) => {
     const { error } = await supabase
       .from("product_option_groups")
-      .update({ [field]: value })
+      .update({ [field]: value } as any)
       .eq("id", group.id);
     
     if (error) {
