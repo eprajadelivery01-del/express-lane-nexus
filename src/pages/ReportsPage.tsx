@@ -183,7 +183,7 @@ export default function ReportsPage() {
     return Object.values(groups).sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime());
   }, [deliveries]);
 
-  const companyBreakdown = useMemo(() => {
+  const companyBillingBreakdown = useMemo(() => {
     const map: Record<string, { name: string; companyId: string; revenue: number; count: number }> = {};
     deliveries.forEach(d => {
       const isCompleted = d.status === "delivered" || (d.status as string) === "completed";
@@ -193,6 +193,21 @@ export default function ReportsPage() {
       const cName = (d as any).companies?.name || "Sem empresa";
       if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
       map[cId].revenue += getOrderTotal(d);
+      map[cId].count += 1;
+    });
+    return Object.values(map).sort((a, b) => b.revenue - a.revenue);
+  }, [deliveries]);
+
+  const companyFreightBreakdown = useMemo(() => {
+    const map: Record<string, { name: string; companyId: string; revenue: number; count: number }> = {};
+    deliveries.forEach(d => {
+      const isCompleted = d.status === "delivered" || (d.status as string) === "completed";
+      if (!isCompleted) return;
+
+      const cId = d.company_id || "unknown";
+      const cName = (d as any).companies?.name || "Sem empresa";
+      if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
+      map[cId].revenue += getTrueFreight(d);
       map[cId].count += 1;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
@@ -316,7 +331,7 @@ export default function ReportsPage() {
     if (searchQuery) filterLines.push(`Busca: "${searchQuery}"`);
 
     // Company billing rows
-    const companyBillingRows = companyBreakdown.map(c => {
+    const companyBillingRows = companyBillingBreakdown.map(c => {
       const companyObj = (companies ?? []).find(co => co.id === c.companyId);
       const commPct = companyObj?.commission_percentage !== undefined && companyObj?.commission_percentage !== null
         ? Number(companyObj.commission_percentage) : 10.00;
@@ -359,7 +374,7 @@ export default function ReportsPage() {
         <td style="text-align:right">R$ ${Number((d as any).commission ?? 0).toFixed(2)}</td>
       </tr>`).join("");
 
-    const totalCompanyDue = companyBreakdown.reduce((s, c) => {
+    const totalCompanyDue = companyBillingBreakdown.reduce((s, c) => {
       const co = (companies ?? []).find(x => x.id === c.companyId);
       const pct = (co?.commission_percentage !== undefined && co?.commission_percentage !== null)
         ? Number(co.commission_percentage) : 10.00;
@@ -804,10 +819,10 @@ export default function ReportsPage() {
               <p className="text-xs text-muted-foreground mt-0.5">Receita e volume por empresa</p>
             </div>
           </div>
-          {companyBreakdown.length > 0 ? (
+          {companyFreightBreakdown.length > 0 ? (
             <div className="space-y-3 max-h-[360px] overflow-y-auto scrollbar-thin">
-              {companyBreakdown.map((c, i) => {
-                const maxRev = companyBreakdown[0].revenue;
+              {companyFreightBreakdown.map((c, i) => {
+                const maxRev = companyFreightBreakdown[0].revenue;
                 const pct = maxRev > 0 ? (c.revenue / maxRev) * 100 : 0;
                 return (
                   <div key={c.companyId || i} className="group">
@@ -893,8 +908,8 @@ export default function ReportsPage() {
               🏢 Cobrança de Lojistas (% sobre Vendas)
             </h4>
             <div className="border border-border rounded-2xl overflow-hidden bg-background/50 divide-y divide-border">
-              {companyBreakdown.length > 0 ? (
-                companyBreakdown.map((c: any) => {
+              {companyBillingBreakdown.length > 0 ? (
+                companyBillingBreakdown.map((c: any) => {
                   const companyObj = (companies ?? []).find(co => co.id === c.companyId);
                   const commPct = companyObj?.commission_percentage !== undefined && companyObj?.commission_percentage !== null ? Number(companyObj.commission_percentage) : 10.00;
                   const totalDue = c.revenue * (commPct / 100);
@@ -1024,7 +1039,7 @@ export default function ReportsPage() {
                     </td>
                     <td className="p-6 text-right">
                       <p className="text-sm font-black text-foreground">Venda: R$ {getOrderTotal(d).toFixed(2)}</p>
-                      <p className="text-[10px] font-bold text-muted-foreground mt-1 tracking-widest uppercase">Frete: R$ {formatDeliveryValue(d)}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground mt-1 tracking-widest uppercase">Entrega: R$ {formatDeliveryValue(d)}</p>
                     </td>
                   </tr>
                 ))}
