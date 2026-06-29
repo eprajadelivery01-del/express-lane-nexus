@@ -641,6 +641,7 @@ export type Database = {
           customer_phone: string | null
           delivered_at: string | null
           delivery_address: string | null
+          delivery_fee: number | null
           delivery_latitude: number | null
           delivery_longitude: number | null
           difficulty: string | null
@@ -683,6 +684,7 @@ export type Database = {
           customer_phone?: string | null
           delivered_at?: string | null
           delivery_address?: string | null
+          delivery_fee?: number | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           difficulty?: string | null
@@ -725,6 +727,7 @@ export type Database = {
           customer_phone?: string | null
           delivered_at?: string | null
           delivery_address?: string | null
+          delivery_fee?: number | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
           difficulty?: string | null
@@ -2400,6 +2403,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_davinyn_admin_id: { Args: never; Returns: string }
       get_delivery_price: {
         Args: { lat: number; lng: number }
         Returns: number
