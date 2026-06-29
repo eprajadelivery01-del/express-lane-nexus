@@ -298,9 +298,9 @@ export default function ReportsPage() {
         <tr>
           <td>${c.name}</td>
           <td style="text-align:center">${c.count}</td>
-          <td style="text-align:right">R$ ${c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:right">R$ ${c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td style="text-align:center">${commPct.toFixed(1)}%</td>
-          <td style="text-align:right;font-weight:900;color:#6366f1">R$ ${totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:right;font-weight:900;color:#6366f1">R$ ${totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>`;
     }).join("");
 
@@ -314,9 +314,9 @@ export default function ReportsPage() {
         <tr>
           <td>${d.name}</td>
           <td style="text-align:center">${d.count}</td>
-          <td style="text-align:right">R$ ${d.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:right">R$ ${d.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           <td style="text-align:right">R$ ${commRate.toFixed(2).replace(".", ",")}</td>
-          <td style="text-align:right;font-weight:900;color:#6366f1">R$ ${totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:right;font-weight:900;color:#6366f1">R$ ${totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>`;
     }).join("");
 
@@ -423,17 +423,17 @@ export default function ReportsPage() {
     </div>
     <div class="kpi">
       <div class="kpi-label">Faturamento Total</div>
-      <div class="kpi-value">R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+      <div class="kpi-value">R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       <div class="kpi-sub">Receita bruta processada</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Comissões Plataforma</div>
-      <div class="kpi-value">R$ ${(totalCompanyDue + totalDriverDue).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+      <div class="kpi-value">R$ ${(totalCompanyDue + totalDriverDue).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       <div class="kpi-sub">Lojistas + Entregadores</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Ticket Médio</div>
-      <div class="kpi-value">R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+      <div class="kpi-value">R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       <div class="kpi-sub">Valor médio por entrega</div>
     </div>
   </div>
@@ -455,7 +455,7 @@ export default function ReportsPage() {
         <tfoot>
           <tr>
             <td colspan="4">TOTAL DEVIDO (Lojistas)</td>
-            <td style="text-align:right">R$ ${totalCompanyDue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+            <td style="text-align:right">R$ ${totalCompanyDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           </tr>
         </tfoot>
       </table>
@@ -477,7 +477,7 @@ export default function ReportsPage() {
         <tfoot>
           <tr>
             <td colspan="4">TOTAL DEVIDO (Entregadores)</td>
-            <td style="text-align:right">R$ ${totalDriverDue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+            <td style="text-align:right">R$ ${totalDriverDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           </tr>
         </tfoot>
       </table>
@@ -502,8 +502,8 @@ export default function ReportsPage() {
       <tfoot>
         <tr>
           <td colspan="5">TOTAIS</td>
-          <td style="text-align:right">R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
-          <td style="text-align:right">R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align:right">R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+          <td style="text-align:right">R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>
       </tfoot>
     </table>
@@ -662,20 +662,20 @@ export default function ReportsPage() {
         />
         <SummaryCard 
           label="Faturamento Total" 
-          value={isLoading ? "--" : `R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} 
+          value={isLoading ? "--" : `R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           subValue="Receita bruta processada"
           icon={<div className="w-12 h-12 rounded-2xl bg-success/10 flex items-center justify-center text-success shadow-inner"><Download className="h-6 w-6 rotate-180" /></div>}
         />
         <SummaryCard 
           label="Comissões Estimadas" 
-          value={`R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} 
+          value={`R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           icon={<div className="w-12 h-12 rounded-2xl bg-warning/10 flex items-center justify-center text-warning shadow-inner"><Download className="h-6 w-6" /></div>}
           subValue="Lucro operacional líquido"
           trend="8.5% do faturamento"
         />
         <SummaryCard 
           label="Ticket Médio" 
-          value={`R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} 
+          value={`R$ ${ticketMedio.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           icon={<div className="w-12 h-12 rounded-2xl bg-info/10 flex items-center justify-center text-info shadow-inner"><Filter className="h-6 w-6" /></div>}
           subValue="Valor médio por entrega"
         />
@@ -791,7 +791,7 @@ export default function ReportsPage() {
                       </div>
                       <div className="flex items-center gap-4 shrink-0 ml-2">
                         <span className="text-xs text-muted-foreground font-semibold">{c.count} entregas</span>
-                        <span className="text-sm font-black text-foreground">R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                        <span className="text-sm font-black text-foreground">R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                     <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
@@ -831,7 +831,7 @@ export default function ReportsPage() {
                       </div>
                       <div className="flex items-center gap-4 shrink-0 ml-2">
                         <span className="text-xs text-muted-foreground font-semibold">{d.count} entregas</span>
-                        <span className="text-sm font-black text-foreground">R$ {d.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                        <span className="text-sm font-black text-foreground">R$ {d.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                       </div>
                     </div>
                     <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
@@ -876,12 +876,12 @@ export default function ReportsPage() {
                       <div className="text-left">
                         <p className="text-sm font-bold text-foreground">{c.name}</p>
                         <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
-                          Vendas: R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} • Taxa: {commPct.toFixed(1)}%
+                          Vendas: R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • Taxa: {commPct.toFixed(1)}%
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Devido</p>
-                        <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                     </div>
                   );
@@ -913,7 +913,7 @@ export default function ReportsPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Devido</p>
-                        <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                       </div>
                     </div>
                   );
