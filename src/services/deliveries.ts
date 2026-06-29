@@ -103,8 +103,8 @@ export function useDeliveries(params?: UseDeliveriesParams) {
             delivery_fee,
             order_items(quantity, price, products(name))
           ),
-          companies(name, phone, city_id),
-          delivery_drivers(id, user_id, full_name, phone, vehicle_type, vehicle_plate, city_id)
+          companies(name, phone),
+          delivery_drivers(id, user_id, full_name, phone, vehicle_type, vehicle_plate)
         `, { count: "exact" })
         .order("created_at", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);

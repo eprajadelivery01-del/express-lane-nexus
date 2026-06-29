@@ -99,7 +99,7 @@ export default function ReportsPage() {
   const { data: drivers } = useDrivers();
   const { data: regions } = useRegions();
 
-  const { data, isLoading } = useDeliveries({
+  const { data, isLoading, isError, error } = useDeliveries({
     status: statusFilter,
     companyId: companyFilter || undefined,
     driverId: driverFilter || undefined,
@@ -655,17 +655,16 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-4">
         <SummaryCard 
           label="Total de Corridas" 
-          value={deliveries.length} 
+          value={isLoading ? "--" : deliveries.length} 
+          subValue={isLoading ? "Carregando..." : `${completedCount} finalizadas`}
+          trend={isLoading ? undefined : `${successRate.toFixed(1)}% taxa de sucesso`}
           icon={<div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner"><BarChart3 className="h-6 w-6" /></div>}
-          subValue={`${completedCount} finalizadas`}
-          trend={`${successRate.toFixed(1)}% taxa de sucesso`}
         />
         <SummaryCard 
           label="Faturamento Total" 
-          value={`R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} 
-          icon={<div className="w-12 h-12 rounded-2xl bg-success/10 flex items-center justify-center text-success shadow-inner"><Download className="h-6 w-6 rotate-180" /></div>}
+          value={isLoading ? "--" : `R$ ${totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`} 
           subValue="Receita bruta processada"
-          trend="+5.2% vs período anterior"
+          icon={<div className="w-12 h-12 rounded-2xl bg-success/10 flex items-center justify-center text-success shadow-inner"><Download className="h-6 w-6 rotate-180" /></div>}
         />
         <SummaryCard 
           label="Comissões Estimadas" 
@@ -957,6 +956,11 @@ export default function ReportsPage() {
           <div className="flex flex-col items-center justify-center p-20 gap-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Carregando dados...</p>
+          </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center p-20 gap-4 text-destructive">
+            <p className="font-bold">ERRO AO CARREGAR OS DADOS</p>
+            <p className="text-sm font-mono opacity-80">{error instanceof Error ? error.message : JSON.stringify(error)}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
