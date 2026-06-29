@@ -62,6 +62,33 @@ function SummaryCard({ label, value, icon, subValue, trend }: { label: string, v
   );
 }
 
+const getTrueFreight = (d: any) => {
+  if (d.orders) {
+    if (Array.isArray(d.orders) && d.orders.length > 0 && d.orders[0].delivery_fee != null) {
+      return Number(d.orders[0].delivery_fee);
+    }
+    if (!Array.isArray(d.orders) && d.orders.delivery_fee != null) {
+      return Number(d.orders.delivery_fee);
+    }
+  }
+
+  // Se é do lojista (tem empresa), o valor verdadeiro do frete deveria estar em orders.delivery_fee.
+  // Se não estiver, retornar um default ou 0 para não somar 29 mil de VENDAS no faturamento do frete!
+  if (d.company_id) {
+    // Se, por milagre, a API retornou o delivery_fee direto na raiz do Lojista:
+    if (d.delivery_fee != null && Number(d.delivery_fee) > 0) return Number(d.delivery_fee);
+    return 0; // fallback seguro para não poluir
+  }
+
+  // Se é pedido manual, NÃO TEM PRODUTO, logo o price/value/estimated_value É de fato o frete!
+  if (d.delivery_fee != null && Number(d.delivery_fee) > 0) return Number(d.delivery_fee);
+  if (d.price != null && Number(d.price) > 0) return Number(d.price);
+  if (d.value != null && Number(d.value) > 0) return Number(d.value);
+  if (d.estimated_value != null && Number(d.estimated_value) > 0) return Number(d.estimated_value);
+
+  return 0;
+};
+
 const getOrderTotal = (d: any) => {
   if (d.orders) {
     if (Array.isArray(d.orders) && d.orders.length > 0 && d.orders[0].total != null) {
@@ -114,15 +141,15 @@ export default function ReportsPage() {
     return rawDeliveries.filter((d) => {
       if (regionFilter && d.region_id !== regionFilter) return false;
       if (paymentFilter && d.payment_method !== paymentFilter) return false;
-      if (minVal && getDeliveryValue(d) < Number(minVal)) return false;
-      if (maxVal && getDeliveryValue(d) > Number(maxVal)) return false;
+      if (minVal && getTrueFreight(d) < Number(minVal)) return false;
+      if (maxVal && getTrueFreight(d) > Number(maxVal)) return false;
       return true;
     });
   }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal]);
 
   const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || (d.status as string) === "completed"), [deliveries]);
 
-  const totalValue = validDeliveries.reduce((s, d) => s + getDeliveryValue(d), 0);
+  const totalValue = validDeliveries.reduce((s, d) => s + getTrueFreight(d), 0);
   const totalCommission = validDeliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
   const completedCount = validDeliveries.length;
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
@@ -147,7 +174,7 @@ export default function ReportsPage() {
       }
       const isCompleted = d.status === "delivered" || (d.status as string) === "completed";
       if (isCompleted) {
-        groups[dateStr].total += getDeliveryValue(d);
+        groups[dateStr].total += getTrueFreight(d);
         groups[dateStr].commission += Number((d as any).commission ?? 0);
       }
       groups[dateStr].count += 1;
@@ -165,7 +192,7 @@ export default function ReportsPage() {
       const cId = d.company_id || "unknown";
       const cName = (d as any).companies?.name || "Sem empresa";
       if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
-      map[cId].revenue += getDeliveryValue(d);
+      map[cId].revenue += getOrderTotal(d);
       map[cId].count += 1;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
@@ -181,7 +208,7 @@ export default function ReportsPage() {
       const driver = (drivers ?? []).find(dr => dr.id === d.driver_id);
       const name = driver?.full_name || `Motorista ${d.driver_id.slice(0, 6)}`;
       if (!map[d.driver_id]) map[d.driver_id] = { name, driverId: d.driver_id, revenue: 0, count: 0 };
-      map[d.driver_id].revenue += getDeliveryValue(d);
+      map[d.driver_id].revenue += getTrueFreight(d);
       map[d.driver_id].count += 1;
     });
     return Object.values(map).sort((a, b) => b.count - a.count);
@@ -996,7 +1023,8 @@ export default function ReportsPage() {
                        <StatusBadge status={d.status} />
                     </td>
                     <td className="p-6 text-right">
-                      <p className="text-sm font-black text-foreground">R$ {formatDeliveryValue(d)}</p>
+                      <p className="text-sm font-black text-foreground">Venda: R$ {getOrderTotal(d).toFixed(2)}</p>
+                      <p className="text-[10px] font-bold text-muted-foreground mt-1 tracking-widest uppercase">Frete: R$ {formatDeliveryValue(d)}</p>
                     </td>
                   </tr>
                 ))}
