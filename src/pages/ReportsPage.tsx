@@ -122,7 +122,7 @@ export default function ReportsPage() {
 
   const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || (d.status as string) === "completed"), [deliveries]);
 
-  const totalValue = validDeliveries.reduce((s, d) => s + getOrderTotal(d), 0);
+  const totalValue = validDeliveries.reduce((s, d) => s + getDeliveryValue(d), 0);
   const totalCommission = validDeliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
   const completedCount = validDeliveries.length;
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
@@ -147,7 +147,7 @@ export default function ReportsPage() {
       }
       const isCompleted = d.status === "delivered" || (d.status as string) === "completed";
       if (isCompleted) {
-        groups[dateStr].total += getOrderTotal(d);
+        groups[dateStr].total += getDeliveryValue(d);
         groups[dateStr].commission += Number((d as any).commission ?? 0);
       }
       groups[dateStr].count += 1;
@@ -165,7 +165,7 @@ export default function ReportsPage() {
       const cId = d.company_id || "unknown";
       const cName = (d as any).companies?.name || "Sem empresa";
       if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
-      map[cId].revenue += getOrderTotal(d);
+      map[cId].revenue += getDeliveryValue(d);
       map[cId].count += 1;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
