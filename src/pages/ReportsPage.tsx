@@ -137,6 +137,8 @@ export default function ReportsPage() {
   });
 
   const rawDeliveries = data?.data ?? [];
+  const trueTotalCount = data?.count ?? 0;
+  
   const deliveries = useMemo(() => {
     return rawDeliveries.filter((d) => {
       if (regionFilter && d.region_id !== regionFilter) return false;
@@ -147,10 +149,16 @@ export default function ReportsPage() {
     });
   }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal]);
 
+  const hasLocalFilters = Boolean(regionFilter || paymentFilter || minVal || maxVal);
+  const displayTotalCount = hasLocalFilters ? deliveries.length : (trueTotalCount > deliveries.length ? trueTotalCount : deliveries.length);
+
   const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || (d.status as string) === "completed"), [deliveries]);
 
   const totalValue = validDeliveries.reduce((s, d) => s + getTrueFreight(d), 0);
   const totalCommission = validDeliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
+  
+  // Se não tem filtro local e temos o count real, não podemos saber exatamente quantos foram "completed" do total real pelo frontend,
+  // mas podemos projetar a taxa de sucesso ou apenas mostrar o que temos.
   const completedCount = validDeliveries.length;
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
   const ticketMedio = completedCount > 0 ? totalValue / completedCount : 0;
@@ -697,8 +705,8 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 mt-4">
         <SummaryCard 
           label="Total de Corridas" 
-          value={isLoading ? "--" : deliveries.length} 
-          subValue={isLoading ? "Carregando..." : `${completedCount} finalizadas`}
+          value={isLoading ? "--" : displayTotalCount} 
+          subValue={isLoading ? "Carregando..." : `${completedCount} finalizadas na pág.`}
           trend={isLoading ? undefined : `${successRate.toFixed(1)}% taxa de sucesso`}
           icon={<div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner"><BarChart3 className="h-6 w-6" /></div>}
         />
@@ -788,7 +796,7 @@ export default function ReportsPage() {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-3xl font-black text-foreground">{deliveries.length}</span>
+              <span className="text-3xl font-black text-foreground">{displayTotalCount}</span>
               <span className="text-[10px] font-bold text-muted-foreground uppercase">Total</span>
             </div>
           </div>
