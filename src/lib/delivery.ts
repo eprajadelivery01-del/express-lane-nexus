@@ -38,11 +38,11 @@ export function getDeliveryValue(d: any): number {
   const f = Number(d.delivery_fee);
   if (f) return f;
   
-  const p = Number(d.price);
-  if (p) return p;
-
   const v = Number(d.value);
   if (v) return v;
+
+  const p = Number(d.price);
+  if (p) return p;
 
   return 0;
 }

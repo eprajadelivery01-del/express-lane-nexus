@@ -8,6 +8,7 @@ import { BarChart3, Download, Loader2, Filter, Search, Printer } from "lucide-re
 import { format, startOfDay, endOfDay, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { getDeliveryValue, formatDeliveryValue } from "@/lib/delivery";
+import { filterDeliveriesByLocalParams, getValidDeliveries, calculateReportsTotals } from "@/lib/reports";
 import { useMemo } from "react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -116,28 +117,22 @@ export default function ReportsPage() {
   const trueTotalCount = data?.count ?? 0;
   
   const deliveries = useMemo(() => {
-    return rawDeliveries.filter((d) => {
-      if (regionFilter && d.region_id !== regionFilter) return false;
-      if (paymentFilter && d.payment_method !== paymentFilter) return false;
-      if (minVal && getDeliveryValue(d) < Number(minVal)) return false;
-      if (maxVal && getDeliveryValue(d) > Number(maxVal)) return false;
-      // "Finalizadas" deve incluir tanto 'delivered' quanto 'completed'
-      if (statusFilter === "delivered" && !(d.status === "delivered" || (d.status as string) === "completed")) return false;
-      return true;
+    return filterDeliveriesByLocalParams(rawDeliveries, {
+      regionFilter,
+      paymentFilter,
+      minVal,
+      maxVal,
+      statusFilter
     });
   }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal, statusFilter]);
 
   const hasLocalFilters = Boolean(regionFilter || paymentFilter || minVal || maxVal || statusFilter === "delivered");
   const displayTotalCount = hasLocalFilters ? deliveries.length : (trueTotalCount > deliveries.length ? trueTotalCount : deliveries.length);
 
-  const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || (d.status as string) === "completed"), [deliveries]);
+  const validDeliveries = useMemo(() => getValidDeliveries(deliveries), [deliveries]);
 
-  const totalValue = validDeliveries.reduce((s, d) => s + getDeliveryValue(d), 0);
-  const totalCommission = validDeliveries.reduce((s, d) => s + Number((d as any).commission ?? 0), 0);
+  const { totalValue, totalCommission, completedCount } = calculateReportsTotals(validDeliveries);
   
-  // Se não tem filtro local e temos o count real, não podemos saber exatamente quantos foram "completed" do total real pelo frontend,
-  // mas podemos projetar a taxa de sucesso ou apenas mostrar o que temos.
-  const completedCount = validDeliveries.length;
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
   const ticketMedio = completedCount > 0 ? totalValue / completedCount : 0;
 
@@ -363,8 +358,7 @@ export default function ReportsPage() {
     }, 0);
 
     // Validação de Integridade Financeira antes de renderizar (solicitada pelo admin)
-    const sumRowsValue = validDeliveries.reduce((acc, d) => acc + getDeliveryValue(d), 0);
-    const sumRowsCommission = validDeliveries.reduce((acc, d) => acc + Number((d as any).commission ?? 0), 0);
+    const { totalValue: sumRowsValue, totalCommission: sumRowsCommission } = calculateReportsTotals(validDeliveries);
     
     if (
       Math.abs(sumRowsValue - totalValue) > 0.01 || 

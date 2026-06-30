@@ -7,7 +7,7 @@ function toDbStatus(status: string) {
   return status;
 }
 
-function toAppStatus(status: string) {
+export function toAppStatus(status: string) {
   return status as DeliveryStatus;
 }
 
@@ -74,6 +74,31 @@ interface UseDeliveriesParams {
   pageSize?: number;
   page?: number;
   enabled?: boolean;
+}
+
+export function normalizeDeliveryData(filteredData: any[], paymentMethodsByOrderId: Map<string, string | null>) {
+  return filteredData.map((delivery: any) => {
+    const rawDriver = delivery.delivery_drivers;
+    let normalizedDriver = null;
+    if (rawDriver) {
+      normalizedDriver = {
+        id: rawDriver.id,
+        user_id: rawDriver.user_id,
+        full_name: rawDriver.full_name || "Entregador Atribuído",
+        phone: rawDriver.phone || null,
+        vehicle_type: rawDriver.vehicle_type || null,
+        vehicle_plate: rawDriver.vehicle_plate || null,
+      };
+    }
+
+    return {
+      ...delivery,
+      status: toAppStatus(delivery.status),
+      delivered_at: delivery.delivered_at ?? delivery.completed_at ?? null,
+      payment_method: delivery.order_id ? (paymentMethodsByOrderId.get(delivery.order_id) ?? null) : null,
+      delivery_drivers: normalizedDriver,
+    };
+  });
 }
 
 export function useDeliveries(params?: UseDeliveriesParams) {
@@ -152,28 +177,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
 
       const filteredData = (data ?? []).filter((d: any) => !d.notes?.includes("Cancelamento automático"));
 
-      const normalizedData = filteredData.map((delivery: any) => {
-        const rawDriver = delivery.delivery_drivers;
-        let normalizedDriver = null;
-        if (rawDriver) {
-          normalizedDriver = {
-            id: rawDriver.id,
-            user_id: rawDriver.user_id,
-            full_name: rawDriver.full_name || "Entregador Atribuído",
-            phone: rawDriver.phone || null,
-            vehicle_type: rawDriver.vehicle_type || null,
-            vehicle_plate: rawDriver.vehicle_plate || null,
-          };
-        }
-
-        return {
-          ...delivery,
-          status: toAppStatus(delivery.status),
-          delivered_at: delivery.delivered_at ?? delivery.completed_at ?? null,
-          payment_method: delivery.order_id ? paymentMethodsByOrderId.get(delivery.order_id) ?? null : null,
-          delivery_drivers: normalizedDriver,
-        };
-      });
+      const normalizedData = normalizeDeliveryData(filteredData, paymentMethodsByOrderId);
 
       return { data: normalizedData as unknown as DeliveryWithRelations[], count: count || 0 };
     },
