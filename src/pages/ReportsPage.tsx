@@ -249,20 +249,47 @@ export default function ReportsPage() {
   };
 
   const handleExport = () => {
-    if (deliveries.length === 0) {
-      toast({ title: "Nenhum dado para exportar", variant: "destructive" });
+    if (validDeliveries.length === 0) {
+      toast({ title: "Nenhum dado válido para exportar", variant: "destructive" });
       return;
     }
-    const headers = ["Data", "Cliente", "Empresa", "Endereço", "Status", "Valor", "Comissão"];
-    const rows = deliveries.map((d) => [
+
+    const { totalValue: sumRowsValue, totalCommission: sumRowsCommission } = calculateReportsTotals(validDeliveries);
+    if (
+      Math.abs(sumRowsValue - totalValue) > 0.01 || 
+      Math.abs(sumRowsCommission - totalCommission) > 0.01 || 
+      validDeliveries.length !== completedCount
+    ) {
+      toast({
+         title: "Erro de Validação Financeira",
+         description: "Inconsistência detectada: a soma das corridas detalhadas não bate com o faturamento total calculado. Exportação abortada.",
+         variant: "destructive"
+      });
+      return;
+    }
+
+    const headers = ["Data / Hora", "Cliente", "Empresa", "Endereço", "Status", "Valor", "Comissão"];
+    const rows = validDeliveries.map((d) => [
       format(new Date(d.created_at), "dd/MM/yyyy HH:mm"),
-      d.customer_name,
-      (d as any).companies?.name || "",
-      d.address,
-      d.status,
-      formatDeliveryValue(d),
-      Number((d as any).commission ?? 0).toFixed(2),
+      d.customer_name || "—",
+      (d as any).companies?.name || "Marketplace",
+      d.address || "—",
+      STATUS_LABELS[d.status as keyof typeof STATUS_LABELS] || d.status,
+      formatDeliveryValue(d).replace(".", ","),
+      Number((d as any).commission ?? 0).toFixed(2).replace(".", ","),
     ]);
+    
+    // Add total row at the end
+    rows.push([
+      "TOTAIS",
+      "",
+      "",
+      "",
+      "",
+      totalValue.toFixed(2).replace(".", ","),
+      totalCommission.toFixed(2).replace(".", ",")
+    ]);
+
     const csv = [headers.join(";"), ...rows.map((r) => r.join(";"))].join("\n");
     const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -961,7 +988,7 @@ export default function ReportsPage() {
              </div>
              <div>
                 <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Detalhamento Financeiro</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">{deliveries.length} registros encontrados</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{validDeliveries.length} registros válidos</p>
              </div>
           </div>
           <div className="flex items-center gap-3">
@@ -998,36 +1025,47 @@ export default function ReportsPage() {
                   <th className="text-left text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] p-6">Cliente &amp; Empresa</th>
                   <th className="text-left text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] p-6 hidden lg:table-cell">Endereço de Entrega</th>
                   <th className="text-left text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] p-6">Status</th>
-                  <th className="text-right text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] p-6">Financeiro</th>
+                  <th className="text-right text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] p-6">Valor</th>
+                  <th className="text-right text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] p-6">Comissão</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {deliveries.map((d) => (
+                {validDeliveries.map((d) => (
                   <tr key={d.id} className="hover:bg-primary/5 transition-colors group">
                     <td className="p-6">
-                      <p className="text-xs font-bold text-foreground">{format(new Date(d.created_at), "dd/MM/yyyy")}</p>
+                      <p className="text-xs font-bold text-foreground">{format(new Date(d.created_at), "dd/MM/yyyy HH:mm")}</p>
                       <p className="text-[10px] text-muted-foreground font-mono mt-1 opacity-60">#{d.id.split("-")[0]}</p>
                     </td>
                     <td className="p-6">
                       <div className="flex items-center gap-3">
                          <div className="flex flex-col">
-                            <span className="text-sm font-bold text-foreground leading-tight">{d.customer_name}</span>
+                            <span className="text-sm font-bold text-foreground leading-tight">{d.customer_name || "—"}</span>
                             <span className="text-[11px] font-medium text-primary mt-0.5">{(d as any).companies?.name || "Marketplace"}</span>
                          </div>
                       </div>
                     </td>
                     <td className="p-6 hidden lg:table-cell">
-                       <p className="text-xs text-muted-foreground max-w-[200px] truncate leading-relaxed">{d.address}</p>
+                       <p className="text-xs text-muted-foreground max-w-[200px] truncate leading-relaxed">{d.address || "—"}</p>
                     </td>
                     <td className="p-6">
                        <StatusBadge status={d.status} />
                     </td>
                     <td className="p-6 text-right">
-                      <p className="text-sm font-black text-foreground">R$ {formatDeliveryValue(d)}</p>
+                      <p className="text-sm font-black text-foreground">R$ {formatDeliveryValue(d).replace(".", ",")}</p>
+                    </td>
+                    <td className="p-6 text-right">
+                      <p className="text-sm font-black text-primary">R$ {Number((d as any).commission ?? 0).toFixed(2).replace(".", ",")}</p>
                     </td>
                   </tr>
                 ))}
               </tbody>
+              <tfoot className="bg-muted/50 border-t border-white/10">
+                <tr>
+                  <td colSpan={4} className="p-6 text-right font-black uppercase text-xs tracking-widest text-muted-foreground">TOTAIS</td>
+                  <td className="p-6 text-right font-black text-sm text-foreground">R$ {totalValue.toFixed(2).replace(".", ",")}</td>
+                  <td className="p-6 text-right font-black text-sm text-primary">R$ {totalCommission.toFixed(2).replace(".", ",")}</td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         )}
