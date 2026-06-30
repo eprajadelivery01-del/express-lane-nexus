@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useDeliveries } from "@/services/deliveries";
@@ -113,7 +114,7 @@ export default function ReportsPage() {
     pageSize: 1000,
   });
 
-  const rawDeliveries = data?.data ?? [];
+  const rawDeliveries = useMemo(() => data?.data ?? [], [data?.data]);
   const trueTotalCount = data?.count ?? 0;
   
   const deliveries = useMemo(() => {
@@ -156,7 +157,7 @@ export default function ReportsPage() {
       const isCompleted = d.status === "delivered" || (d.status as string) === "completed";
       if (isCompleted) {
         groups[dateStr].total += getDeliveryValue(d);
-        groups[dateStr].commission += Number((d as any).commission ?? 0);
+        groups[dateStr].commission += Number(d.commission ?? 0);
       }
       groups[dateStr].count += 1;
     });
@@ -174,7 +175,7 @@ export default function ReportsPage() {
       if (!isCompleted) return;
 
       const cId = d.company_id || "unknown";
-      const cName = (d as any).companies?.name || "Sem empresa";
+      const cName = d.companies?.name || "Sem empresa";
       if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
       map[cId].revenue += getDeliveryValue(d);
       map[cId].count += 1;
@@ -272,11 +273,11 @@ export default function ReportsPage() {
     const rows = validDeliveries.map((d) => [
       format(new Date(d.created_at), "dd/MM/yyyy HH:mm"),
       d.customer_name || "—",
-      (d as any).companies?.name || "Marketplace",
+      d.companies?.name || "Marketplace",
       d.address || "—",
       STATUS_LABELS[d.status as keyof typeof STATUS_LABELS] || d.status,
       formatDeliveryValue(d).replace(".", ","),
-      Number((d as any).commission ?? 0).toFixed(2).replace(".", ","),
+      Number(d.commission ?? 0).toFixed(2).replace(".", ","),
     ]);
     
     // Add total row at the end
@@ -366,11 +367,11 @@ export default function ReportsPage() {
       <tr>
         <td>${format(new Date(d.created_at), "dd/MM/yyyy HH:mm")}</td>
         <td>${d.customer_name || "—"}</td>
-        <td>${(d as any).companies?.name || "Marketplace"}</td>
+        <td>${d.companies?.name || "Marketplace"}</td>
         <td style="max-width:200px;overflow:hidden">${d.address || "—"}</td>
         <td style="text-align:center">${STATUS_LABELS[d.status as keyof typeof STATUS_LABELS] || d.status}</td>
         <td style="text-align:right;font-weight:700">R$ ${formatDeliveryValue(d)}</td>
-        <td style="text-align:right">R$ ${Number((d as any).commission ?? 0).toFixed(2)}</td>
+        <td style="text-align:right">R$ ${Number(d.commission ?? 0).toFixed(2)}</td>
       </tr>`).join("");
 
     const totalCompanyDue = companyFreightBreakdown.reduce((s, c) => {
@@ -1040,7 +1041,7 @@ export default function ReportsPage() {
                       <div className="flex items-center gap-3">
                          <div className="flex flex-col">
                             <span className="text-sm font-bold text-foreground leading-tight">{d.customer_name || "—"}</span>
-                            <span className="text-[11px] font-medium text-primary mt-0.5">{(d as any).companies?.name || "Marketplace"}</span>
+                            <span className="text-[11px] font-medium text-primary mt-0.5">{d.companies?.name || "Marketplace"}</span>
                          </div>
                       </div>
                     </td>
@@ -1054,7 +1055,7 @@ export default function ReportsPage() {
                       <p className="text-sm font-black text-foreground">R$ {formatDeliveryValue(d).replace(".", ",")}</p>
                     </td>
                     <td className="p-6 text-right">
-                      <p className="text-sm font-black text-primary">R$ {Number((d as any).commission ?? 0).toFixed(2).replace(".", ",")}</p>
+                      <p className="text-sm font-black text-primary">R$ {Number(d.commission ?? 0).toFixed(2).replace(".", ",")}</p>
                     </td>
                   </tr>
                 ))}
