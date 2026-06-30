@@ -102,7 +102,8 @@ export default function ReportsPage() {
   const { data: regions } = useRegions();
 
   const { data, isLoading, isError, error } = useDeliveries({
-    status: statusFilter,
+    // 'delivered' inclui também 'completed' — filtramos localmente para não perder linhas
+    status: statusFilter === "delivered" ? "all" : statusFilter,
     companyId: companyFilter || undefined,
     driverId: driverFilter || undefined,
     dateFrom: dateFrom || undefined,
