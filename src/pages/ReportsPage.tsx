@@ -443,7 +443,7 @@ export default function ReportsPage() {
       <div class="kpi-sub">Receita bruta processada</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Comissões Plataforma</div>
+      <div class="kpi-label">Devido à Plataforma</div>
       <div class="kpi-value">R$ ${(totalCompanyDue + totalDriverDue).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       <div class="kpi-sub">Lojistas + Entregadores</div>
     </div>
