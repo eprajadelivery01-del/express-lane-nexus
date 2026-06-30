@@ -339,8 +339,8 @@ export default function ReportsPage() {
         </tr>`;
     }).join("");
 
-    // Delivery detail rows (ALL records, no limit)
-    const deliveryRows = deliveries.map(d => `
+    // Delivery detail rows (only valid deliveries)
+    const deliveryRows = validDeliveries.map(d => `
       <tr>
         <td>${format(new Date(d.created_at), "dd/MM/yyyy HH:mm")}</td>
         <td>${d.customer_name || "—"}</td>
@@ -361,6 +361,23 @@ export default function ReportsPage() {
         ? Number(dr.commission_rate) : 0.40;
       return s + d.count * rate;
     }, 0);
+
+    // Validação de Integridade Financeira antes de renderizar (solicitada pelo admin)
+    const sumRowsValue = validDeliveries.reduce((acc, d) => acc + getDeliveryValue(d), 0);
+    const sumRowsCommission = validDeliveries.reduce((acc, d) => acc + Number((d as any).commission ?? 0), 0);
+    
+    if (
+      Math.abs(sumRowsValue - totalValue) > 0.01 || 
+      Math.abs(sumRowsCommission - totalCommission) > 0.01 || 
+      validDeliveries.length !== completedCount
+    ) {
+      toast({
+         title: "Erro de Validação Financeira",
+         description: "Inconsistência detectada: a soma das corridas detalhadas não bate com o faturamento total calculado. Geração do relatório abortada por segurança.",
+         variant: "destructive"
+      });
+      return;
+    }
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
