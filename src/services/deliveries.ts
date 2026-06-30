@@ -92,6 +92,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
           address, 
           value, 
           price,
+          commission,
           delivery_fee,
           status, 
           created_at, 
