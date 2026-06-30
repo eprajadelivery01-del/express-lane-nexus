@@ -102,7 +102,8 @@ export default function ReportsPage() {
   const { data: regions } = useRegions();
 
   const { data, isLoading, isError, error } = useDeliveries({
-    status: statusFilter,
+    // 'delivered' inclui também 'completed' — filtramos localmente para não perder linhas
+    status: statusFilter === "delivered" ? "all" : statusFilter,
     companyId: companyFilter || undefined,
     driverId: driverFilter || undefined,
     dateFrom: dateFrom || undefined,
@@ -120,11 +121,13 @@ export default function ReportsPage() {
       if (paymentFilter && d.payment_method !== paymentFilter) return false;
       if (minVal && getDeliveryValue(d) < Number(minVal)) return false;
       if (maxVal && getDeliveryValue(d) > Number(maxVal)) return false;
+      // "Finalizadas" deve incluir tanto 'delivered' quanto 'completed'
+      if (statusFilter === "delivered" && !(d.status === "delivered" || (d.status as string) === "completed")) return false;
       return true;
     });
-  }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal]);
+  }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal, statusFilter]);
 
-  const hasLocalFilters = Boolean(regionFilter || paymentFilter || minVal || maxVal);
+  const hasLocalFilters = Boolean(regionFilter || paymentFilter || minVal || maxVal || statusFilter === "delivered");
   const displayTotalCount = hasLocalFilters ? deliveries.length : (trueTotalCount > deliveries.length ? trueTotalCount : deliveries.length);
 
   const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || (d.status as string) === "completed"), [deliveries]);
@@ -203,7 +206,9 @@ export default function ReportsPage() {
   const statusData = useMemo(() => {
     const stats: Record<string, number> = {};
     deliveries.forEach(d => {
-      stats[d.status] = (stats[d.status] || 0) + 1;
+      // Unifica 'completed' dentro de 'delivered' para evitar duplicação visual
+      const key = (d.status as string) === "completed" ? "delivered" : d.status;
+      stats[key] = (stats[key] || 0) + 1;
     });
     return Object.entries(stats).map(([name, value]) => ({ name, value }));
   }, [deliveries]);
@@ -438,7 +443,7 @@ export default function ReportsPage() {
       <div class="kpi-sub">Receita bruta processada</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Comissões Plataforma</div>
+      <div class="kpi-label">Devido à Plataforma</div>
       <div class="kpi-value">R$ ${(totalCompanyDue + totalDriverDue).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       <div class="kpi-sub">Lojistas + Entregadores</div>
     </div>
@@ -667,7 +672,7 @@ export default function ReportsPage() {
         <SummaryCard 
           label="Total de Corridas" 
           value={isLoading ? "--" : displayTotalCount} 
-          subValue={isLoading ? "Carregando..." : `${completedCount} finalizadas na pág.`}
+          subValue={isLoading ? "Carregando..." : `${completedCount} finalizadas`}
           trend={isLoading ? undefined : `${successRate.toFixed(1)}% taxa de sucesso`}
           icon={<div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner"><BarChart3 className="h-6 w-6" /></div>}
         />
@@ -681,8 +686,8 @@ export default function ReportsPage() {
           label="Comissões Estimadas" 
           value={`R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           icon={<div className="w-12 h-12 rounded-2xl bg-warning/10 flex items-center justify-center text-warning shadow-inner"><Download className="h-6 w-6" /></div>}
-          subValue="Lucro operacional líquido"
-          trend="8.5% do faturamento"
+          subValue="Comissões pagas aos entregadores"
+          trend={totalValue > 0 ? `${((totalCommission / totalValue) * 100).toFixed(1)}% do faturamento` : undefined}
         />
         <SummaryCard 
           label="Ticket Médio" 
@@ -986,7 +991,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {deliveries.slice(0, 50).map((d) => (
+                {deliveries.map((d) => (
                   <tr key={d.id} className="hover:bg-primary/5 transition-colors group">
                     <td className="p-6">
                       <p className="text-xs font-bold text-foreground">{format(new Date(d.created_at), "dd/MM/yyyy")}</p>
