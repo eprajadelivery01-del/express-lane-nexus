@@ -672,7 +672,7 @@ export default function ReportsPage() {
         <SummaryCard 
           label="Total de Corridas" 
           value={isLoading ? "--" : displayTotalCount} 
-          subValue={isLoading ? "Carregando..." : `${completedCount} finalizadas na pág.`}
+          subValue={isLoading ? "Carregando..." : `${completedCount} finalizadas`}
           trend={isLoading ? undefined : `${successRate.toFixed(1)}% taxa de sucesso`}
           icon={<div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner"><BarChart3 className="h-6 w-6" /></div>}
         />
@@ -686,8 +686,8 @@ export default function ReportsPage() {
           label="Comissões Estimadas" 
           value={`R$ ${totalCommission.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} 
           icon={<div className="w-12 h-12 rounded-2xl bg-warning/10 flex items-center justify-center text-warning shadow-inner"><Download className="h-6 w-6" /></div>}
-          subValue="Lucro operacional líquido"
-          trend="8.5% do faturamento"
+          subValue="Comissões pagas aos entregadores"
+          trend={totalValue > 0 ? `${((totalCommission / totalValue) * 100).toFixed(1)}% do faturamento` : undefined}
         />
         <SummaryCard 
           label="Ticket Médio" 
