@@ -991,7 +991,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {deliveries.slice(0, 50).map((d) => (
+                {deliveries.map((d) => (
                   <tr key={d.id} className="hover:bg-primary/5 transition-colors group">
                     <td className="p-6">
                       <p className="text-xs font-bold text-foreground">{format(new Date(d.created_at), "dd/MM/yyyy")}</p>
