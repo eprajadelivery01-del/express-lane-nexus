@@ -318,8 +318,17 @@ export function useReassignDelivery() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, driverId }: { id: string; driverId: string | null }) => {
-      const { error } = await supabase.from("deliveries").update({ driver_id: driverId, updated_at: new Date().toISOString() }).eq("id", id);
+      const newStatus = driverId ? "accepted" : "pending";
+      const { error } = await supabase.from("deliveries").update({ 
+        driver_id: driverId, 
+        status: newStatus,
+        updated_at: new Date().toISOString() 
+      } as any).eq("id", id);
       if (error) throw error;
+      
+      // Sync order status if needed
+      const orderStatus = driverId ? "confirmed" : "pending";
+      await supabase.from("orders").update({ status: orderStatus } as any).eq("delivery_id", id);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["deliveries"] }),
   });
