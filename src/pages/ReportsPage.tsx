@@ -206,7 +206,9 @@ export default function ReportsPage() {
   const statusData = useMemo(() => {
     const stats: Record<string, number> = {};
     deliveries.forEach(d => {
-      stats[d.status] = (stats[d.status] || 0) + 1;
+      // Unifica 'completed' dentro de 'delivered' para evitar duplicação visual
+      const key = (d.status as string) === "completed" ? "delivered" : d.status;
+      stats[key] = (stats[key] || 0) + 1;
     });
     return Object.entries(stats).map(([name, value]) => ({ name, value }));
   }, [deliveries]);
