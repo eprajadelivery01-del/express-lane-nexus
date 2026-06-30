@@ -120,11 +120,13 @@ export default function ReportsPage() {
       if (paymentFilter && d.payment_method !== paymentFilter) return false;
       if (minVal && getDeliveryValue(d) < Number(minVal)) return false;
       if (maxVal && getDeliveryValue(d) > Number(maxVal)) return false;
+      // "Finalizadas" deve incluir tanto 'delivered' quanto 'completed'
+      if (statusFilter === "delivered" && !(d.status === "delivered" || (d.status as string) === "completed")) return false;
       return true;
     });
-  }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal]);
+  }, [rawDeliveries, regionFilter, paymentFilter, minVal, maxVal, statusFilter]);
 
-  const hasLocalFilters = Boolean(regionFilter || paymentFilter || minVal || maxVal);
+  const hasLocalFilters = Boolean(regionFilter || paymentFilter || minVal || maxVal || statusFilter === "delivered");
   const displayTotalCount = hasLocalFilters ? deliveries.length : (trueTotalCount > deliveries.length ? trueTotalCount : deliveries.length);
 
   const validDeliveries = useMemo(() => deliveries.filter(d => d.status === "delivered" || (d.status as string) === "completed"), [deliveries]);
