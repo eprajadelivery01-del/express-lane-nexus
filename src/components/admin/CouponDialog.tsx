@@ -127,7 +127,11 @@ export function CouponDialog({ open, onOpenChange, coupon }: Props) {
       }
       onOpenChange(false);
     } catch (err: any) {
-      toast.error(err?.message ?? "Erro ao salvar");
+      if (err?.message?.includes("coupons_code_key") || err?.message?.includes("duplicate key")) {
+        toast.error("Este código de cupom já existe!");
+      } else {
+        toast.error(err?.message ?? "Erro ao salvar");
+      }
     }
   };
 
