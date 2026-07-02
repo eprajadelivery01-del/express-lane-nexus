@@ -188,7 +188,7 @@ export default function DeliveriesPage() {
         <div class="label">Valor do Produto</div>
         <div class="value">R$ ${productValue.toFixed(2).replace('.', ',')}</div>
         <div class="label">Taxa de Entrega</div>
-        <div class="value">R$ ${Number(delivery.value ?? delivery.price ?? 0).toFixed(2).replace('.', ',')}</div>
+        <div class="value">R$ ${formatDeliveryValue(delivery).replace('.', ',')}</div>
         <div class="label">Data/Hora da Solicitação</div>
         <div class="value">${format(new Date(delivery.created_at), "dd/MM/yyyy HH:mm")}</div>
         ${delivery.notes ? `<div class="label">Observações</div><div class="value">${delivery.notes}</div>` : ""}

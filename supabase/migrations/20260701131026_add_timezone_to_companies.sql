@@ -1,0 +1,1 @@
+ALTER TABLE companies ADD COLUMN IF NOT EXISTS timezone VARCHAR(255) DEFAULT 'America/Sao_Paulo';

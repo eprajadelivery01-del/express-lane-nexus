@@ -9,6 +9,7 @@ ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public invitation access" ON public.invitations;
 DROP POLICY IF EXISTS "Admin invitation access" ON public.invitations;
 
+DROP POLICY IF EXISTS "Admins manage invitations" ON public.invitations;
 CREATE POLICY "Admins manage invitations"
 ON public.invitations
 FOR ALL
@@ -21,6 +22,7 @@ WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
 -- 3) Customers: drop broad ALL grant; scope SELECT to linked customers, allow INSERT, admins keep full
 DROP POLICY IF EXISTS "Companies can manage customers" ON public.customers;
 
+DROP POLICY IF EXISTS "Admins manage customers" ON public.customers;
 CREATE POLICY "Admins manage customers"
 ON public.customers
 FOR ALL

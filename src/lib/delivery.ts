@@ -35,14 +35,11 @@ export function getDeliveryValue(d: any): number {
     }
   }
 
-  const f = Number(d.delivery_fee);
-  if (f) return f;
+  if (d.delivery_fee != null && !isNaN(Number(d.delivery_fee))) return Number(d.delivery_fee);
   
-  const v = Number(d.value);
-  if (v) return v;
+  if (d.value != null && !isNaN(Number(d.value))) return Number(d.value);
 
-  const p = Number(d.price);
-  if (p) return p;
+  if (d.price != null && !isNaN(Number(d.price))) return Number(d.price);
 
   return 0;
 }
