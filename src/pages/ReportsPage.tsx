@@ -9,7 +9,8 @@ import { BarChart3, Download, Loader2, Filter, Search, Printer } from "lucide-re
 import { format, startOfDay, endOfDay, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { getDeliveryValue, formatDeliveryValue } from "@/lib/delivery";
-import { filterDeliveriesByLocalParams, getValidDeliveries, calculateReportsTotals } from "@/lib/reports";
+import { filterDeliveriesByLocalParams, getValidDeliveries } from "@/lib/reports";
+import { useFinancialTotals } from "@/hooks/useFinancialTotals";
 import { useMemo } from "react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -132,7 +133,7 @@ export default function ReportsPage() {
 
   const validDeliveries = useMemo(() => getValidDeliveries(deliveries), [deliveries]);
 
-  const { totalValue, totalCommission, completedCount } = calculateReportsTotals(validDeliveries);
+  const { totalValue, totalCommission, completedCount, enrichedDeliveries } = useFinancialTotals(validDeliveries, drivers ?? []);
   
   const successRate = deliveries.length > 0 ? (completedCount / deliveries.length) * 100 : 0;
   const ticketMedio = completedCount > 0 ? totalValue / completedCount : 0;
@@ -363,15 +364,20 @@ export default function ReportsPage() {
     }).join("");
 
     // Delivery detail rows (only valid deliveries)
-    const deliveryRows = validDeliveries.map(d => `
+    const deliveryRows = enrichedDeliveries.map(d => `
       <tr>
-        <td>${format(new Date(d.created_at), "dd/MM/yyyy HH:mm")}</td>
-        <td>${d.customer_name || "—"}</td>
-        <td>${d.companies?.name || "Marketplace"}</td>
+        <td>
+          <div style="font-weight:700">${format(new Date(d.created_at), "dd/MM/yyyy HH:mm")}</div>
+          <div style="font-family:monospace;font-size:10px;color:#64748b">#${d.id.split("-")[0]}</div>
+        </td>
+        <td>
+          <div style="font-weight:700">${d.customer_name || "Cliente Final"}</div>
+          <div style="font-size:10px;color:#64748b;margin-top:2px">${d.companies?.name || "Marketplace"}</div>
+        </td>
         <td style="max-width:200px;overflow:hidden">${d.address || "—"}</td>
         <td style="text-align:center">${STATUS_LABELS[d.status as keyof typeof STATUS_LABELS] || d.status}</td>
-        <td style="text-align:right;font-weight:700">R$ ${formatDeliveryValue(d)}</td>
-        <td style="text-align:right">R$ ${Number(d.commission ?? 0).toFixed(2)}</td>
+        <td style="text-align:right;font-weight:700">R$ ${d.calculatedValue.toFixed(2).replace(".", ",")}</td>
+        <td style="text-align:right">R$ ${d.calculatedCommission.toFixed(2).replace(".", ",")}</td>
       </tr>`).join("");
 
     const totalCompanyDue = companyFreightBreakdown.reduce((s, c) => {
@@ -386,7 +392,10 @@ export default function ReportsPage() {
     }, 0);
 
     // Validação de Integridade Financeira antes de renderizar (solicitada pelo admin)
-    const { totalValue: sumRowsValue, totalCommission: sumRowsCommission } = calculateReportsTotals(validDeliveries);
+    // Opcionalmente podemos desabilitar ou fazer uma validação mais simples,
+    // já que agora centralizamos no hook useFinancialTotals.
+    const sumRowsValue = enrichedDeliveries.reduce((acc, curr) => acc + curr.calculatedValue, 0);
+    const sumRowsCommission = enrichedDeliveries.reduce((acc, curr) => acc + curr.calculatedCommission, 0);
     
     if (
       Math.abs(sumRowsValue - totalValue) > 0.01 || 
@@ -1031,7 +1040,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {validDeliveries.map((d) => (
+                {enrichedDeliveries.map((d) => (
                   <tr key={d.id} className="hover:bg-primary/5 transition-colors group">
                     <td className="p-6">
                       <p className="text-xs font-bold text-foreground">{format(new Date(d.created_at), "dd/MM/yyyy HH:mm")}</p>
@@ -1052,10 +1061,10 @@ export default function ReportsPage() {
                        <StatusBadge status={d.status} />
                     </td>
                     <td className="p-6 text-right">
-                      <p className="text-sm font-black text-foreground">R$ {formatDeliveryValue(d).replace(".", ",")}</p>
+                      <p className="text-sm font-black text-foreground">R$ {d.calculatedValue.toFixed(2).replace(".", ",")}</p>
                     </td>
                     <td className="p-6 text-right">
-                      <p className="text-sm font-black text-primary">R$ {Number(d.commission ?? 0).toFixed(2).replace(".", ",")}</p>
+                      <p className="text-sm font-black text-primary">R$ {d.calculatedCommission.toFixed(2).replace(".", ",")}</p>
                     </td>
                   </tr>
                 ))}
