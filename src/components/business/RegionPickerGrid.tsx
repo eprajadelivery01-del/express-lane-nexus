@@ -21,14 +21,19 @@ export const RegionPickerGrid = memo(({ cityId, companyId, onRegionSelect, disab
   useEffect(() => {
     const fetchRegions = async () => {
       setLoading(true);
-      const { data: comp } = await supabase.from('companies').select('pricing_table_id, delivery_mode, delivery_fee').eq('id', companyId).single();
-      setCompanySettings(comp);
-
-      if (comp?.pricing_table_id) {
-        const { data: rules } = await supabase.from('pricing_rules').select('*').eq('pricing_table_id', comp.pricing_table_id);
-        setPricingRules(rules ?? []);
+      const { data: comp } = await supabase.from('companies').select('pricing_table_id, region_id, delivery_mode, delivery_fee, delivery_regions_pricing').eq('id', companyId).single();
+      if (comp) {
+        setCompanySettings(comp);
+        let tableId = comp.pricing_table_id;
+        if (tableId && comp.region_id) {
+          const { data: rules } = await supabase
+            .from('pricing_rules')
+            .select('*')
+            .eq('pricing_table_id', tableId)
+            .eq('origin_region_id', comp.region_id);
+          if (rules) setPricingRules(rules);
+        }
       }
-
       const { data } = await supabase.from('regions').select('*').order('name');
       const filtered = (data ?? []).filter(
         (r: any) => r.is_active !== false && (!cityId || r.city_id === cityId)
@@ -43,9 +48,32 @@ export const RegionPickerGrid = memo(({ cityId, companyId, onRegionSelect, disab
     if (companySettings?.delivery_mode === 'fixed_fee' && companySettings?.delivery_fee != null) {
       return Number(companySettings.delivery_fee);
     }
+    // 1. Tenta pegar o preço da matriz do lojista (novo formato JSON)
+    if (companySettings?.delivery_regions_pricing) {
+      let matrix = companySettings.delivery_regions_pricing;
+      if (typeof matrix === 'string') {
+        try { matrix = JSON.parse(matrix); } catch(e) {}
+      }
+      if (matrix && typeof matrix === 'object' && !Array.isArray(matrix) && matrix.matrix) {
+        matrix = matrix.matrix;
+      }
+      if (Array.isArray(matrix)) {
+        const match = matrix.find((m: any) => m.region_id === region.id || m.to === region.id);
+        if (match && (match.customer_price != null || match.price != null)) {
+          const val = match.customer_price != null ? match.customer_price : match.price;
+          if (val !== "" && val !== null) {
+            return Number(String(val).replace(',', '.'));
+          }
+        }
+      }
+    }
+
+    // 2. Fallback para pricing_rules antigas
     const rule = pricingRules.find(r => r.destination_region_id === region.id);
     if (rule) return Number(rule.base_value);
-    return Number(region.price ?? region.delivery_fee ?? null);
+
+    // 3. Fallback para valor padrão da região
+    return Number(region.delivery_fee || region.price || 0);
   };
 
   const handleSelect = (region: any) => {

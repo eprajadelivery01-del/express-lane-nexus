@@ -159,7 +159,7 @@
     filter: blur(0px);
   }
 }
-@media print {
+@media print {`n  @page { margin: 0; }
   body * {
     visibility: hidden;
   }
@@ -177,3 +177,4 @@
 }
   
 #root { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); } 
+
