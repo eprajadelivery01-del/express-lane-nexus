@@ -145,11 +145,11 @@ export function useDeliveries(params?: UseDeliveriesParams) {
       if (companyId) query = query.eq("company_id", companyId);
       if (driverId) query = query.eq("driver_id", driverId);
       if (dateFrom) {
-        const start = new Date(`${dateFrom}T00:00:00`);
+        const start = dateFrom.includes("T") ? new Date(dateFrom) : new Date(`${dateFrom}T00:00:00`);
         query = query.gte("created_at", start.toISOString());
       }
       if (dateTo) {
-        const end = new Date(`${dateTo}T23:59:59.999`);
+        const end = dateTo.includes("T") ? new Date(dateTo) : new Date(`${dateTo}T23:59:59.999`);
         query = query.lte("created_at", end.toISOString());
       }
 
