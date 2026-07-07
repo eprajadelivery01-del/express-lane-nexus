@@ -221,9 +221,10 @@ export default function ChatPage() {
                       <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
                   ) : messages?.map((msg, i) => {
-                    // Hack para permitir testes com a MESMA conta:
-                    const isAdminMessage = msg.content.endsWith('\u200B') || msg.content.trim().toLowerCase() === 'oi';
-                    const isMe = msg.sender_id === user?.id && isAdminMessage;
+                    // A identificação verdadeira deve ser SEMPRE pelo sender_id.
+                    // Se em ambiente de teste for a mesma conta, o zero-width space ainda é usado como fallback temporário.
+                    const isTestAccountHack = msg.content.endsWith('\u200B');
+                    const isMe = (msg.sender_id === user?.id) || isTestAccountHack;
                     const displayContent = msg.content.replace(/\u200B/g, '');
 
                     return (
