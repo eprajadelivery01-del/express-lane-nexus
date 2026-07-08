@@ -56,6 +56,7 @@ import MerchantInvoicesPage from "./pages/lojista/MerchantInvoicesPage";
 import { GlobalChatListener } from "@/hooks/useGlobalChatNotifications";
 import { GlobalAttackMonitor } from "@/hooks/GlobalAttackMonitor";
 import { MarketingReceiptListener } from "@/components/admin/MarketingReceiptListener";
+import { GlobalMarketingListener } from "@/components/shared/GlobalMarketingListener";
 
 const ReviewsPage = () => <div>Reviews - Em construção</div>;
 
@@ -73,6 +74,7 @@ const App = () => (
               <GlobalChatListener />
               <GlobalAttackMonitor />
               <MarketingReceiptListener />
+              <GlobalMarketingListener />
               <Routes>
                    <Route path="/" element={<Navigate to="/admin" replace />} />
                    <Route path="/login" element={<LoginPage />} />
