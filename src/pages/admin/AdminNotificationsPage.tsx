@@ -109,11 +109,20 @@ export function AdminNotificationsPage() {
       // Refresh
       fetchHistory();
     } catch (error: any) {
-      toast({ 
-        title: "Erro ao enviar notificação", 
-        description: error.message, 
-        variant: "destructive" 
-      });
+      if (error.message && (error.message.includes("schema cache") || error.message.includes("does not exist"))) {
+        toast({ 
+          title: "Ação Necessária no Banco de Dados", 
+          description: "A tabela de notificações ainda não foi criada. Por favor, execute o script SQL 'create_marketing_notifications.sql' no painel do Supabase.", 
+          variant: "destructive",
+          duration: 10000 
+        });
+      } else {
+        toast({ 
+          title: "Erro ao enviar notificação", 
+          description: error.message, 
+          variant: "destructive" 
+        });
+      }
     } finally {
       setLoading(false);
     }
