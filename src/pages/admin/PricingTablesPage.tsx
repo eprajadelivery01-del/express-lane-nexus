@@ -21,6 +21,7 @@ export default function PricingTablesPage() {
   const [currentTable, setCurrentTable] = useState<any>(null);
   const [tableName, setTableName] = useState("");
   const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Rules Dialog
   const [isRulesOpen, setIsRulesOpen] = useState(false);
@@ -93,6 +94,7 @@ export default function PricingTablesPage() {
   };
 
   const openEditTable = (table?: any) => {
+    setSearchQuery("");
     if (table) {
       setCurrentTable(table);
       setTableName(table.name);
@@ -199,11 +201,17 @@ export default function PricingTablesPage() {
             </div>
             <div>
               <Label className="mb-2 block">Empresas (Selecione quais lojas usarão esta tabela)</Label>
+              <Input 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                placeholder="Buscar empresa..." 
+                className="mb-3"
+              />
               <div className="border border-border rounded-md max-h-[300px] overflow-y-auto p-2 bg-muted/10 space-y-2">
-                {companies.filter(c => c.is_active !== false).length === 0 ? (
+                {companies.filter(c => c.is_active !== false && c.name?.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
                   <p className="text-sm text-muted-foreground p-2">Nenhuma empresa encontrada.</p>
                 ) : (
-                  companies.filter(c => c.is_active !== false).map(comp => (
+                  companies.filter(c => c.is_active !== false && c.name?.toLowerCase().includes(searchQuery.toLowerCase())).map(comp => (
                     <div key={comp.id} className="flex items-center space-x-2 p-1 hover:bg-muted/30 rounded">
                       <Checkbox 
                         id={`comp-${comp.id}`} 
