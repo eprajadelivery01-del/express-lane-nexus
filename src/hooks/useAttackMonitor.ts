@@ -13,7 +13,7 @@ export function useAttackMonitor(config: AttackMonitorConfig = {}) {
   const {
     maxClicksPerSecond = 8,
     maxRouteChangesPerMinute = 20,
-    maxErrorsPerMinute = 1,
+    maxErrorsPerMinute = 10,
     enableInjectionDetection = true,
     enableScrapingDetection = true,
   } = config;
