@@ -13,7 +13,7 @@ export function useAttackMonitor(config: AttackMonitorConfig = {}) {
   const {
     maxClicksPerSecond = 8,
     maxRouteChangesPerMinute = 20,
-    maxErrorsPerMinute = 10,
+    maxErrorsPerMinute = 1,
     enableInjectionDetection = true,
     enableScrapingDetection = true,
   } = config;
@@ -117,6 +117,33 @@ export function useAttackMonitor(config: AttackMonitorConfig = {}) {
     };
   }, [maxErrorsPerMinute, reportAttack]);
 
+  // Monitorar Erros Globais (Crashes de tela e React)
+  useEffect(() => {
+    const handleGlobalError = (event: ErrorEvent) => {
+      reportAttack("Erro Global / Crash de Tela Detectado", {
+        message: event.message,
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error?.stack || event.error?.toString()
+      });
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      reportAttack("Erro Assíncrono (Promise Rejection)", {
+        reason: event.reason?.stack || event.reason?.toString()
+      });
+    };
+
+    window.addEventListener('error', handleGlobalError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, [reportAttack]);
+
   // Monitorar XSS / SQLi via Inputs
   useEffect(() => {
     if (!enableInjectionDetection) return;
@@ -151,7 +178,7 @@ export function useAttackMonitor(config: AttackMonitorConfig = {}) {
         copyRef.current = copyRef.current.filter(t => now - t < 60000);
         copyRef.current.push(now);
 
-        if (copyRef.current.length >= 3) {
+        if (copyRef.current.length >= 1) {
           reportAttack("Possível Scraping de Dados Detectado (Cópia em Massa)", {
             copiesInLastMinute: copyRef.current.length,
             lastCopiedLength: selection.length

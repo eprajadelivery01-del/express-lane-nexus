@@ -13,13 +13,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 export default function PricingTablesPage() {
   const [tables, setTables] = useState<any[]>([]);
   const [regions, setRegions] = useState<any[]>([]);
+  const [companies, setCompanies] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Edit Table Dialog
   const [isEditTableOpen, setIsEditTableOpen] = useState(false);
   const [currentTable, setCurrentTable] = useState<any>(null);
   const [tableName, setTableName] = useState("");
-  const [isDefault, setIsDefault] = useState(false);
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Rules Dialog
   const [isRulesOpen, setIsRulesOpen] = useState(false);
@@ -35,12 +37,14 @@ export default function PricingTablesPage() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const [{ data: t }, { data: r }] = await Promise.all([
+    const [{ data: t }, { data: r }, { data: c }] = await Promise.all([
       supabase.from("pricing_tables").select("*").order("created_at"),
-      supabase.from("regions").select("*").order("name")
+      supabase.from("regions").select("*").order("name"),
+      supabase.from("companies").select("id, name, pricing_table_id, is_active").order("name")
     ]);
     if (t) setTables(t);
     if (r) setRegions(r);
+    if (c) setCompanies(c);
     setIsLoading(false);
   };
 
@@ -50,20 +54,35 @@ export default function PricingTablesPage() {
 
   const handleSaveTable = async () => {
     if (!tableName.trim()) return toast.error("Nome é obrigatório");
-    const payload = { name: tableName, is_default: isDefault };
+    const payload = { name: tableName, is_default: false };
     
-    // If setting as default, we might want to unset others, but the database might do it or we do it here
-    if (isDefault) {
-      await supabase.from("pricing_tables").update({ is_default: false }).neq("id", currentTable?.id || "00000000-0000-0000-0000-000000000000");
-    }
-
+    let tableId = currentTable?.id;
     if (currentTable) {
       await supabase.from("pricing_tables").update(payload).eq("id", currentTable.id);
       toast.success("Tabela atualizada");
     } else {
-      await supabase.from("pricing_tables").insert(payload);
+      const { data, error } = await supabase.from("pricing_tables").insert(payload).select().single();
+      if (error) {
+        return toast.error("Erro ao criar tabela");
+      }
+      tableId = data.id;
       toast.success("Tabela criada");
     }
+
+    if (tableId) {
+      // Find companies that were linked
+      const oldLinked = companies.filter(c => c.pricing_table_id === tableId).map(c => c.id);
+      const toLink = selectedCompanies.filter(id => !oldLinked.includes(id));
+      const toUnlink = oldLinked.filter(id => !selectedCompanies.includes(id));
+
+      if (toLink.length > 0) {
+        await supabase.from("companies").update({ pricing_table_id: tableId }).in("id", toLink);
+      }
+      if (toUnlink.length > 0) {
+        await supabase.from("companies").update({ pricing_table_id: null }).in("id", toUnlink);
+      }
+    }
+
     setIsEditTableOpen(false);
     fetchData();
   };
@@ -75,14 +94,16 @@ export default function PricingTablesPage() {
   };
 
   const openEditTable = (table?: any) => {
+    setSearchQuery("");
     if (table) {
       setCurrentTable(table);
       setTableName(table.name);
-      setIsDefault(table.is_default);
+      const linked = companies.filter(c => c.pricing_table_id === table.id).map(c => c.id);
+      setSelectedCompanies(linked);
     } else {
       setCurrentTable(null);
       setTableName("");
-      setIsDefault(false);
+      setSelectedCompanies([]);
     }
     setIsEditTableOpen(true);
   };
@@ -178,9 +199,36 @@ export default function PricingTablesPage() {
               <Label>Nome da Tabela</Label>
               <Input value={tableName} onChange={e => setTableName(e.target.value)} placeholder="Ex: Tabela VIP" />
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox id="default" checked={isDefault} onCheckedChange={(c) => setIsDefault(!!c)} />
-              <Label htmlFor="default">Definir como tabela padrão para novas empresas</Label>
+            <div>
+              <Label className="mb-2 block">Empresas (Selecione quais lojas usarão esta tabela)</Label>
+              <Input 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                placeholder="Buscar empresa..." 
+                className="mb-3"
+              />
+              <div className="border border-border rounded-md max-h-[300px] overflow-y-auto p-2 bg-muted/10 space-y-2">
+                {companies.filter(c => c.is_active !== false && c.name?.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-2">Nenhuma empresa encontrada.</p>
+                ) : (
+                  companies.filter(c => c.is_active !== false && c.name?.toLowerCase().includes(searchQuery.toLowerCase())).map(comp => (
+                    <div key={comp.id} className="flex items-center space-x-2 p-1 hover:bg-muted/30 rounded">
+                      <Checkbox 
+                        id={`comp-${comp.id}`} 
+                        checked={selectedCompanies.includes(comp.id)} 
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setSelectedCompanies(prev => [...prev, comp.id]);
+                          } else {
+                            setSelectedCompanies(prev => prev.filter(id => id !== comp.id));
+                          }
+                        }} 
+                      />
+                      <Label htmlFor={`comp-${comp.id}`} className="cursor-pointer flex-1">{comp.name}</Label>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setIsEditTableOpen(false)}>Cancelar</Button>

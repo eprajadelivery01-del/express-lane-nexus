@@ -9,7 +9,7 @@ import { BarChart3, Download, Loader2, Filter, Search, Printer } from "lucide-re
 import { format, startOfDay, endOfDay, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { getDeliveryValue, formatDeliveryValue } from "@/lib/delivery";
-import { filterDeliveriesByLocalParams, getValidDeliveries } from "@/lib/reports";
+import { filterDeliveriesByLocalParams, getValidDeliveries, calculateReportsTotals } from "@/lib/reports";
 import { useFinancialTotals } from "@/hooks/useFinancialTotals";
 import { useMemo } from "react";
 import { 
