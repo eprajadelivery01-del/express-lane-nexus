@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useLoginSecurityMonitor } from "@/hooks/useLoginSecurityMonitor";
 
 type AppRole = "admin" | "company" | "driver" | "customer";
 type UserStatus = "pending" | "active" | "rejected";
@@ -32,6 +33,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const { checkIpBeforeLogin, recordLoginFailure, resetFailedAttempts } = useLoginSecurityMonitor({
+    appName: "Painel Admin",
+    maxFailedAttemptsBeforeAlert: 3,
+    failedAttemptsWindowMs: 120_000,
+  });
 
   const [rolesLoaded, _setRolesLoaded] = useState(false);
   const rolesLoadedRef = useRef(false);
@@ -231,8 +238,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   
   const signIn = async (email: string, password: string) => {
+    // Verificar IP antes do login (VPN, Proxy, País fora do BR)
+    await checkIpBeforeLogin(email.trim().toLowerCase()).catch(() => {});
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    if (error) {
+      await recordLoginFailure(email.trim().toLowerCase(), error.message).catch(() => {});
+      throw error;
+    }
+    resetFailedAttempts();
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
