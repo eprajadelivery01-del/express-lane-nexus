@@ -316,6 +316,7 @@ export type Database = {
         Row: {
           active: boolean | null
           address: string | null
+          admin_delivery_fee: number | null
           banner_url: string | null
           business_hours: string | null
           category: string | null
@@ -349,6 +350,7 @@ export type Database = {
           region_id: string | null
           show_in_marketplace: boolean
           state: string | null
+          timezone: string | null
           updated_at: string | null
           user_id: string | null
           zip_code: string | null
@@ -356,6 +358,7 @@ export type Database = {
         Insert: {
           active?: boolean | null
           address?: string | null
+          admin_delivery_fee?: number | null
           banner_url?: string | null
           business_hours?: string | null
           category?: string | null
@@ -389,6 +392,7 @@ export type Database = {
           region_id?: string | null
           show_in_marketplace?: boolean
           state?: string | null
+          timezone?: string | null
           updated_at?: string | null
           user_id?: string | null
           zip_code?: string | null
@@ -396,6 +400,7 @@ export type Database = {
         Update: {
           active?: boolean | null
           address?: string | null
+          admin_delivery_fee?: number | null
           banner_url?: string | null
           business_hours?: string | null
           category?: string | null
@@ -429,6 +434,7 @@ export type Database = {
           region_id?: string | null
           show_in_marketplace?: boolean
           state?: string | null
+          timezone?: string | null
           updated_at?: string | null
           user_id?: string | null
           zip_code?: string | null
@@ -1223,6 +1229,48 @@ export type Database = {
           role?: Database["public"]["Enums"]["app_role"]
           status?: Database["public"]["Enums"]["invitation_status"]
           token?: string
+        }
+        Relationships: []
+      }
+      marketing_notifications: {
+        Row: {
+          coupon_code: string | null
+          created_at: string | null
+          created_by: string | null
+          emoji: string | null
+          expires_at: string | null
+          id: string
+          image_url: string | null
+          message: string
+          status: string | null
+          target_audience: string | null
+          title: string
+        }
+        Insert: {
+          coupon_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          emoji?: string | null
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          message: string
+          status?: string | null
+          target_audience?: string | null
+          title: string
+        }
+        Update: {
+          coupon_code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          emoji?: string | null
+          expires_at?: string | null
+          id?: string
+          image_url?: string | null
+          message?: string
+          status?: string | null
+          target_audience?: string | null
+          title?: string
         }
         Relationships: []
       }
@@ -2359,6 +2407,7 @@ export type Database = {
         Returns: {
           active: boolean | null
           address: string | null
+          admin_delivery_fee: number | null
           banner_url: string | null
           business_hours: string | null
           category: string | null
@@ -2392,6 +2441,7 @@ export type Database = {
           region_id: string | null
           show_in_marketplace: boolean
           state: string | null
+          timezone: string | null
           updated_at: string | null
           user_id: string | null
           zip_code: string | null

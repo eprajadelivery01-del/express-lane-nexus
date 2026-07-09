@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { filterDeliveriesByLocalParams, getValidDeliveries, calculateReportsTotals } from "../lib/reports";
 
 describe("Reports calculations and filtering", () => {
-  const mockDeliveries = [
+  const mockDeliveries: any[] = [
     {
       id: "1",
       status: "delivered",
