@@ -165,11 +165,7 @@ export default function ReportsPage() {
 
     return Object.values(groups).sort((a, b) => a.rawDate.getTime() - b.rawDate.getTime());
   }, [deliveries]);
-
-  // Removido companyBillingBreakdown que causava confusão ao usar getOrderTotal
-  // A regra de negócio exige que o Devido do lojista seja o valor dos fretes (entregas solicitadas)
-
-  const companyFreightBreakdown = useMemo(() => {
+  const companyBillingBreakdown = useMemo(() => {
     const map: Record<string, { name: string; companyId: string; revenue: number; count: number }> = {};
     deliveries.forEach(d => {
       const isCompleted = d.status === "delivered" || (d.status as string) === "completed";
@@ -178,7 +174,7 @@ export default function ReportsPage() {
       const cId = d.company_id || "unknown";
       const cName = d.companies?.name || "Sem empresa";
       if (!map[cId]) map[cId] = { name: cName, companyId: cId, revenue: 0, count: 0 };
-      map[cId].revenue += getDeliveryValue(d);
+      map[cId].revenue += getOrderTotal(d);
       map[cId].count += 1;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue);
@@ -332,18 +328,17 @@ export default function ReportsPage() {
     if (searchQuery) filterLines.push(`Busca: "${searchQuery}"`);
 
     // Company billing rows
-    const companyBillingRows = companyFreightBreakdown.map(c => {
+    const companyBillingRows = companyBillingBreakdown.map(c => {
       const companyObj = (companies ?? []).find(co => co.id === c.companyId);
       const commPct = companyObj?.commission_percentage !== undefined && companyObj?.commission_percentage !== null
-        ? Number(companyObj.commission_percentage) : 0.00;
-      // DEVIDO (Lojista) is strictly the sum of requested freights (c.revenue)
-      const totalDue = c.revenue;
+        ? Number(companyObj.commission_percentage) : 10.00;
+      const totalDue = c.revenue * (commPct / 100);
       return `
         <tr>
           <td>${c.name}</td>
           <td style="text-align:center">${c.count}</td>
           <td style="text-align:right">R$ ${c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="text-align:center">${commPct > 0 ? commPct.toFixed(1) + '%' : '-'}</td>
+          <td style="text-align:center">${commPct.toFixed(1)}%</td>
           <td style="text-align:right;font-weight:900;color:#6366f1">R$ ${totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>`;
     }).join("");
@@ -378,8 +373,11 @@ export default function ReportsPage() {
         <td style="text-align:right">R$ ${d.calculatedCommission.toFixed(2).replace(".", ",")}</td>
       </tr>`).join("");
 
-    const totalCompanyDue = companyFreightBreakdown.reduce((s, c) => {
-      return s + c.revenue;
+    const totalCompanyDue = companyBillingBreakdown.reduce((s, c) => {
+      const co = (companies ?? []).find(x => x.id === c.companyId);
+      const pct = (co?.commission_percentage !== undefined && co?.commission_percentage !== null)
+        ? Number(co.commission_percentage) : 10.00;
+      return s + c.revenue * (pct / 100);
     }, 0);
 
     const totalDriverDue = driverBreakdown.reduce((s, d) => s + d.totalCommission, 0);
@@ -471,7 +469,7 @@ export default function ReportsPage() {
       <div class="kpi-sub">Receita bruta processada</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Devido à Plataforma</div>
+      <div class="kpi-label">Comissões Plataforma</div>
       <div class="kpi-value">R$ ${(totalCompanyDue + totalDriverDue).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
       <div class="kpi-sub">Lojistas + Entregadores</div>
     </div>
@@ -490,8 +488,8 @@ export default function ReportsPage() {
           <tr>
             <th>Empresa</th>
             <th style="text-align:center">Pedidos</th>
-            <th style="text-align:right">Fretes (R$)</th>
-            <th style="text-align:center">Taxa Ext.</th>
+            <th style="text-align:right">Vendas</th>
+            <th style="text-align:center">Taxa</th>
             <th style="text-align:right">Devido</th>
           </tr>
         </thead>
@@ -821,10 +819,10 @@ export default function ReportsPage() {
               <p className="text-xs text-muted-foreground mt-0.5">Receita e volume por empresa</p>
             </div>
           </div>
-          {companyFreightBreakdown.length > 0 ? (
+          {companyBillingBreakdown.length > 0 ? (
             <div className="space-y-3 max-h-[360px] overflow-y-auto scrollbar-thin">
-              {companyFreightBreakdown.map((c, i) => {
-                const maxRev = companyFreightBreakdown[0].revenue;
+              {companyBillingBreakdown.map((c, i) => {
+                const maxRev = companyBillingBreakdown[0].revenue;
                 const pct = maxRev > 0 ? (c.revenue / maxRev) * 100 : 0;
                 return (
                   <div key={c.companyId || i} className="group">
@@ -899,7 +897,7 @@ export default function ReportsPage() {
           </div>
           <div>
             <h3 className="text-sm font-black text-foreground uppercase tracking-widest text-left">Cobranças Plataforma &amp; Saldos Devidos</h3>
-            <p className="text-xs text-muted-foreground mt-0.5 text-left">Saldos devidos pelos lojistas (fretes solicitados) e entregadores (taxa fixa por entrega)</p>
+            <p className="text-xs text-muted-foreground mt-0.5 text-left">Saldos devidos pelos lojistas (% sobre vendas) e entregadores (taxa fixa por entrega)</p>
           </div>
         </div>
 
@@ -907,20 +905,20 @@ export default function ReportsPage() {
           {/* Lojistas (Merchants) */}
           <div className="space-y-4">
             <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2 text-left">
-              🏢 Cobrança de Lojistas (Custo de Fretes)
+              🏢 Cobrança de Lojistas (% sobre Vendas)
             </h4>
             <div className="border border-border rounded-2xl overflow-hidden bg-background/50 divide-y divide-border">
-              {companyFreightBreakdown.length > 0 ? (
-                companyFreightBreakdown.map((c: any) => {
+              {companyBillingBreakdown.length > 0 ? (
+                companyBillingBreakdown.map((c: any) => {
                   const companyObj = (companies ?? []).find(co => co.id === c.companyId);
-                  const commPct = companyObj?.commission_percentage !== undefined && companyObj?.commission_percentage !== null ? Number(companyObj.commission_percentage) : 0.00;
-                  const totalDue = c.revenue;
+                  const commPct = companyObj?.commission_percentage !== undefined && companyObj?.commission_percentage !== null ? Number(companyObj.commission_percentage) : 10.00;
+                  const totalDue = c.revenue * (commPct / 100);
                   return (
                     <div key={c.companyId} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors">
                       <div className="text-left">
                         <p className="text-sm font-bold text-foreground">{c.name}</p>
                         <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
-                          Fretes: R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {commPct > 0 ? `• Taxa Ext.: ${commPct.toFixed(1)}%` : ''}
+                          Vendas: R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • Taxa: {commPct.toFixed(1)}%
                         </p>
                       </div>
                       <div className="text-right">
