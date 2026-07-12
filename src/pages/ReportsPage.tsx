@@ -248,16 +248,18 @@ export default function ReportsPage() {
   };
 
   const handleExport = () => {
-    if (validDeliveries.length === 0) {
+    if (enrichedDeliveries.length === 0) {
       toast({ title: "Nenhum dado válido para exportar", variant: "destructive" });
       return;
     }
 
-    const { totalValue: sumRowsValue, totalCommission: sumRowsCommission } = calculateReportsTotals(validDeliveries);
+    const sumRowsValue = enrichedDeliveries.reduce((acc, curr) => acc + curr.calculatedValue, 0);
+    const sumRowsCommission = enrichedDeliveries.reduce((acc, curr) => acc + curr.calculatedCommission, 0);
+
     if (
       Math.abs(sumRowsValue - totalValue) > 0.01 || 
       Math.abs(sumRowsCommission - totalCommission) > 0.01 || 
-      validDeliveries.length !== completedCount
+      enrichedDeliveries.length !== completedCount
     ) {
       toast({
          title: "Erro de Validação Financeira",
@@ -268,14 +270,14 @@ export default function ReportsPage() {
     }
 
     const headers = ["Data / Hora", "Cliente", "Empresa", "Endereço", "Status", "Valor", "Comissão"];
-    const rows = validDeliveries.map((d) => [
+    const rows = enrichedDeliveries.map((d) => [
       format(new Date(d.created_at), "dd/MM/yyyy HH:mm"),
       d.customer_name || "—",
       d.companies?.name || "Marketplace",
       d.address || "—",
       STATUS_LABELS[d.status as keyof typeof STATUS_LABELS] || d.status,
-      formatDeliveryValue(d).replace(".", ","),
-      Number(d.commission ?? 0).toFixed(2).replace(".", ","),
+      d.calculatedValue.toFixed(2).replace(".", ","),
+      d.calculatedCommission.toFixed(2).replace(".", ","),
     ]);
     
     // Add total row at the end
