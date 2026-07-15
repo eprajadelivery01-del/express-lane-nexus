@@ -111,6 +111,24 @@ export default function StoreSalesPage() {
     }
   };
 
+  const { data: profile } = useQuery({
+    queryKey: ["admin-store-sales-profile", selectedOrder?.user_id],
+    queryFn: async () => {
+      if (!selectedOrder?.user_id) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", selectedOrder.user_id)
+        .single();
+      if (error) {
+        console.error("Erro ao buscar profile", error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!selectedOrder?.user_id,
+  });
+
   return (
     <AdminLayout title="Vendas das Lojas" subtitle="Acompanhe os pedidos do marketplace em tempo real">
       {/* Metrics Row */}
@@ -272,9 +290,9 @@ export default function StoreSalesPage() {
                 <h4 className="font-bold text-foreground mb-3 border-b border-border pb-2">Informações do Cliente</h4>
                 <div className="space-y-2 text-sm">
                   <p><span className="font-semibold text-muted-foreground">ID do Cliente:</span> {selectedOrder.customer_id || selectedOrder.user_id || 'Não informado'}</p>
-                  <p><span className="font-semibold text-muted-foreground">Nome:</span> {selectedOrder.customers?.name || selectedOrder.customer_name || 'Não informado'}</p>
-                  <p><span className="font-semibold text-muted-foreground">Telefone:</span> {selectedOrder.customers?.phone || selectedOrder.deliveries?.customer_phone || selectedOrder.customer_phone || 'Não informado'}</p>
-                  <p><span className="font-semibold text-muted-foreground">CPF:</span> {selectedOrder.customers?.cpf || 'Não informado'}</p>
+                  <p><span className="font-semibold text-muted-foreground">Nome:</span> {selectedOrder.customers?.name || selectedOrder.customer_name || profile?.name || 'Não informado'}</p>
+                  <p><span className="font-semibold text-muted-foreground">Telefone:</span> {selectedOrder.customers?.phone || selectedOrder.deliveries?.customer_phone || selectedOrder.customer_phone || profile?.phone || 'Não informado'}</p>
+                  <p><span className="font-semibold text-muted-foreground">CPF:</span> {selectedOrder.customers?.cpf || profile?.cpf || 'Não informado'}</p>
                 </div>
               </div>
               <div className="bg-muted/30 p-4 rounded-xl border border-border">
