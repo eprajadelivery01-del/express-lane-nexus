@@ -278,9 +278,9 @@ export default function StoreSalesPage() {
               <div className="bg-muted/30 p-4 rounded-xl border border-border">
                 <h4 className="font-bold text-foreground mb-3 border-b border-border pb-2">Endereço de Entrega</h4>
                 <div className="space-y-2 text-sm">
-                  {selectedOrder.deliveries?.delivery_address || selectedOrder.deliveries?.address ? (
+                  {selectedOrder.delivery_address || selectedOrder.deliveries?.delivery_address || selectedOrder.deliveries?.address ? (
                     <p className="font-medium text-foreground">
-                      {selectedOrder.deliveries.delivery_address || selectedOrder.deliveries.address}
+                      {selectedOrder.delivery_address || selectedOrder.deliveries?.delivery_address || selectedOrder.deliveries?.address}
                     </p>
                   ) : (
                     <p className="text-muted-foreground">
