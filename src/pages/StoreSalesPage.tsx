@@ -30,7 +30,8 @@ export default function StoreSalesPage() {
           *,
           companies (name),
           customers (name, phone),
-          deliveries (address, customer_phone)
+          deliveries (address, customer_phone),
+          addresses (street, number, neighborhood, city, state)
         `)
         .order("created_at", { ascending: false });
 
@@ -278,7 +279,11 @@ export default function StoreSalesPage() {
               <div className="bg-muted/30 p-4 rounded-xl border border-border">
                 <h4 className="font-bold text-foreground mb-3 border-b border-border pb-2">Endereço de Entrega</h4>
                 <div className="space-y-2 text-sm">
-                  {selectedOrder.deliveries?.address ? (
+                  {selectedOrder.addresses ? (
+                    <p className="font-medium text-foreground">
+                      {`${selectedOrder.addresses.street || ''}, ${selectedOrder.addresses.number || 'S/N'} - ${selectedOrder.addresses.neighborhood || ''}, ${selectedOrder.addresses.city || ''} - ${selectedOrder.addresses.state || ''}`}
+                    </p>
+                  ) : selectedOrder.deliveries?.address ? (
                     <p className="font-medium text-foreground">{selectedOrder.deliveries.address}</p>
                   ) : (
                     <p className="text-muted-foreground">
