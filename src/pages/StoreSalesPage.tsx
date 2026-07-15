@@ -4,14 +4,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ShoppingBag, Search, Filter, Loader2, Calendar, 
-  Store, User, Clock, DollarSign, CheckCircle2, XCircle
+  Store, User, Clock, DollarSign, CheckCircle2, XCircle, Eye
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function StoreSalesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("today");
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ["admin-store-sales", dateFilter],
@@ -21,7 +29,8 @@ export default function StoreSalesPage() {
         .select(`
           *,
           companies (name),
-          customers (name, phone)
+          customers (name, phone),
+          deliveries (address, customer_phone)
         `)
         .order("created_at", { ascending: false });
 
@@ -192,6 +201,7 @@ export default function StoreSalesPage() {
                 <th className="px-6 py-4 font-bold text-muted-foreground">Cliente</th>
                 <th className="px-6 py-4 font-bold text-muted-foreground">Status</th>
                 <th className="px-6 py-4 font-bold text-muted-foreground text-right">Valor Total</th>
+                <th className="px-6 py-4 font-bold text-muted-foreground text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -238,6 +248,11 @@ export default function StoreSalesPage() {
                         {(order.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-center">
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedOrder(order)} title="Ver Detalhes do Cliente">
+                        <Eye className="w-4 h-4 text-primary" />
+                      </Button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -245,6 +260,45 @@ export default function StoreSalesPage() {
           </table>
         </div>
       </div>
+
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="max-w-md bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Pedido e Cliente</DialogTitle>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="space-y-4 pt-4">
+              <div className="bg-muted/30 p-4 rounded-xl border border-border">
+                <h4 className="font-bold text-foreground mb-3 border-b border-border pb-2">Informações do Cliente</h4>
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-semibold text-muted-foreground">Nome:</span> {selectedOrder.customers?.name || selectedOrder.customer_name || 'Não informado'}</p>
+                  <p><span className="font-semibold text-muted-foreground">Telefone:</span> {selectedOrder.customers?.phone || selectedOrder.deliveries?.customer_phone || selectedOrder.customer_phone || 'Não informado'}</p>
+                </div>
+              </div>
+              <div className="bg-muted/30 p-4 rounded-xl border border-border">
+                <h4 className="font-bold text-foreground mb-3 border-b border-border pb-2">Endereço de Entrega</h4>
+                <div className="space-y-2 text-sm">
+                  {selectedOrder.deliveries?.address ? (
+                    <p className="font-medium text-foreground">{selectedOrder.deliveries.address}</p>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      Este pedido não possui endereço de entrega registrado na tabela (Pode ser Retirada ou erro de sincronia).
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="bg-muted/30 p-4 rounded-xl border border-border">
+                <h4 className="font-bold text-foreground mb-3 border-b border-border pb-2">Resumo</h4>
+                <div className="space-y-2 text-sm">
+                  <p><span className="font-semibold text-muted-foreground">Pedido ID:</span> {selectedOrder.id}</p>
+                  <p><span className="font-semibold text-muted-foreground">Data:</span> {new Date(selectedOrder.created_at).toLocaleString('pt-BR')}</p>
+                  <p><span className="font-semibold text-muted-foreground">Total:</span> {(selectedOrder.total || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }
