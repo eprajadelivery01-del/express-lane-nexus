@@ -356,6 +356,8 @@ export async function createDeliveryRequest(orderId: string) {
 
   const dropoff = address ? `${address.street}, ${address.number} - ${address.neighborhood}` : "Endereço não cadastrado";
 
+  const estimatedValue = Math.max(0, Number(order.total || 0) - Number(order.delivery_fee || 0));
+
   // VERIFICAÇÃO DE DUPLICIDADE
   const { data: existingDelivery } = await supabase
     .from("deliveries")
@@ -365,11 +367,19 @@ export async function createDeliveryRequest(orderId: string) {
     .maybeSingle();
 
   if (existingDelivery) {
-    console.log(`[Deliveries] Entrega já existe para o pedido ${orderId}. Retornando existente.`);
+    console.log(`[Deliveries] Entrega já existe para o pedido ${orderId}. Atualizando para pending e retornando existente.`);
+    
+    await supabase.from("deliveries").update({ 
+      status: "pending", 
+      value: existingDelivery.value,
+      commission: existingDelivery.commission,
+      price: order.delivery_fee || existingDelivery.price || 0,
+      estimated_value: estimatedValue
+    }).eq("id", existingDelivery.id);
+
+    await supabase.from("orders").update({ delivery_id: existingDelivery.id } as any).eq("id", orderId);
     return existingDelivery;
   }
-
-  const estimatedValue = Math.max(0, Number(order.total || 0) - Number(order.delivery_fee || 0));
 
   const { data: delivery, error: deliveryError } = await supabase
     .from("deliveries")
