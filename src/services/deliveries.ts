@@ -394,7 +394,6 @@ export async function createDeliveryRequest(orderId: string) {
       commission: order.delivery_fee || 0,
       price: order.delivery_fee || 0,
       estimated_value: estimatedValue,
-      payment_method: order.payment_method || null,
       notes: order.notes || null,
       region_id: (order as any).region_id || null,
       delivery_latitude: (order as any).delivery_latitude || null,
