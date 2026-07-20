@@ -369,14 +369,26 @@ export async function createDeliveryRequest(orderId: string) {
     return existingDelivery;
   }
 
+  const estimatedValue = Math.max(0, Number(order.total || 0) - Number(order.delivery_fee || 0));
+
   const { data: delivery, error: deliveryError } = await supabase
     .from("deliveries")
     .insert({
       company_id: order.company_id,
       order_id: orderId,
-      customer_name: "Cliente",
+      customer_name: "Cliente Marketplace",
       address: dropoff,
-      value: order.total || 0,
+      dropoff_address: dropoff,
+      delivery_address: dropoff,
+      value: order.delivery_fee || 0,
+      commission: order.delivery_fee || 0,
+      price: order.delivery_fee || 0,
+      estimated_value: estimatedValue,
+      payment_method: order.payment_method || null,
+      notes: order.notes || null,
+      region_id: (order as any).region_id || null,
+      delivery_latitude: (order as any).delivery_latitude || null,
+      delivery_longitude: (order as any).delivery_longitude || null,
       status: "pending",
     })
     .select()
