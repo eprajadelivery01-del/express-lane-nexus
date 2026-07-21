@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Volume2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAudioAlert } from "@/hooks/useAudioAlert";
 
 export function SoundEnabler() {
   const [isVisible, setIsVisible] = useState(false);
@@ -15,13 +16,12 @@ export function SoundEnabler() {
     }
   }, []);
 
+  const { playAlert } = useAudioAlert();
+
   const enableSound = async () => {
     setEnabling(true);
     try {
-      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-      audio.volume = 0.5;
-      await audio.play();
-      
+      playAlert();
       sessionStorage.setItem("sound_enabled", "true");
       setIsVisible(false);
       toast({ title: "Som ativado!", description: "Você receberá alertas sonoros de novas entregas." });

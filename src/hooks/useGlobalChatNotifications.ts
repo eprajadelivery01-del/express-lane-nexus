@@ -3,14 +3,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { AuthContext } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
-
+import { useAudioAlert } from "@/hooks/useAudioAlert";
 export function useGlobalChatNotifications() {
   const auth = useContext(AuthContext);
   const user = auth?.user ?? null;
   const location = useLocation();
   const navigate = useNavigate();
   const qc = useQueryClient();
+
+  const { playAlert } = useAudioAlert();
 
   useEffect(() => {
     if (!user) return;
@@ -32,9 +33,7 @@ export function useGlobalChatNotifications() {
           const isChatPage = window.location.pathname.includes("/chat");
           
           try {
-             const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-             audio.volume = 0.5;
-             audio.play().catch(e => console.warn("[Audio] Bloqueio de auto-play pelo navegador:", e)); 
+             playAlert();
           } catch (err) {
              console.error("[Audio] Erro ao reproduzir som:", err);
           }

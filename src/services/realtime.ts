@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAudioAlert } from "@/hooks/useAudioAlert";
 
 /**
  * useAdminRealtime
@@ -62,6 +63,7 @@ export function useAdminRealtime() {
  */
 export function useDriverRealtime() {
   const qc = useQueryClient();
+  const { playAlert } = useAudioAlert();
 
   useEffect(() => {
     const channel = supabase
@@ -74,9 +76,7 @@ export function useDriverRealtime() {
           if (newDel.status === "pending" || newDel.status === "broadcasted") {
             // Play sound if enabled
             if (sessionStorage.getItem("sound_enabled") === "true") {
-              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-              audio.volume = 0.8;
-              audio.play().catch(e => console.warn("Erro ao tocar áudio:", e));
+              playAlert();
             }
           }
           qc.invalidateQueries({ queryKey: ["deliveries"] });

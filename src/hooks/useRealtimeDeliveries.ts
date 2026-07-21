@@ -3,15 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+import { useAudioAlert } from "@/hooks/useAudioAlert";
 
 export function useRealtimeDeliveries() {
   const qc = useQueryClient();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { playAlert } = useAudioAlert();
 
   useEffect(() => {
-    audioRef.current = new Audio(NOTIFICATION_SOUND);
-
     const channel = supabase
       .channel("realtime-deliveries-global")
       .on(
@@ -19,7 +17,7 @@ export function useRealtimeDeliveries() {
         { event: "INSERT", schema: "public", table: "deliveries" },
         (payload) => {
           const d = payload.new as any;
-          audioRef.current?.play().catch(() => {});
+          playAlert();
           toast.info("🚀 Nova entrega criada!", {
             description: `${d.customer_name || "Cliente"} — R$ ${Number(d.value ?? 0).toFixed(2)}`,
             duration: 6000,

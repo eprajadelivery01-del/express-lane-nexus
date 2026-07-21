@@ -21,8 +21,7 @@ import { useDeliveries } from "@/services/deliveries";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
-
+import { useAudioAlert } from "@/hooks/useAudioAlert";
 export function NotificationsPopover() {
   const { data: deliveriesData } = useDeliveries({ pageSize: 10 });
   const deliveries = deliveriesData?.data ?? [];
@@ -31,19 +30,20 @@ export function NotificationsPopover() {
   const pendingDeliveries = deliveries.filter(d => d.status === "pending");
   const unreadCount = pendingDeliveries.length;
 
+  const { playAlert } = useAudioAlert();
+
   // Sound alert logic for new pending deliveries
   useEffect(() => {
     if (pendingDeliveries.length > 0) {
       const newestId = pendingDeliveries[0].id;
       if (newestId !== lastNotificationId) {
         if (lastNotificationId !== null) {
-          const audio = new Audio(NOTIFICATION_SOUND);
-          audio.play().catch(e => console.log("Audio play blocked by browser:", e));
+          playAlert();
         }
         setLastNotificationId(newestId);
       }
     }
-  }, [pendingDeliveries, lastNotificationId]);
+  }, [pendingDeliveries, lastNotificationId, playAlert]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
