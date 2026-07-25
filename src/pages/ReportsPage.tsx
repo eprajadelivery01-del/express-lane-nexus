@@ -312,38 +312,56 @@ export default function ReportsPage() {
 
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     const now = format(new Date(), "dd/MM/yyyy HH:mm");
-
-    doc.setFontSize(16);
-    doc.setFont("helvetica", "bold");
-    doc.text("Relatorio Financeiro", 40, 40);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(120);
-    doc.text(`Periodo: ${dateFrom || "—"} a ${dateTo || "—"}  |  Gerado em ${now}`, 40, 58);
+    const periodLabel = `Periodo: ${dateFrom || "—"} a ${dateTo || "—"}  |  Gerado em ${now}`;
 
     const brl = (n: number) =>
       n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-    // KPI summary
-    doc.setTextColor(0);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
+    // Cabeçalho + rodapé desenhados a cada página (repetição automática)
+    const drawPageChrome = () => {
+      doc.setFillColor(255, 133, 27);
+      doc.rect(0, 0, pageWidth, 6, "F");
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(30, 30, 30);
+      doc.text("Relatorio Financeiro", 40, 32);
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(110);
+      doc.text(periodLabel, 40, 48);
+
+      const pageNumber = (doc as any).internal.getCurrentPageInfo().pageNumber;
+      doc.setFontSize(8);
+      doc.setTextColor(140);
+      doc.text("É Pra Já Delivery", 40, pageHeight - 18);
+      doc.text(
+        `Pagina ${pageNumber} de {total_pages}`,
+        pageWidth - 40,
+        pageHeight - 18,
+        { align: "right" },
+      );
+    };
+
+    // KPIs (só na primeira página)
     const kpis = [
       ["Faturamento Total", brl(totalValue)],
       ["Devido a Plataforma", brl(totalCommission)],
       ["Corridas Finalizadas", String(completedCount)],
     ];
     autoTable(doc, {
-      startY: 74,
+      startY: 64,
       head: [kpis.map((k) => k[0])],
       body: [kpis.map((k) => k[1])],
       theme: "grid",
       headStyles: { fillColor: [255, 133, 27], textColor: 255, fontStyle: "bold" },
       styles: { fontSize: 10, halign: "center" },
-      margin: { left: 40, right: 40 },
+      margin: { left: 40, right: 40, top: 60, bottom: 32 },
+      didDrawPage: drawPageChrome,
     });
 
+    // Tabela principal com paginação automática + cabeçalho repetido
     const headers = [
       "Data / Hora",
       "Cliente",
@@ -373,27 +391,35 @@ export default function ReportsPage() {
         brl(totalCommission),
       ]],
       theme: "striped",
-      headStyles: { fillColor: [30, 30, 30], textColor: 255, fontStyle: "bold" },
+      headStyles: {
+        fillColor: [30, 30, 30],
+        textColor: 255,
+        fontStyle: "bold",
+        halign: "left",
+      },
       footStyles: { fillColor: [255, 133, 27], textColor: 255, fontStyle: "bold" },
-      styles: { fontSize: 8, cellPadding: 4 },
+      styles: { fontSize: 8, cellPadding: 4, overflow: "linebreak", valign: "middle" },
       columnStyles: {
-        5: { halign: "right" },
-        6: { halign: "right" },
+        0: { cellWidth: 90 },
+        1: { cellWidth: 110 },
+        2: { cellWidth: 110 },
+        3: { cellWidth: "auto" },
+        4: { cellWidth: 70 },
+        5: { cellWidth: 70, halign: "right" },
+        6: { cellWidth: 70, halign: "right" },
       },
-      margin: { left: 40, right: 40 },
-      didDrawPage: () => {
-        const pageCount = (doc as any).internal.getNumberOfPages();
-        const current = (doc as any).internal.getCurrentPageInfo().pageNumber;
-        doc.setFontSize(8);
-        doc.setTextColor(120);
-        doc.text(
-          `Pagina ${current} de ${pageCount}`,
-          pageWidth - 40,
-          doc.internal.pageSize.getHeight() - 20,
-          { align: "right" },
-        );
-      },
+      margin: { left: 40, right: 40, top: 60, bottom: 32 },
+      showHead: "everyPage",
+      showFoot: "lastPage",
+      rowPageBreak: "avoid",
+      pageBreak: "auto",
+      didDrawPage: drawPageChrome,
     });
+
+    // Substitui marcador pelo total real de páginas
+    if (typeof (doc as any).putTotalPages === "function") {
+      (doc as any).putTotalPages("{total_pages}");
+    }
 
     doc.save(`relatorio_${format(new Date(), "yyyy-MM-dd")}.pdf`);
     toast({ title: "PDF exportado!" });
