@@ -1,14 +1,30 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Copy, X } from 'lucide-react';
 
+const NOTIFICATION_AUDIO_URL = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+
 export function GlobalMarketingListener() {
   const { user } = useAuth();
+  const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
 
   useEffect(() => {
-    // Listen to INSERT events on marketing_notifications
+    // 1. Register Service Worker & Request Notification Permission
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => {
+          swRegRef.current = reg;
+        })
+        .catch(() => {});
+    }
+
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(() => {});
+    }
+
+    // 2. Listen to INSERT events on marketing_notifications
     const channel = supabase
       .channel('public:marketing_notifications')
       .on(
@@ -30,6 +46,19 @@ export function GlobalMarketingListener() {
               notification_title: newNotif.title,
             },
           });
+
+          // Play Audio & Vibrate
+          try {
+            const audio = new Audio(NOTIFICATION_AUDIO_URL);
+            audio.play().catch(() => {});
+          } catch (e) {}
+
+          if ('vibrate' in navigator) {
+            navigator.vibrate([200, 100, 200]);
+          }
+
+          // Trigger Native System Notification
+          triggerNativeNotification(newNotif, swRegRef.current);
 
           // Show Toast via Sonner
           toast.custom((t) => (
@@ -73,7 +102,7 @@ export function GlobalMarketingListener() {
               )}
             </div>
           ), {
-            duration: 15000, // Show for 15 seconds
+            duration: 15000,
             position: 'top-center',
           });
         }
@@ -86,4 +115,35 @@ export function GlobalMarketingListener() {
   }, [user]);
 
   return null;
+}
+
+function triggerNativeNotification(notif: any, swRegistration: ServiceWorkerRegistration | null) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    return;
+  }
+
+  const title = `${notif.emoji ? notif.emoji + ' ' : ''}${notif.title || 'Novo Alerta É Pra Já!'}`;
+  const options = {
+    body: notif.message || (notif.coupon_code ? `Use o cupom: ${notif.coupon_code}` : 'Confira a nova promoção no app!'),
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    image: notif.image_url || undefined,
+    tag: `epraja-marketing-${notif.id || Date.now()}`,
+    data: {
+      url: '/marketplace/coupons',
+      coupon: notif.coupon_code
+    }
+  };
+
+  if (swRegistration && swRegistration.showNotification) {
+    swRegistration.showNotification(title, options).catch(() => {
+      try {
+        new Notification(title, options);
+      } catch (e) {}
+    });
+  } else {
+    try {
+      new Notification(title, options);
+    } catch (e) {}
+  }
 }
