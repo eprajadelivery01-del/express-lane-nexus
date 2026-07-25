@@ -522,10 +522,12 @@ export default function DeliveriesPage() {
                 <div className="p-3 bg-card border border-border rounded-xl flex items-start gap-3">
                   <MapPin className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                   <p className="text-sm font-medium text-foreground">{detailDelivery.dropoff_address || detailDelivery.address || "—"}</p>
+                </div>
               </div>
 
               {/* Rota + posição do entregador em tempo real */}
               <div className="space-y-1">
+
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
                   Rota & Posição ao Vivo
                 </p>
