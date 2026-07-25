@@ -1201,6 +1201,7 @@ export type Database = {
       }
       invitations: {
         Row: {
+          accepted_at: string | null
           created_at: string
           email: string
           expires_at: string
@@ -1211,6 +1212,7 @@ export type Database = {
           token: string
         }
         Insert: {
+          accepted_at?: string | null
           created_at?: string
           email: string
           expires_at?: string
@@ -1221,6 +1223,7 @@ export type Database = {
           token?: string
         }
         Update: {
+          accepted_at?: string | null
           created_at?: string
           email?: string
           expires_at?: string
