@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { useUniqueDeliveries } from "@/hooks/useUniqueDeliveries";
 import type { DeliveryStatus } from "@/types/models";
+import { DeliveryRouteMap } from "@/components/deliveries/DeliveryRouteMap";
 
 const statusFilters = [
   { label: "Todas", value: "all" },
