@@ -1086,6 +1086,12 @@ export default function ReportsPage() {
               <Printer className="h-4 w-4" /> Imprimir Relatório
             </button>
             <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-3 px-6 py-2.5 rounded-2xl bg-destructive text-destructive-foreground text-sm font-black hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
+            >
+              <FileText className="h-4 w-4" /> Exportar PDF
+            </button>
+            <button
               onClick={handleExport}
               className="flex items-center gap-3 px-6 py-2.5 rounded-2xl bg-primary text-primary-foreground text-sm font-black hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
             >
