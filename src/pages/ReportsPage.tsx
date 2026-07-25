@@ -5,7 +5,9 @@ import { useDeliveries } from "@/services/deliveries";
 import { useCompanies } from "@/services/companies";
 import { useDrivers } from "@/services/drivers";
 import { useRegions } from "@/services/regions";
-import { BarChart3, Download, Loader2, Filter, Search, Printer } from "lucide-react";
+import { BarChart3, Download, Loader2, Filter, Search, Printer, FileText } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { format, startOfDay, endOfDay, subDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { getDeliveryValue, formatDeliveryValue } from "@/lib/delivery";
@@ -300,6 +302,101 @@ export default function ReportsPage() {
     a.click();
     URL.revokeObjectURL(url);
     toast({ title: "Relatório exportado!" });
+  };
+
+  const handleExportPDF = () => {
+    if (enrichedDeliveries.length === 0) {
+      toast({ title: "Nenhum dado válido para exportar", variant: "destructive" });
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const now = format(new Date(), "dd/MM/yyyy HH:mm");
+
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Relatorio Financeiro", 40, 40);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(120);
+    doc.text(`Periodo: ${dateFrom || "—"} a ${dateTo || "—"}  |  Gerado em ${now}`, 40, 58);
+
+    const brl = (n: number) =>
+      n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    // KPI summary
+    doc.setTextColor(0);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    const kpis = [
+      ["Faturamento Total", brl(totalValue)],
+      ["Devido a Plataforma", brl(totalCommission)],
+      ["Corridas Finalizadas", String(completedCount)],
+    ];
+    autoTable(doc, {
+      startY: 74,
+      head: [kpis.map((k) => k[0])],
+      body: [kpis.map((k) => k[1])],
+      theme: "grid",
+      headStyles: { fillColor: [255, 133, 27], textColor: 255, fontStyle: "bold" },
+      styles: { fontSize: 10, halign: "center" },
+      margin: { left: 40, right: 40 },
+    });
+
+    const headers = [
+      "Data / Hora",
+      "Cliente",
+      "Empresa",
+      "Endereco",
+      "Status",
+      "Valor",
+      "Comissao",
+    ];
+    const body = enrichedDeliveries.map((d) => [
+      format(new Date(d.created_at), "dd/MM/yyyy HH:mm"),
+      d.customer_name || "—",
+      d.companies?.name || "Marketplace",
+      d.address || "—",
+      STATUS_LABELS[d.status as keyof typeof STATUS_LABELS] || d.status,
+      brl(d.calculatedValue),
+      brl(d.calculatedCommission),
+    ]);
+
+    autoTable(doc, {
+      startY: (doc as any).lastAutoTable.finalY + 16,
+      head: [headers],
+      body,
+      foot: [[
+        "TOTAIS", "", "", "", "",
+        brl(totalValue),
+        brl(totalCommission),
+      ]],
+      theme: "striped",
+      headStyles: { fillColor: [30, 30, 30], textColor: 255, fontStyle: "bold" },
+      footStyles: { fillColor: [255, 133, 27], textColor: 255, fontStyle: "bold" },
+      styles: { fontSize: 8, cellPadding: 4 },
+      columnStyles: {
+        5: { halign: "right" },
+        6: { halign: "right" },
+      },
+      margin: { left: 40, right: 40 },
+      didDrawPage: () => {
+        const pageCount = (doc as any).internal.getNumberOfPages();
+        const current = (doc as any).internal.getCurrentPageInfo().pageNumber;
+        doc.setFontSize(8);
+        doc.setTextColor(120);
+        doc.text(
+          `Pagina ${current} de ${pageCount}`,
+          pageWidth - 40,
+          doc.internal.pageSize.getHeight() - 20,
+          { align: "right" },
+        );
+      },
+    });
+
+    doc.save(`relatorio_${format(new Date(), "yyyy-MM-dd")}.pdf`);
+    toast({ title: "PDF exportado!" });
   };
 
   const handlePrint = () => {
@@ -987,6 +1084,12 @@ export default function ReportsPage() {
               className="flex items-center gap-3 px-6 py-2.5 rounded-2xl bg-foreground text-background text-sm font-black hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
             >
               <Printer className="h-4 w-4" /> Imprimir Relatório
+            </button>
+            <button
+              onClick={handleExportPDF}
+              className="flex items-center gap-3 px-6 py-2.5 rounded-2xl bg-destructive text-destructive-foreground text-sm font-black hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg"
+            >
+              <FileText className="h-4 w-4" /> Exportar PDF
             </button>
             <button
               onClick={handleExport}
