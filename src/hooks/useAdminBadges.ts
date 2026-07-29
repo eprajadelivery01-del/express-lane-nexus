@@ -22,7 +22,8 @@ export function useAdminBadges(_userId?: string) {
 
         let unreadChatsCount = 0;
 
-        // Count unread delivery chats
+        // Count unread delivery chats (Commented out due to RLS recursion issue on database)
+        /*
         try {
           let query = supabase
             .from("chat_messages")
@@ -38,6 +39,7 @@ export function useAdminBadges(_userId?: string) {
         } catch (e) {
           console.warn("[AdminBadges] Failed to query chat_messages:", e);
         }
+        */
 
         // Count unread general support chats (chat_message_logs)
         try {
