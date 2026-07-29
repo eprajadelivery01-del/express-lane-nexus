@@ -29,8 +29,7 @@ export default function StoreSalesPage() {
         .select(`
           *,
           companies (name),
-          customers (*),
-          deliveries (*)
+          customers (*)
         `)
         .order("created_at", { ascending: false });
 
