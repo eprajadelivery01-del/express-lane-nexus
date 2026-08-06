@@ -93,17 +93,26 @@ export function useAttackMonitor(config: AttackMonitorConfig = {}) {
       try {
         const response = await originalFetch.apply(this, args);
         if (!response.ok && response.status >= 400 && response.status !== 401 && response.status !== 404) {
-          const now = Date.now();
-          errorsRef.current = errorsRef.current.filter(t => now - t < 60000); // Último 1 minuto
-          errorsRef.current.push(now);
+          const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+          
+          // Ignorar erros conhecidos de recursão de RLS no banco de dados (não são ataques)
+          const isKnownDbIssue = url.includes('/rest/v1/deliveries') || 
+                                 url.includes('/rest/v1/chat_messages') || 
+                                 url.includes('/rest/v1/orders');
 
-          if (errorsRef.current.length >= maxErrorsPerMinute) {
-            reportAttack("Múltiplos Erros de API Detectados", {
-              errorsInLastMinute: errorsRef.current.length,
-              lastUrl: typeof args[0] === 'string' ? args[0] : (args[0] as Request).url,
-              status: response.status
-            });
-            errorsRef.current = [];
+          if (!isKnownDbIssue) {
+            const now = Date.now();
+            errorsRef.current = errorsRef.current.filter(t => now - t < 60000); // Último 1 minuto
+            errorsRef.current.push(now);
+
+            if (errorsRef.current.length >= maxErrorsPerMinute) {
+              reportAttack("Múltiplos Erros de API Detectados", {
+                errorsInLastMinute: errorsRef.current.length,
+                lastUrl: url,
+                status: response.status
+              });
+              errorsRef.current = [];
+            }
           }
         }
         return response;
