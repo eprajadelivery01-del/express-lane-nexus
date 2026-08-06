@@ -78,6 +78,19 @@ export function AdminNotificationsPage() {
 
       if (error) throw error;
 
+      // Dispara o push para todos os aparelhos de clientes em modo Broadcast
+      await (supabase as any).functions.invoke('send-push', {
+        body: {
+          action: 'send',
+          title: `${emoji.trim() ? emoji.trim() + ' ' : ''}${title.trim()}`,
+          body: message.trim(),
+          message: message.trim(),
+          url: imageUrl.trim() || undefined,
+          coupon_code: couponCode.trim() || undefined,
+          isBroadcast: true
+        }
+      }).catch((e: any) => console.warn('[MarketingPush] Erro ao invocar send-push:', e));
+
       toast({ 
         title: "Sucesso!", 
         description: "Notificação disparada para o App dos Clientes." 
