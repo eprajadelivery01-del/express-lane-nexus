@@ -15,9 +15,9 @@ export function useGlobalChatNotifications() {
   useEffect(() => {
     if (!user) return;
 
-    const sessionId = Math.random().toString(36).substring(2, 10);
     const channel = supabase
-      .channel(`global-notifications-${sessionId}`)
+      .channel(`global-notifications-${user.id}`)
+
       .on(
         "postgres_changes",
         {
