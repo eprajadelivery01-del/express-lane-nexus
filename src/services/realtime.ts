@@ -1,6 +1,26 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
+/**
+ * safeRemoveChannel
+ * Avoids the "WebSocket is closed before the connection is established" warning
+ * by never tearing down a channel while it is still joining.
+ */
+export function safeRemoveChannel(channel: RealtimeChannel | null) {
+  if (!channel) return;
+  const remove = () => {
+    try {
+      supabase.removeChannel(channel);
+    } catch {}
+  };
+  if ((channel as any).state === "joining") {
+    setTimeout(remove, 400);
+    return;
+  }
+  remove();
+}
 
 /**
  * useAdminRealtime
@@ -11,11 +31,9 @@ export function useAdminRealtime() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    // Unique ID for this session
-    const sessionId = Math.random().toString(36).substring(2, 10);
-
     const deliverablesChannel = supabase
-      .channel(`admin-deliveries-${sessionId}`)
+      .channel("admin-deliveries")
+
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "deliveries" },
