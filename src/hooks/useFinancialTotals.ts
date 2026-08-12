@@ -12,23 +12,22 @@ export function useFinancialTotals(validDeliveries: DeliveryWithRelations[], dri
       totalValue += value;
       
       let commission = 0;
-      if (d.commission && Number(d.commission) > 0) {
-        commission = Number(d.commission);
-      } else if (d.driver_id) {
+      if (d.driver_id) {
         const driver = drivers?.find(dr => dr.id === d.driver_id);
         const rate = (driver?.commission_rate !== undefined && driver?.commission_rate !== null)
           ? Number(driver.commission_rate) 
-          : 1.0; // By default, driver gets 100% of the delivery fee
+          : 0.40; // Default taxa por corrida: R$ 0,40
         
-        // Se a taxa for <= 1, consideramos porcentagem (ex: 0.9 = 90%)
-        // Se for > 1, consideramos valor fixo.
+        // A comissão do entregador cobrada pela plataforma é um valor fixo em Reais por entrega (ex: R$ 0,40 por corrida).
         if (rate <= 1 && rate > 0) {
-          commission = value * rate;
+          commission = rate; // R$ 0,40 por corrida
+        } else if (rate > 1 && rate <= 100) {
+          commission = rate > 5 ? (value * (rate / 100)) : rate;
         } else {
-          commission = rate > 1 ? rate : value;
+          commission = rate;
         }
       } else {
-        commission = value; // If no driver assigned yet, estimate full value
+        commission = 0.40; // Taxa padrão por corrida
       }
       totalCommission += commission;
       
@@ -47,3 +46,4 @@ export function useFinancialTotals(validDeliveries: DeliveryWithRelations[], dri
     };
   }, [validDeliveries, drivers]);
 }
+
