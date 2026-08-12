@@ -108,7 +108,7 @@ export function useDriverRealtime() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { safeRemoveChannel(channel); };
   }, [qc]);
 }
 
