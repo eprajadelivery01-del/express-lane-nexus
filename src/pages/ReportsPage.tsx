@@ -470,13 +470,16 @@ export default function ReportsPage() {
 
     // Driver billing rows
     const driverBillingRows = driverBreakdown.map(d => {
+      const driverObj = (drivers ?? []).find(dr => dr.id === d.driverId);
+      const commRate = driverObj?.commission_rate !== undefined && driverObj?.commission_rate !== null
+        ? Number(driverObj.commission_rate) : 0.40;
       const totalDue = d.totalCommission;
       return `
         <tr>
           <td>${d.name}</td>
           <td style="text-align:center">${d.count}</td>
           <td style="text-align:right">R$ ${d.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-          <td style="text-align:right">-</td>
+          <td style="text-align:right">R$ ${commRate.toFixed(2).replace(".", ",")}</td>
           <td style="text-align:right;font-weight:900;color:#6366f1">R$ ${totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
         </tr>`;
     }).join("");
