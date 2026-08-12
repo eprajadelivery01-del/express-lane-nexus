@@ -73,6 +73,21 @@ export type Database = {
           },
         ]
       }
+      app_config: {
+        Row: {
+          key: string
+          value: string
+        }
+        Insert: {
+          key: string
+          value: string
+        }
+        Update: {
+          key?: string
+          value?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           created_at: string
@@ -339,6 +354,7 @@ export type Database = {
           description: string | null
           document: string | null
           email: string | null
+          fcm_token: string | null
           gallery: Json | null
           id: string
           is_active: boolean | null
@@ -381,6 +397,7 @@ export type Database = {
           description?: string | null
           document?: string | null
           email?: string | null
+          fcm_token?: string | null
           gallery?: Json | null
           id?: string
           is_active?: boolean | null
@@ -423,6 +440,7 @@ export type Database = {
           description?: string | null
           document?: string | null
           email?: string | null
+          fcm_token?: string | null
           gallery?: Json | null
           id?: string
           is_active?: boolean | null
@@ -1060,6 +1078,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      device_tokens: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          disabled_at: string | null
+          id: string
+          phone: string | null
+          platform: string | null
+          token: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          disabled_at?: string | null
+          id?: string
+          phone?: string | null
+          platform?: string | null
+          token: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          disabled_at?: string | null
+          id?: string
+          phone?: string | null
+          platform?: string | null
+          token?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
       }
       driver_earnings: {
         Row: {
@@ -1990,6 +2044,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string | null
           document: string | null
+          fcm_token: string | null
           full_name: string | null
           id: string
           phone: string | null
@@ -2002,6 +2057,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           document?: string | null
+          fcm_token?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -2014,6 +2070,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string | null
           document?: string | null
+          fcm_token?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
@@ -2516,6 +2573,7 @@ export type Database = {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
       }
+      cleanup_device_tokens: { Args: { _stale_days?: number }; Returns: number }
       create_order_v3: {
         Args: {
           p_address_id: string
@@ -2532,6 +2590,10 @@ export type Database = {
         Returns: Json
       }
       delete_my_account: { Args: never; Returns: undefined }
+      driver_has_delivery_for_company: {
+        Args: { _driver_id: string; _user_id: string }
+        Returns: boolean
+      }
       find_region_for_point: {
         Args: { _lat: number; _lng: number }
         Returns: {
@@ -2565,6 +2627,7 @@ export type Database = {
           description: string | null
           document: string | null
           email: string | null
+          fcm_token: string | null
           gallery: Json | null
           id: string
           is_active: boolean | null
@@ -2654,6 +2717,10 @@ export type Database = {
       request_wallet_withdrawal: { Args: { _amount: number }; Returns: Json }
       safe_delete_customer: { Args: { p_user_id: string }; Returns: undefined }
       safe_delete_driver: { Args: { p_driver_id: string }; Returns: undefined }
+      send_order_push: {
+        Args: { p_order_id: string; p_status: string }
+        Returns: undefined
+      }
       update_delivery_status_safe: {
         Args: { p_delivery_id: string; p_driver_id?: string; p_status: string }
         Returns: Json
