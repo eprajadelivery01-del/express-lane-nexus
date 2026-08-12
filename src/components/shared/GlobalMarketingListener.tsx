@@ -27,14 +27,17 @@ export function GlobalMarketingListener() {
       Notification.requestPermission().catch(() => {});
     }
 
-    // 2. Single reusable broadcast channel for admin receipts
+    // Unique topics per mount avoid "callbacks after subscribe()" on StrictMode/HMR re-mounts
+    const uid = Math.random().toString(36).slice(2, 8);
+
+    // 2. Broadcast channel used to send receipts to admins
     const receipts = supabase.channel('marketing-receipts');
     receipts.subscribe();
     receiptsRef.current = receipts;
 
     // 3. Listen to INSERT events on marketing_notifications
     const channel = supabase
-      .channel('public:marketing_notifications')
+      .channel(`marketing-notifications-${uid}`)
       .on(
         'postgres_changes',
         {
