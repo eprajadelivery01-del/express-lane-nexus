@@ -118,9 +118,12 @@ export function GlobalMarketingListener() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      safeRemoveChannel(channel);
+      safeRemoveChannel(receipts);
+      receiptsRef.current = null;
     };
-  }, [user]);
+  }, [user?.id]);
+
 
   return null;
 }
