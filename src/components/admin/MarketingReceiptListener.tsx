@@ -5,9 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export function MarketingReceiptListener() {
   const { toast } = useToast();
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
 
   useEffect(() => {
+    // Wait for auth/profile to settle before subscribing (avoids subscribe/remove churn)
+    if (loading) return;
     // Only listen if the user is an admin
     if (!user || (profile as any)?.role !== 'admin') return;
 
@@ -16,6 +18,7 @@ export function MarketingReceiptListener() {
         broadcast: { ack: false },
       },
     });
+
 
     channel
       .on(
