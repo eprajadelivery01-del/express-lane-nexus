@@ -9,6 +9,8 @@ const NOTIFICATION_AUDIO_URL = 'https://assets.mixkit.co/active_storage/sfx/2869
 export function GlobalMarketingListener() {
   const { user } = useAuth();
   const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
+  const receiptsRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
 
   useEffect(() => {
     // 1. Register Service Worker & Request Notification Permission
