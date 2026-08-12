@@ -4,6 +4,7 @@ import { AuthContext } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { safeRemoveChannel } from "@/services/realtime";
 
 export function useGlobalChatNotifications() {
   const auth = useContext(AuthContext);
@@ -15,9 +16,9 @@ export function useGlobalChatNotifications() {
   useEffect(() => {
     if (!user) return;
 
-    const sessionId = Math.random().toString(36).substring(2, 10);
     const channel = supabase
-      .channel(`global-notifications-${sessionId}`)
+      .channel(`global-notifications-${user.id}`)
+
       .on(
         "postgres_changes",
         {
@@ -82,7 +83,7 @@ export function useGlobalChatNotifications() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      safeRemoveChannel(channel);
     };
   }, [user?.id, navigate, qc]);
 }

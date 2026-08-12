@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { safeRemoveChannel } from "@/services/realtime";
 
 const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
@@ -57,7 +58,7 @@ export function useRealtimeDeliveries() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      safeRemoveChannel(channel);
     };
   }, [qc]);
 }

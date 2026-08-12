@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeRemoveChannel } from '@/services/realtime';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Copy, X } from 'lucide-react';
@@ -9,6 +10,8 @@ const NOTIFICATION_AUDIO_URL = 'https://assets.mixkit.co/active_storage/sfx/2869
 export function GlobalMarketingListener() {
   const { user } = useAuth();
   const swRegRef = useRef<ServiceWorkerRegistration | null>(null);
+  const receiptsRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
 
   useEffect(() => {
     // 1. Register Service Worker & Request Notification Permission
@@ -24,7 +27,12 @@ export function GlobalMarketingListener() {
       Notification.requestPermission().catch(() => {});
     }
 
-    // 2. Listen to INSERT events on marketing_notifications
+    // 2. Single reusable broadcast channel for admin receipts
+    const receipts = supabase.channel('marketing-receipts');
+    receipts.subscribe();
+    receiptsRef.current = receipts;
+
+    // 3. Listen to INSERT events on marketing_notifications
     const channel = supabase
       .channel('public:marketing_notifications')
       .on(
@@ -36,9 +44,9 @@ export function GlobalMarketingListener() {
         },
         (payload) => {
           const newNotif = payload.new;
-          
+
           // Send receipt to admins
-          supabase.channel('marketing-receipts').send({
+          receiptsRef.current?.send({
             type: 'broadcast',
             event: 'notification_received',
             payload: {
@@ -46,6 +54,7 @@ export function GlobalMarketingListener() {
               notification_title: newNotif.title,
             },
           });
+
 
           // Play Audio & Vibrate
           try {
@@ -110,9 +119,12 @@ export function GlobalMarketingListener() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      safeRemoveChannel(channel);
+      safeRemoveChannel(receipts);
+      receiptsRef.current = null;
     };
-  }, [user]);
+  }, [user?.id]);
+
 
   return null;
 }
