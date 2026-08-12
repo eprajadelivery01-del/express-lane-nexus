@@ -1,5 +1,11 @@
 # Corrigir o aviso "WebSocket is closed before the connection is established"
 
+## Passo 0 — destravar o build (obrigatório)
+
+`src/components/business/NewDeliveryForm.tsx:231` usa `selectedCity?.id`, mas `selectedCity` do `CityContext` é `string | null` (o próprio id). Trocar por `selectedCity` — mesmo padrão já usado na linha 412.
+
+
+
 ## O que está acontecendo
 
 Esse aviso aparece quando um canal Realtime é criado e removido antes do handshake do WebSocket terminar. No projeto isso acontece porque vários hooks abrem canais próprios e os fecham logo em seguida quando o estado de autenticação muda (por exemplo na tela de login, onde `user`/`profile` mudam de `undefined` para o valor real e os efeitos re-executam).
