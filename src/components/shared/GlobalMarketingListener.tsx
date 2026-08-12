@@ -27,6 +27,17 @@ export function GlobalMarketingListener() {
       Notification.requestPermission().catch(() => {});
     }
 
+    // Drop any stale channels with the same topics (StrictMode / HMR re-mounts)
+    supabase
+      .getChannels()
+      .filter((c) =>
+        c.topic === 'realtime:marketing-receipts' ||
+        c.topic === 'realtime:public:marketing_notifications',
+      )
+      .forEach((c) => {
+        try { supabase.removeChannel(c); } catch {}
+      });
+
     // 2. Single reusable broadcast channel for admin receipts
     const receipts = supabase.channel('marketing-receipts');
     receipts.subscribe();
