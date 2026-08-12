@@ -228,11 +228,11 @@ export default function NewDeliveryForm({ onClose, onSaved, initialData, company
       const now = new Date().toISOString();
       const deliveryId = initialData?.id || crypto.randomUUID();
       const storeTitle = currentCompany?.trade_name || currentCompany?.name || "Loja Parceira";
+      const resolvedCityId = currentCompany?.city_id || selectedCity?.id || initialData?.city_id || null;
       const payload: any = {
         id: deliveryId,
         company_id: cId,
-        company_name: storeTitle,
-        store_name: storeTitle,
+        city_id: resolvedCityId,
         customer_name: customerName,
         customer_phone: customerPhone.replace(/\D/g, ""),
         customer_cpf: customerCpf.replace(/\D/g, ""),
