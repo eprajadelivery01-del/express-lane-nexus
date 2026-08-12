@@ -27,8 +27,18 @@ export function getValidDeliveries(deliveries: DeliveryWithRelations[]) {
   return deliveries.filter(d => d.status === "delivered" || (d.status as string) === "completed");
 }
 
-export function calculateReportsTotals(validDeliveries: DeliveryWithRelations[]) {
+export function calculateReportsTotals(validDeliveries: DeliveryWithRelations[], drivers?: any[]) {
   const totalValue = validDeliveries.reduce((s, d) => s + getDeliveryValue(d), 0);
-  const totalCommission = validDeliveries.reduce((s, d) => s + Number((d as unknown as Record<string, unknown>).commission ?? 0), 0);
+  const totalCommission = validDeliveries.reduce((s, d) => {
+    let rate = 0.40;
+    if (d.driver_id && drivers) {
+      const driver = drivers.find(dr => dr.id === d.driver_id);
+      if (driver?.commission_rate !== undefined && driver?.commission_rate !== null) {
+        rate = Number(driver.commission_rate);
+      }
+    }
+    const commission = (rate <= 1 && rate > 0) ? rate : (rate > 5 ? (getDeliveryValue(d) * (rate / 100)) : rate);
+    return s + commission;
+  }, 0);
   return { totalValue, totalCommission, completedCount: validDeliveries.length };
 }
