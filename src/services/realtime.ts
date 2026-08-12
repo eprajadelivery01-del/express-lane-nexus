@@ -84,7 +84,7 @@ export function useDriverRealtime() {
 
   useEffect(() => {
     const channel = supabase
-      .channel(`driver-deliveries-${Math.random()}`)
+      .channel("driver-deliveries")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "deliveries" },
