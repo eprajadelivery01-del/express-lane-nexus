@@ -82,7 +82,7 @@ export function useGlobalChatNotifications() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      safeRemoveChannel(channel);
     };
   }, [user?.id, navigate, qc]);
 }
