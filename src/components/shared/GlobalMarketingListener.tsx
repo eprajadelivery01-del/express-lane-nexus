@@ -26,7 +26,12 @@ export function GlobalMarketingListener() {
       Notification.requestPermission().catch(() => {});
     }
 
-    // 2. Listen to INSERT events on marketing_notifications
+    // 2. Single reusable broadcast channel for admin receipts
+    const receipts = supabase.channel('marketing-receipts');
+    receipts.subscribe();
+    receiptsRef.current = receipts;
+
+    // 3. Listen to INSERT events on marketing_notifications
     const channel = supabase
       .channel('public:marketing_notifications')
       .on(
@@ -38,9 +43,9 @@ export function GlobalMarketingListener() {
         },
         (payload) => {
           const newNotif = payload.new;
-          
+
           // Send receipt to admins
-          supabase.channel('marketing-receipts').send({
+          receiptsRef.current?.send({
             type: 'broadcast',
             event: 'notification_received',
             payload: {
@@ -48,6 +53,7 @@ export function GlobalMarketingListener() {
               notification_title: newNotif.title,
             },
           });
+
 
           // Play Audio & Vibrate
           try {
