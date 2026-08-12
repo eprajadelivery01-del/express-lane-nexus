@@ -1,58 +1,30 @@
-## Problemas identificados na aba Financeiro / Relatórios
+# Corrigir o aviso "WebSocket is closed before the connection is established"
 
-Comparando a tela enviada com o código atual de `src/pages/ReportsPage.tsx` e `src/services/deliveries.ts`:
+## O que está acontecendo
 
-1. **Comissões Estimadas sempre R$ 0,00 com badge "8.5% do faturamento"**
-   - O card lê `(d as any).commission`, mas o `useDeliveries` **não seleciona** a coluna `commission` do Supabase. Resultado: sempre 0.
-   - O texto "8.5% do faturamento" está hard-coded e não reflete nada real.
+Esse aviso aparece quando um canal Realtime é criado e removido antes do handshake do WebSocket terminar. No projeto isso acontece porque vários hooks abrem canais próprios e os fecham logo em seguida quando o estado de autenticação muda (por exemplo na tela de login, onde `user`/`profile` mudam de `undefined` para o valor real e os efeitos re-executam).
 
-2. **Status Operacional mostra "Finalizada" duplicado (ex.: 5 + 28)**
-   - O dataset agrupa por `status` cru, então `delivered` e `completed` viram entradas separadas com o mesmo rótulo "Finalizada". O mesmo afeta o gráfico de pizza e o filtro de status (escolher "Finalizadas" só pega `delivered`, esconde `completed`).
+Pontos verificados no código:
 
-3. **Filtro de status "Finalizadas" perde corridas com status `completed`**
-   - Filtro envia apenas `delivered` para o Supabase. Precisa enviar ambos.
+- `src/services/realtime.ts` cria 3 canais com um sufixo aleatório a cada montagem (`admin-deliveries-<random>`, etc.), então qualquer remontagem gera canais novos em vez de reaproveitar.
+- `src/services/realtime.ts` (`useDriverRealtime`) usa `channel(\`driver-deliveries-${Math.random()}\`)` — mesmo problema.
+- `src/hooks/useRealtimeDeliveries.ts` e `src/services/realtime.ts` assinam a mesma tabela `deliveries` em canais separados.
+- `src/components/admin/MarketingReceiptListener.tsx` reassina no efeito com dependência de `user?.id` e `profile.role`, ou seja, abre/fecha canal durante o carregamento do perfil.
+- `src/components/shared/GlobalMarketingListener.tsx` chama `supabase.channel('marketing-receipts').send(...)` dentro do callback: cria um canal novo a cada evento, nunca inscrito nem removido (vazamento e conexões abortadas).
 
-4. **CSV e PDF saem com valores errados**
-   - CSV exporta coluna "Comissão" sempre zerada (mesma causa do item 1).
-   - PDF usa `totalCompanyDue + totalDriverDue` no card "Comissões Plataforma", mas o card da tela mostra `totalCommission` (sempre 0) — números divergentes entre tela e PDF.
-   - Rodapé "TOTAIS" da tabela do PDF soma `commission` zerado.
+## Correções propostas
 
-5. **Subtítulo confuso "33 finalizadas na pág."**
-   - Texto técnico vazado para o usuário. Voltar ao formato anterior ("X finalizadas").
+1. Estabilizar nomes de canais: remover os sufixos aleatórios de `useAdminRealtime` e `useDriverRealtime`, usando nomes fixos por escopo.
+2. Só assinar quando a sessão estiver resolvida: nos listeners dependentes de auth (`MarketingReceiptListener`, notificações de chat), sair cedo enquanto o auth ainda está carregando, evitando o par subscribe/remove imediato.
+3. Fechar canal de forma segura: no cleanup, remover o canal apenas se ele já estiver inscrito; caso contrário, aguardar o callback de `subscribe` antes de remover — elimina o fechamento durante o handshake.
+4. Reutilizar um único canal de broadcast `marketing-receipts` no `GlobalMarketingListener` (criado e inscrito uma vez no efeito) em vez de criar um canal novo a cada notificação recebida.
+5. Evitar duplicidade em `deliveries`: manter a assinatura central em `useAdminRealtime` e fazer `useRealtimeDeliveries` reaproveitá-la (ou restringir seu uso a telas que não usam o layout admin).
 
-6. **Detalhamento limitado a 50 na tela mas título diz "36 registros encontrados"**
-   - Sem impacto agora (36 < 50), mas o `slice(0, 50)` esconde linhas quando o período tiver mais. Manter slice mas com aviso, ou remover.
+## Detalhes técnicos
 
-## Correções (somente front-end + um campo no select)
+- Adicionar em `src/services/realtime.ts` um helper `safeRemoveChannel(channel)` que checa `channel.state` e só chama `supabase.removeChannel` quando o canal está `joined`/`errored`/`closed`, ou registra a remoção para o próximo tick.
+- Nenhuma mudança de banco de dados, RLS ou lógica de negócio; apenas o ciclo de vida das assinaturas no frontend.
 
-### `src/services/deliveries.ts`
-- Adicionar `commission` ao `select` de `useDeliveries` (e manter o resto inalterado) para que o valor real venha do banco.
+## Observação
 
-### `src/pages/ReportsPage.tsx`
-- **Unificar `delivered` + `completed`** num único status lógico `delivered` em três pontos:
-  - `validDeliveries` (já cobre, manter).
-  - `statusData` (agregar `completed` dentro de `delivered` antes de gerar a entrada do gráfico).
-  - Filtro "Finalizadas": ao enviar para o backend, usar `.in('status', ['delivered','completed'])` via um pequeno ajuste no hook (passar array) **ou** simplesmente filtrar localmente quando `statusFilter === 'delivered'`. Vou pelo filtro local para não mexer na assinatura do hook.
-- **Card Comissões Estimadas**:
-  - Valor = `totalCommission` real (agora populado).
-  - Remover o `trend="8.5% do faturamento"` hard-coded. Trocar por percentual real: `(totalCommission / totalValue * 100).toFixed(1)+"% do faturamento"` (oculto quando `totalValue === 0`).
-  - Subtítulo: "Comissões pagas aos entregadores" (mais honesto, já que a coluna `commission` em `deliveries` é o ganho do entregador).
-- **Subtítulo do card "Total de Corridas"**: trocar `${completedCount} finalizadas na pág.` por `${completedCount} finalizadas`.
-- **PDF (`handlePrint`)**:
-  - Card "Comissões Plataforma" do PDF: continuar somando `totalCompanyDue + totalDriverDue` (esse é o devido à plataforma — semântica diferente da tela), mas **renomear** o rótulo para "Devido à Plataforma" para evitar choque com a tela. O card da tela continua sendo "Comissões Estimadas".
-  - Coluna "Comissão" na tabela detalhada agora exibe o valor real (vem do `commission` selecionado).
-  - Rodapé "TOTAIS" passa a fechar com `totalCommission` correto.
-- **Tabela detalhamento (tela)**: remover o `slice(0, 50)` — já temos paginação por `pageSize: 1000` no fetch, então mostrar tudo que está no array (`deliveries.map`) para bater com o contador "X registros encontrados".
-
-### Fora do escopo
-- Não vou unificar as colunas `value` / `price` / `delivery_fee` no banco — o helper `getDeliveryValue` já cobre.
-- Não vou reorganizar a UI nem trocar paleta — só corrigir cálculos, rótulos enganosos e exportações.
-- Não vou mexer em Dashboard, faturas, financeiro do lojista nem nas tabelas Supabase.
-
-## Verificação após implementar
-1. Abrir `/financeiro` (Relatórios) e conferir:
-   - Card "Comissões Estimadas" mostra valor > 0 (se houver `commission` no banco) e percentual real.
-   - Lista "Status Operacional" não duplica "Finalizada".
-   - Filtro "Finalizadas" lista tanto `delivered` quanto `completed`.
-2. Clicar **Exportar CSV** e abrir o arquivo: coluna Comissão com valores reais; total de linhas = contagem da tela.
-3. Clicar **Imprimir Relatório**: KPIs e tabela batem com a tela; rodapé "TOTAIS" fecha; rótulo "Devido à Plataforma" claro.
+Esse aviso do console é inofensivo (não quebra funcionalidade), mas as correções acima removem o ruído e evitam conexões Realtime desperdiçadas.
