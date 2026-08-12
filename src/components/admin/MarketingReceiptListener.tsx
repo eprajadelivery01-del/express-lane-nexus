@@ -37,9 +37,10 @@ export function MarketingReceiptListener() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      safeRemoveChannel(channel);
     };
-  }, [user?.id, (profile as any)?.role]);
+  }, [loading, user?.id, (profile as any)?.role]);
+
 
   return null;
 }
