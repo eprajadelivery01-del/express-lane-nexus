@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { safeRemoveChannel } from '@/services/realtime';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Copy, X } from 'lucide-react';
