@@ -366,6 +366,32 @@ export async function createDeliveryRequest(orderId: string) {
 
   if (existingDelivery) {
     console.log(`[Deliveries] Entrega já existe para o pedido ${orderId}. Retornando existente.`);
+    
+    // Assegura status = pending e dispara push
+    await supabase.from("deliveries").update({ status: "pending" }).eq("id", existingDelivery.id);
+    
+    const storeName = order.company_name || order.store_name || "É Pra Já Delivery";
+    const detailsStr = `🏬 Loja: ${storeName}\n📍 Coleta: ${existingDelivery.pickup_address || 'Retirada na Loja'}\n🏁 Entrega: ${existingDelivery.delivery_address || dropoff}\n💰 Ganhos: R$ ${Number(existingDelivery.value || existingDelivery.commission || 0).toFixed(2).replace('.', ',')}`;
+
+    supabase.functions.invoke("send-push", {
+      body: {
+        type: "INSERT",
+        table: "deliveries",
+        schema: "public",
+        record: {
+          id: existingDelivery.id,
+          status: "pending",
+          store_name: storeName,
+          company_name: storeName,
+          details: detailsStr,
+          address: detailsStr,
+          pickup_address: existingDelivery.pickup_address || "Retirada na Loja",
+          delivery_address: existingDelivery.delivery_address || dropoff,
+          delivery_fee: existingDelivery.value || existingDelivery.commission || 0,
+        }
+      }
+    }).catch(err => console.warn("[Deliveries] Erro ao disparar send-push:", err));
+
     return existingDelivery;
   }
 
@@ -395,6 +421,28 @@ export async function createDeliveryRequest(orderId: string) {
     .single();
 
   if (deliveryError) throw deliveryError;
+
+  const storeName = order.company_name || order.store_name || "É Pra Já Delivery";
+  const detailsStr = `🏬 Loja: ${storeName}\n📍 Coleta: Retirada na Loja\n🏁 Entrega: ${dropoff}\n💰 Ganhos: R$ ${Number(order.delivery_fee || 0).toFixed(2).replace('.', ',')}`;
+
+  supabase.functions.invoke("send-push", {
+    body: {
+      type: "INSERT",
+      table: "deliveries",
+      schema: "public",
+      record: {
+        id: delivery.id,
+        status: "pending",
+        store_name: storeName,
+        company_name: storeName,
+        details: detailsStr,
+        address: detailsStr,
+        pickup_address: "Retirada na Loja",
+        delivery_address: dropoff,
+        delivery_fee: order.delivery_fee || 0,
+      }
+    }
+  }).catch(err => console.warn("[Deliveries] Erro ao disparar send-push:", err));
 
   return delivery;
 }
