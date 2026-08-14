@@ -6,7 +6,8 @@ import {
   Building2, Bike, UserCircle, Plus, Trash2, Eraser, 
   Store, ShoppingBag, ShieldAlert, Sparkles, Filter,
   UserCheck, HelpCircle, Users, CheckCheck, Clock, 
-  Phone, ExternalLink, X, MessageCircle, AlertCircle, Copy, Check
+  Phone, ExternalLink, X, MessageCircle, AlertCircle, Copy, Check,
+  ChevronRight, Inbox, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
@@ -18,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 type ContactType = "company" | "driver" | "customer";
-type ChatCategory = "all" | "drivers" | "companies" | "store_customer" | "customers" | "driver_application";
+type ChatCategory = "all" | "store_customer" | "drivers" | "companies" | "customers" | "driver_application";
 
 interface Contact {
   user_id: string;
@@ -391,7 +392,7 @@ export default function AdminChatPage() {
     return { store, customer };
   };
 
-  // Clean title without messy topic tags
+  // Clean title
   const getConvTitle = (conv: any) => {
     const category = getConversationCategory(conv);
 
@@ -399,8 +400,7 @@ export default function AdminChatPage() {
       const { store, customer } = getStoreCustomerParticipants(conv);
       const storeName = store?.full_name || "Loja";
       const customerName = customer?.full_name || "Cliente";
-      const orderTag = conv.order_id ? ` • Pedido #${conv.order_id.slice(0, 4).toUpperCase()}` : '';
-      return `${storeName} ↔ ${customerName}${orderTag}`;
+      return `${storeName} ↔ ${customerName}`;
     }
 
     if (category === 'driver_application') {
@@ -424,13 +424,16 @@ export default function AdminChatPage() {
 
   // Extract topic cleanly for secondary badge
   const getConvTopicBadge = (conv: any) => {
+    if (conv.order_id) {
+      return `Pedido #${conv.order_id.slice(-6).toUpperCase()}`;
+    }
     if (conv.messages && conv.messages.length > 0) {
       const firstMsg = [...conv.messages].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
       if (firstMsg?.content?.startsWith('[Assunto:')) {
         return firstMsg.content.replace('[Assunto:', '').replace(']', '').trim();
       }
     }
-    return conv.topic || null;
+    return null;
   };
 
   // Clean last message snippet
@@ -499,12 +502,12 @@ export default function AdminChatPage() {
 
   // Counts for all granular tabs
   const categoryCounts = useMemo(() => {
-    if (!conversations) return { all: 0, drivers: 0, companies: 0, store_customer: 0, customers: 0, driver_application: 0 };
+    if (!conversations) return { all: 0, store_customer: 0, drivers: 0, companies: 0, customers: 0, driver_application: 0 };
     return {
       all: conversations.length,
+      store_customer: conversations.filter(c => getConversationCategory(c) === 'store_customer').length,
       drivers: conversations.filter(c => getConversationCategory(c) === 'drivers').length,
       companies: conversations.filter(c => getConversationCategory(c) === 'companies').length,
-      store_customer: conversations.filter(c => getConversationCategory(c) === 'store_customer').length,
       customers: conversations.filter(c => getConversationCategory(c) === 'customers').length,
       driver_application: conversations.filter(c => getConversationCategory(c) === 'driver_application').length,
     };
@@ -527,21 +530,26 @@ export default function AdminChatPage() {
   }, [messages]);
 
   return (
-    <AdminLayout title="Central de Comando • Chat & Suporte" subtitle="Atendimento profissional unificado e monitoramento de conversas em tempo real">
-      <div className="flex h-[calc(100vh-13.5rem)] bg-card/60 backdrop-blur-xl rounded-3xl border border-border/80 overflow-hidden shadow-2xl relative">
+    <AdminLayout fullHeight title="Central de Comando • Chat & Suporte" subtitle="Atendimento profissional unificado e monitoramento de conversas em tempo real">
+      <div className="h-[calc(100vh-4rem)] flex flex-col md:flex-row bg-background overflow-hidden w-full select-none">
         
-        {/* SIDEBAR DE CONVERSAS */}
-        <div className={cn("w-full md:w-[410px] lg:w-[450px] border-r border-border/70 flex flex-col bg-card/90 shrink-0", selectedConv && "hidden md:flex")}>
+        {/* =========================================================================
+            BARRA LATERAL ESQUERDA: LISTA DE CONVERSAS E FILTROS
+           ========================================================================= */}
+        <div className={cn(
+          "w-full md:w-[380px] lg:w-[420px] border-r border-border/70 flex flex-col bg-card shrink-0 h-full",
+          selectedConv && "hidden md:flex"
+        )}>
           
-          {/* Header Superior */}
-          <div className="p-3.5 border-b border-border/60 space-y-3 bg-card">
+          {/* TOPO: Ações e Pesquisa */}
+          <div className="p-3.5 border-b border-border/60 space-y-3 bg-card shrink-0">
             <div className="flex items-center justify-between gap-2">
-              <div className="flex rounded-2xl bg-muted/70 p-1 text-xs font-bold shadow-inner">
+              <div className="flex items-center bg-muted/60 p-1 rounded-xl border border-border/50 shadow-xs">
                 <button
                   onClick={() => setShowContacts(false)}
                   className={cn(
-                    "px-4 py-1.5 rounded-xl transition-all flex items-center gap-2", 
-                    !showContacts ? "bg-card text-foreground shadow-md font-extrabold" : "text-muted-foreground hover:text-foreground"
+                    "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
+                    !showContacts ? "bg-background text-foreground shadow-sm font-extrabold" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <MessageSquare className="h-3.5 w-3.5 text-primary" />
@@ -550,11 +558,11 @@ export default function AdminChatPage() {
                 <button
                   onClick={() => setShowContacts(true)}
                   className={cn(
-                    "px-4 py-1.5 rounded-xl transition-all flex items-center gap-1.5", 
-                    showContacts ? "bg-card text-foreground shadow-md font-extrabold" : "text-muted-foreground hover:text-foreground"
+                    "px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5",
+                    showContacts ? "bg-background text-foreground shadow-sm font-extrabold" : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  <Plus className="h-3.5 w-3.5 text-primary" /> 
+                  <Plus className="h-3.5 w-3.5 text-primary" />
                   <span>Nova</span>
                 </button>
               </div>
@@ -564,7 +572,7 @@ export default function AdminChatPage() {
                   onClick={handleClearEmptyConversations}
                   disabled={isClearingEmpty}
                   title="Apagar todas as conversas sem mensagens"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive/10 text-destructive text-[0.7rem] font-black uppercase tracking-wider hover:bg-destructive/20 transition-all disabled:opacity-50 cursor-pointer border border-destructive/20 active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive/10 text-destructive text-[11px] font-bold hover:bg-destructive/20 transition-all border border-destructive/20 active:scale-95 disabled:opacity-50"
                 >
                   {isClearingEmpty ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eraser className="h-3.5 w-3.5" />}
                   <span>Limpar Vazias</span>
@@ -572,116 +580,15 @@ export default function AdminChatPage() {
               )}
             </div>
 
-            {/* SELETOR DE CATEGORIAS PROFISSIONAL COM PILLS */}
-            {!showContacts && (
-              <div className="grid grid-cols-3 gap-1.5">
-                {/* 1. Todos */}
-                <button
-                  onClick={() => setActiveCategory("all")}
-                  className={cn(
-                    "flex items-center justify-between px-2.5 py-2 rounded-xl text-[11px] font-black transition-all border text-left",
-                    activeCategory === "all" 
-                      ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20 scale-[1.02]" 
-                      : "bg-muted/40 text-muted-foreground border-border/60 hover:bg-muted/80 hover:text-foreground"
-                  )}
-                >
-                  <span className="truncate">📋 Todos</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-md text-[9px] font-black", activeCategory === "all" ? "bg-white/20 text-white" : "bg-muted-foreground/15 text-foreground")}>
-                    {categoryCounts.all}
-                  </span>
-                </button>
-
-                {/* 2. Entregadores */}
-                <button
-                  onClick={() => setActiveCategory("drivers")}
-                  className={cn(
-                    "flex items-center justify-between px-2.5 py-2 rounded-xl text-[11px] font-black transition-all border text-left",
-                    activeCategory === "drivers" 
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-600/20 scale-[1.02]" 
-                      : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20"
-                  )}
-                >
-                  <span className="truncate">🏍️ Entregador</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-md text-[9px] font-black", activeCategory === "drivers" ? "bg-white/20 text-white" : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200")}>
-                    {categoryCounts.drivers}
-                  </span>
-                </button>
-
-                {/* 3. Lojas */}
-                <button
-                  onClick={() => setActiveCategory("companies")}
-                  className={cn(
-                    "flex items-center justify-between px-2.5 py-2 rounded-xl text-[11px] font-black transition-all border text-left",
-                    activeCategory === "companies" 
-                      ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-600/20 scale-[1.02]" 
-                      : "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20 hover:bg-blue-500/20"
-                  )}
-                >
-                  <span className="truncate">🏪 Lojistas</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-md text-[9px] font-black", activeCategory === "companies" ? "bg-white/20 text-white" : "bg-blue-500/20 text-blue-800 dark:text-blue-200")}>
-                    {categoryCounts.companies}
-                  </span>
-                </button>
-
-                {/* 4. Loja <-> Cliente */}
-                <button
-                  onClick={() => setActiveCategory("store_customer")}
-                  className={cn(
-                    "flex items-center justify-between px-2.5 py-2 rounded-xl text-[11px] font-black transition-all border text-left",
-                    activeCategory === "store_customer" 
-                      ? "bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-600/20 scale-[1.02]" 
-                      : "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20 hover:bg-purple-500/20"
-                  )}
-                >
-                  <span className="truncate">🛒 Loja ↔ Cli</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-md text-[9px] font-black", activeCategory === "store_customer" ? "bg-white/20 text-white" : "bg-purple-500/20 text-purple-800 dark:text-purple-200")}>
-                    {categoryCounts.store_customer}
-                  </span>
-                </button>
-
-                {/* 5. Clientes */}
-                <button
-                  onClick={() => setActiveCategory("customers")}
-                  className={cn(
-                    "flex items-center justify-between px-2.5 py-2 rounded-xl text-[11px] font-black transition-all border text-left",
-                    activeCategory === "customers" 
-                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20 scale-[1.02]" 
-                      : "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20"
-                  )}
-                >
-                  <span className="truncate">👤 Clientes</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-md text-[9px] font-black", activeCategory === "customers" ? "bg-white/20 text-white" : "bg-indigo-500/20 text-indigo-800 dark:text-indigo-200")}>
-                    {categoryCounts.customers}
-                  </span>
-                </button>
-
-                {/* 6. Pré-Cadastro */}
-                <button
-                  onClick={() => setActiveCategory("driver_application")}
-                  className={cn(
-                    "flex items-center justify-between px-2.5 py-2 rounded-xl text-[11px] font-black transition-all border text-left",
-                    activeCategory === "driver_application" 
-                      ? "bg-orange-600 text-white border-orange-600 shadow-md shadow-orange-600/20 scale-[1.02]" 
-                      : "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20 hover:bg-orange-500/20"
-                  )}
-                >
-                  <span className="truncate">📝 Pré-Cad.</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-md text-[9px] font-black", activeCategory === "driver_application" ? "bg-white/20 text-white" : "bg-orange-500/20 text-orange-800 dark:text-orange-200")}>
-                    {categoryCounts.driver_application}
-                  </span>
-                </button>
-              </div>
-            )}
-
-            {/* Caixa de Busca Elegante */}
+            {/* BARRA DE PESQUISA */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={showContacts ? "Buscar contatos para iniciar conversa..." : "Buscar por nome, loja, telefone, pedido..."}
-                className="w-full pl-10 pr-8 py-2.5 rounded-2xl bg-muted/50 border border-border/80 text-xs font-semibold placeholder:text-muted-foreground/70 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-inner"
+                placeholder={showContacts ? "Buscar contatos..." : "Buscar por nome, loja, telefone, pedido..."}
+                className="w-full pl-10 pr-8 py-2 rounded-xl bg-muted/40 border border-border/60 text-xs font-semibold placeholder:text-muted-foreground/50 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
               {search && (
                 <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
@@ -690,26 +597,46 @@ export default function AdminChatPage() {
               )}
             </div>
 
-            {/* Filtros rápidos de Contato */}
-            {showContacts && (
-              <div className="flex gap-1.5 pt-1">
-                {(["all", "company", "driver", "customer"] as const).map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => setFilterType(t)}
-                    className={cn(
-                      "px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all",
-                      filterType === t ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {t === "all" ? "Todos" : typeLabel(t as ContactType)}
-                  </button>
-                ))}
+            {/* ABAS CATEGORIZADAS (DESIGN PROFISSIONAL EM SLIDER DE PILLS) */}
+            {!showContacts && (
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                {[
+                  { id: "all", label: "Todos", count: categoryCounts.all, icon: MessageSquare, color: "text-foreground" },
+                  { id: "store_customer", label: "Loja ↔ Cliente", count: categoryCounts.store_customer, icon: ShoppingBag, color: "text-purple-500" },
+                  { id: "drivers", label: "Entregadores", count: categoryCounts.drivers, icon: Bike, color: "text-emerald-500" },
+                  { id: "companies", label: "Lojistas", count: categoryCounts.companies, icon: Building2, color: "text-blue-500" },
+                  { id: "customers", label: "Clientes", count: categoryCounts.customers, icon: UserCircle, color: "text-indigo-500" },
+                  { id: "driver_application", label: "Pré-Cadastros", count: categoryCounts.driver_application, icon: UserCheck, color: "text-orange-500" },
+                ].map((tab) => {
+                  const isActive = activeCategory === tab.id;
+                  const Icon = tab.icon;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveCategory(tab.id as ChatCategory)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border shrink-0",
+                        isActive 
+                          ? "bg-primary text-primary-foreground border-primary shadow-xs" 
+                          : "bg-muted/30 text-muted-foreground border-border/50 hover:bg-muted/70 hover:text-foreground"
+                      )}
+                    >
+                      <Icon className={cn("h-3.5 w-3.5", isActive ? "text-primary-foreground" : tab.color)} />
+                      <span>{tab.label}</span>
+                      <span className={cn(
+                        "px-1.5 py-0.2 rounded-md text-[10px] font-black",
+                        isActive ? "bg-white/20 text-white" : "bg-muted text-foreground/80"
+                      )}>
+                        {tab.count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          {/* LISTA DE CONVERSAS */}
+          {/* LISTA SCROLLÁVEL DE CONVERSAS */}
           <div className="flex-1 overflow-y-auto custom-scrollbar divide-y divide-border/20 p-2 space-y-1">
             {showContacts ? (
               filteredContacts.length === 0 ? (
@@ -720,9 +647,9 @@ export default function AdminChatPage() {
                     key={c.user_id}
                     onClick={() => startConversation.mutate(c)}
                     disabled={startConversation.isPending}
-                    className="w-full p-3 flex items-center gap-3.5 hover:bg-muted/60 rounded-2xl transition-all text-left group"
+                    className="w-full p-3 flex items-center gap-3 hover:bg-muted/50 rounded-2xl transition-all text-left group"
                   >
-                    <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
                       {c.avatar_url ? (
                         <img src={c.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -730,8 +657,8 @@ export default function AdminChatPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-extrabold text-foreground truncate">{c.full_name}</p>
-                      <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-muted-foreground uppercase tracking-wider mt-0.5">
+                      <p className="text-xs font-extrabold text-foreground truncate">{c.full_name}</p>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
                         {typeIcon(c.type)}
                         {typeLabel(c.type)}
                       </span>
@@ -742,15 +669,15 @@ export default function AdminChatPage() {
             ) : loadingConvs ? (
               <div className="flex flex-col items-center justify-center p-16 space-y-3">
                 <Loader2 className="h-7 w-7 animate-spin text-primary" />
-                <span className="text-xs text-muted-foreground font-semibold">Carregando conversas...</span>
+                <span className="text-xs text-muted-foreground font-bold">Carregando conversas...</span>
               </div>
             ) : filteredConvs.length === 0 ? (
               <div className="p-12 text-center flex flex-col items-center justify-center space-y-3">
-                <div className="w-14 h-14 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground/40">
-                  <MessageSquare className="h-7 w-7" />
+                <div className="w-12 h-12 rounded-2xl bg-muted/60 flex items-center justify-center text-muted-foreground/50">
+                  <Inbox className="h-6 w-6" />
                 </div>
-                <p className="text-xs font-bold text-muted-foreground">Nenhuma conversa nesta categoria.</p>
-                <Button size="sm" onClick={() => setShowContacts(true)} className="gap-2 rounded-xl font-bold px-4 py-2 shadow-sm">
+                <p className="text-xs font-bold text-muted-foreground">Nenhuma conversa encontrada nesta aba.</p>
+                <Button size="sm" onClick={() => setShowContacts(true)} className="gap-1.5 rounded-xl font-bold px-4 py-2">
                   <Plus className="h-4 w-4" /> Iniciar conversa
                 </Button>
               </div>
@@ -770,58 +697,58 @@ export default function AdminChatPage() {
                     className={cn(
                       "w-full p-3 rounded-2xl flex items-start gap-3 transition-all text-left cursor-pointer group relative border",
                       isSelected 
-                        ? "bg-primary/10 border-primary/40 shadow-sm shadow-primary/5" 
-                        : "border-transparent hover:bg-muted/50 hover:border-border/50"
+                        ? "bg-primary/10 border-primary/40 shadow-xs" 
+                        : "border-transparent hover:bg-muted/40 hover:border-border/40"
                     )}
                   >
-                    {/* Indicador Ativo Lateral */}
+                    {/* Borda vertical de destaque */}
                     {isSelected && (
-                      <div className="absolute left-1.5 top-3 bottom-3 w-1.5 bg-primary rounded-full" />
+                      <div className="absolute left-1 top-2.5 bottom-2.5 w-1 bg-primary rounded-full" />
                     )}
 
-                    {/* Avatar com Gradiente e Borda Temática */}
+                    {/* Avatar Temático */}
                     <div className="relative shrink-0 pl-1">
                       <div className={cn(
-                        "w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden border shadow-sm transition-transform group-hover:scale-105",
+                        "w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border shadow-xs transition-transform group-hover:scale-105",
+                        category === 'store_customer' ? "bg-purple-500/10 border-purple-500/30 text-purple-600" :
                         category === 'drivers' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" :
                         category === 'companies' ? "bg-blue-500/10 border-blue-500/30 text-blue-600" :
-                        category === 'store_customer' ? "bg-purple-500/10 border-purple-500/30 text-purple-600" :
                         category === 'driver_application' ? "bg-orange-500/10 border-orange-500/30 text-orange-600" :
                         "bg-indigo-500/10 border-indigo-500/30 text-indigo-600"
                       )}>
-                        {category === 'drivers' ? <Bike className="h-5 w-5" /> :
+                        {category === 'store_customer' ? <ShoppingBag className="h-5 w-5" /> :
+                         category === 'drivers' ? <Bike className="h-5 w-5" /> :
                          category === 'companies' ? <Building2 className="h-5 w-5" /> :
-                         category === 'store_customer' ? <ShoppingBag className="h-5 w-5" /> :
                          category === 'driver_application' ? <UserCheck className="h-5 w-5" /> :
                          profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> :
                          <User className="h-5 w-5 text-indigo-600" />}
                       </div>
 
-                      {/* Status Dot */}
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-card" />
+                      {/* Online dot */}
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-card" />
                     </div>
 
                     <div className="min-w-0 flex-1 pr-1">
-                      {/* Linha Superior: Categoria + Hora */}
+                      {/* Topo do card: Badges + Hora */}
                       <div className="flex justify-between items-center mb-1">
                         <div className="flex items-center gap-1.5 overflow-hidden">
                           <span className={cn(
                             "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shrink-0",
+                            category === 'store_customer' ? "bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300" :
                             category === 'drivers' ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300" :
                             category === 'companies' ? "bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300" :
-                            category === 'store_customer' ? "bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300" :
                             category === 'driver_application' ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300" :
                             "bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300"
                           )}>
-                            {category === 'drivers' ? '🏍️ Entregador' :
-                             category === 'companies' ? '🏪 Lojista' :
-                             category === 'store_customer' ? '🛒 Loja ↔ Cli' :
-                             category === 'driver_application' ? '📝 Pré-Cad.' :
-                             '👤 Cliente'}
+                            {category === 'store_customer' ? 'Loja ↔ Cli' :
+                             category === 'drivers' ? 'Entregador' :
+                             category === 'companies' ? 'Lojista' :
+                             category === 'driver_application' ? 'Pré-Cad.' :
+                             'Cliente'}
                           </span>
 
                           {topicBadge && (
-                            <span className="text-[9px] font-bold text-muted-foreground/80 bg-muted/80 px-1.5 py-0.5 rounded truncate max-w-[110px]">
+                            <span className="text-[9px] font-bold text-muted-foreground/90 bg-muted px-1.5 py-0.5 rounded truncate max-w-[120px]">
                               {topicBadge}
                             </span>
                           )}
@@ -832,7 +759,7 @@ export default function AdminChatPage() {
                         </span>
                       </div>
 
-                      {/* Nome do Contato / Título da Conversa */}
+                      {/* Título Principal */}
                       <p className="text-xs font-extrabold text-foreground truncate leading-snug">
                         {getConvTitle(conv)}
                       </p>
@@ -843,11 +770,11 @@ export default function AdminChatPage() {
                       </p>
                     </div>
 
-                    {/* Botão de Excluir Rápido */}
+                    {/* Botão de Excluir */}
                     <button
                       onClick={(e) => handleDeleteConversation(conv.id, e)}
                       title="Apagar conversa"
-                      className="opacity-0 group-hover:opacity-100 p-2 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition-all shrink-0 self-center active:scale-95"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition-all shrink-0 self-center"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -858,28 +785,30 @@ export default function AdminChatPage() {
           </div>
         </div>
 
-        {/* ÁREA PRINCIPAL DO CHAT */}
-        <div className={cn("flex-1 flex flex-col relative bg-muted/15", !selectedConv && "hidden md:flex")}>
+        {/* =========================================================================
+            ÁREA PRINCIPAL: VISUALIZAÇÃO DA CONVERSA E ENVIO
+           ========================================================================= */}
+        <div className={cn("flex-1 flex flex-col relative bg-muted/15 h-full", !selectedConv && "hidden md:flex")}>
           {selectedConv ? (
             <>
-              {/* CABEÇALHO DO CHAT (PREMIUM) */}
-              <div className="p-3.5 bg-card border-b border-border/80 flex items-center justify-between gap-3 shadow-sm z-10">
-                <div className="flex items-center gap-3.5 min-w-0">
+              {/* CABEÇALHO DO CHAT */}
+              <div className="px-4 py-3 bg-card border-b border-border/70 flex items-center justify-between gap-3 shadow-xs shrink-0 z-10">
+                <div className="flex items-center gap-3 min-w-0">
                   <button className="md:hidden p-2 rounded-xl hover:bg-muted text-foreground" onClick={() => setSelectedConv(null)}>
                     <ArrowLeft className="h-5 w-5" />
                   </button>
                   
                   <div className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden border-2 shadow-sm shrink-0",
+                    "w-11 h-11 rounded-xl flex items-center justify-center overflow-hidden border shadow-xs shrink-0",
+                    getConversationCategory(selectedConv) === 'store_customer' ? "bg-purple-500/10 border-purple-500/30 text-purple-600" :
                     getConversationCategory(selectedConv) === 'drivers' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" :
                     getConversationCategory(selectedConv) === 'companies' ? "bg-blue-500/10 border-blue-500/30 text-blue-600" :
-                    getConversationCategory(selectedConv) === 'store_customer' ? "bg-purple-500/10 border-purple-500/30 text-purple-600" :
                     getConversationCategory(selectedConv) === 'driver_application' ? "bg-orange-500/10 border-orange-500/30 text-orange-600" :
                     "bg-indigo-500/10 border-indigo-500/30 text-indigo-600"
                   )}>
-                    {getConversationCategory(selectedConv) === 'drivers' ? <Bike className="h-6 w-6" /> :
+                    {getConversationCategory(selectedConv) === 'store_customer' ? <ShoppingBag className="h-6 w-6" /> :
+                     getConversationCategory(selectedConv) === 'drivers' ? <Bike className="h-6 w-6" /> :
                      getConversationCategory(selectedConv) === 'companies' ? <Building2 className="h-6 w-6" /> :
-                     getConversationCategory(selectedConv) === 'store_customer' ? <ShoppingBag className="h-6 w-6" /> :
                      getConversationCategory(selectedConv) === 'driver_application' ? <UserCheck className="h-6 w-6" /> :
                      getOtherProfile(selectedConv)?.avatar_url ? <img src={getOtherProfile(selectedConv)?.avatar_url} alt="" className="w-full h-full object-cover" /> :
                      <User className="h-6 w-6 text-indigo-600" />}
@@ -887,36 +816,36 @@ export default function AdminChatPage() {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-black text-foreground leading-tight truncate">
+                      <h3 className="text-sm font-black text-foreground leading-tight truncate">
                         {getConvTitle(selectedConv)}
                       </h3>
                       <span className={cn(
-                        "px-2.5 py-0.5 rounded-lg text-[9.5px] font-black uppercase tracking-wider shrink-0",
+                        "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shrink-0",
+                        getConversationCategory(selectedConv) === 'store_customer' ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30" :
                         getConversationCategory(selectedConv) === 'drivers' ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30" :
                         getConversationCategory(selectedConv) === 'companies' ? "bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30" :
-                        getConversationCategory(selectedConv) === 'store_customer' ? "bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30" :
                         getConversationCategory(selectedConv) === 'driver_application' ? "bg-orange-500/15 text-orange-700 dark:text-orange-300 border border-orange-500/30" :
                         "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30"
                       )}>
-                        {getConversationCategory(selectedConv) === 'drivers' ? 'Entregador Oficial' :
-                         getConversationCategory(selectedConv) === 'companies' ? 'Restaurante / Lojista' :
-                         getConversationCategory(selectedConv) === 'store_customer' ? 'Intermediação de Pedido' :
+                        {getConversationCategory(selectedConv) === 'store_customer' ? 'Intermediação de Pedido' :
+                         getConversationCategory(selectedConv) === 'drivers' ? 'Entregador Oficial' :
+                         getConversationCategory(selectedConv) === 'companies' ? 'Restaurante / Loja' :
                          getConversationCategory(selectedConv) === 'driver_application' ? 'Candidato a Entregador' :
                          'Cliente Marketplace'}
                       </span>
                     </div>
 
-                    {/* Linha de Metadados: Telefone, Pedido, ID com clique para copiar */}
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium mt-1">
+                    {/* Metadados: Telefone, Pedido, ID */}
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium mt-0.5">
                       {getOtherProfile(selectedConv)?.phone && (
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1 font-semibold">
                           <Phone className="h-3 w-3 text-primary" />
                           <span>{getOtherProfile(selectedConv).phone}</span>
                         </span>
                       )}
 
                       {selectedConv.order_id && (
-                        <span className="font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                        <span className="font-extrabold text-primary bg-primary/10 px-2 py-0.2 rounded-md">
                           Pedido #{selectedConv.order_id.slice(-6).toUpperCase()}
                         </span>
                       )}
@@ -927,105 +856,89 @@ export default function AdminChatPage() {
                         title="Copiar ID do Chat"
                       >
                         {copiedId ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3 opacity-60" />}
-                        <span className="font-mono text-[10.5px]">#{selectedConv.id.slice(0, 8)}</span>
+                        <span className="font-mono text-[10px]">#{selectedConv.id.slice(0, 8)}</span>
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Ações do Topo */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleDeleteConversation(selectedConv.id)}
-                    title="Apagar esta conversa e histórico"
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-black transition-all cursor-pointer border border-destructive/20 active:scale-95 shadow-sm"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>Apagar Chat</span>
-                  </button>
-                </div>
+                {/* Botão de Exclusão */}
+                <button
+                  onClick={() => handleDeleteConversation(selectedConv.id)}
+                  title="Apagar esta conversa e histórico"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-black transition-all cursor-pointer border border-destructive/20 active:scale-95"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Apagar Chat</span>
+                </button>
               </div>
 
-              {/* BANNER DE CONTEXTO ESPECÍFICO */}
+              {/* BANNER DE INFORMAÇÃO / CONTEXTO */}
               {getConversationCategory(selectedConv) === 'store_customer' && (
-                <div className="bg-gradient-to-r from-purple-500/15 via-purple-500/10 to-transparent border-b border-purple-500/20 px-5 py-2.5 flex items-center justify-between text-xs text-purple-900 dark:text-purple-200">
-                  <div className="flex items-center gap-2.5 font-bold">
-                    <Store className="h-4 w-4 text-purple-600 shrink-0" />
-                    <span>Canal de Intermediação: você pode visualizar e intervir nas mensagens entre a Loja e o Cliente.</span>
+                <div className="bg-purple-500/10 border-b border-purple-500/20 px-4 py-1.5 flex items-center justify-between text-xs text-purple-900 dark:text-purple-200 shrink-0 font-medium">
+                  <div className="flex items-center gap-2">
+                    <Store className="h-3.5 w-3.5 text-purple-600 shrink-0" />
+                    <span>Canal de Intermediação: histórico de mensagens entre a Loja e o Cliente.</span>
                   </div>
                   {selectedConv.order_id && (
-                    <span className="font-black text-[11px] bg-purple-600 text-white px-2.5 py-0.5 rounded-lg shadow-sm">
+                    <span className="font-bold text-[10.5px] bg-purple-200 dark:bg-purple-900/60 px-2 py-0.5 rounded-md">
                       Pedido #{selectedConv.order_id.slice(-6).toUpperCase()}
                     </span>
                   )}
                 </div>
               )}
 
-              {getConversationCategory(selectedConv) === 'drivers' && (
-                <div className="bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-transparent border-b border-emerald-500/20 px-5 py-2 flex items-center gap-2.5 text-xs text-emerald-900 dark:text-emerald-200 font-bold">
-                  <Bike className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Canal exclusivo de suporte operacional direto com o Entregador Parceiro.</span>
-                </div>
-              )}
-
-              {getConversationCategory(selectedConv) === 'driver_application' && (
-                <div className="bg-gradient-to-r from-orange-500/15 via-orange-500/10 to-transparent border-b border-orange-500/20 px-5 py-2 flex items-center gap-2.5 text-xs text-orange-900 dark:text-orange-200 font-bold">
-                  <UserCheck className="h-4 w-4 text-orange-600 shrink-0" />
-                  <span>Solicitação de novo cadastro de motorista para aprovação na base.</span>
-                </div>
-              )}
-
-              {/* FLUXO DE MENSAGENS */}
+              {/* FEED DE MENSAGENS */}
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-3 custom-scrollbar">
                 {loadingMessages ? (
                   <div className="flex flex-col items-center justify-center h-full space-y-2">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="text-xs text-muted-foreground font-bold">Sincronizando histórico...</span>
+                    <span className="text-xs text-muted-foreground font-bold">Carregando mensagens...</span>
                   </div>
                 ) : visibleMessages.length === 0 ? (
                   <div className="text-center py-20 flex flex-col items-center justify-center space-y-3">
-                    <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                      <MessageSquare className="h-8 w-8" />
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                      <MessageSquare className="h-7 w-7" />
                     </div>
-                    <p className="text-sm font-extrabold text-foreground">Nenhuma mensagem nesta conversa.</p>
-                    <p className="text-xs text-muted-foreground max-w-xs">
+                    <p className="text-xs font-bold text-foreground">Nenhuma mensagem registrada nesta conversa.</p>
+                    <p className="text-[11px] text-muted-foreground max-w-xs">
                       Envie uma mensagem abaixo para iniciar o atendimento diretamente com o usuário.
                     </p>
                   </div>
                 ) : (
-                  visibleMessages.map((msg: any, i: number) => {
+                  visibleMessages.map((msg: any) => {
                     const isTestAccountHack = msg.content?.endsWith('\u200B');
                     const isMe = (msg.sender_id === user?.id) || isTestAccountHack;
                     const displayContent = msg.content?.replace(/\u200B/g, '') || '';
                     const senderProfile = profilesMap?.[msg.sender_id];
 
                     return (
-                      <div key={msg.id} className={cn("flex flex-col w-full animate-in fade-in slide-in-from-bottom-1 duration-200", isMe ? "items-end" : "items-start")}>
+                      <div key={msg.id} className={cn("flex flex-col w-full animate-in fade-in duration-150", isMe ? "items-end" : "items-start")}>
                         <div 
                           className={cn(
-                            "relative max-w-[85%] md:max-w-[70%] px-4 py-3 rounded-3xl shadow-md",
+                            "relative max-w-[85%] md:max-w-[70%] px-4 py-2.5 rounded-2xl shadow-xs",
                             isMe 
-                              ? "bg-gradient-to-br from-primary via-primary to-primary/90 text-primary-foreground rounded-br-xs shadow-primary/10" 
-                              : "bg-card border border-border/80 text-foreground rounded-bl-xs shadow-sm"
+                              ? "bg-primary text-primary-foreground rounded-tr-xs" 
+                              : "bg-card border border-border/80 text-foreground rounded-tl-xs"
                           )}
                         >
-                          {/* Nome do Remetente se for conversa de terceiros */}
+                          {/* Nome do Remetente para conversas de terceiros */}
                           {!isMe && (
-                            <p className="text-[10.5px] font-black text-primary uppercase tracking-wider mb-1">
+                            <p className="text-[10px] font-black text-primary uppercase tracking-wider mb-0.5">
                               {senderProfile?.full_name || (senderProfile?.role === 'company' ? 'Estabelecimento' : 'Cliente')}
                             </p>
                           )}
 
-                          <p className="text-[14px] leading-relaxed whitespace-pre-wrap break-words font-medium">
+                          <p className="text-xs leading-relaxed whitespace-pre-wrap break-words font-medium">
                             {displayContent}
                           </p>
 
-                          <div className={cn("flex items-center justify-end gap-1.5 mt-1.5", isMe ? "text-primary-foreground/75" : "text-muted-foreground")}>
-                            <span className="text-[10px] font-bold">
+                          <div className={cn("flex items-center justify-end gap-1.5 mt-1", isMe ? "text-primary-foreground/75" : "text-muted-foreground/75")}>
+                            <span className="text-[9.5px] font-bold">
                               {format(new Date(msg.created_at), "HH:mm")}
                             </span>
                             {isMe && (
-                              <CheckCheck className="h-3.5 w-3.5 text-sky-200" />
+                              <CheckCheck className="h-3 w-3 text-sky-200" />
                             )}
                           </div>
                         </div>
@@ -1035,58 +948,58 @@ export default function AdminChatPage() {
                 )}
               </div>
 
-              {/* RESPOSTAS RÁPIDAS (CHIPS) */}
-              <div className="px-4 py-1.5 bg-card/60 border-t border-border/40 flex items-center gap-2 overflow-x-auto no-scrollbar">
-                <span className="text-[10px] font-black uppercase text-muted-foreground/70 shrink-0 flex items-center gap-1">
-                  <Sparkles className="h-3 w-3 text-primary" /> Respostas Rápidas:
+              {/* BARRA DE RESPOSTAS RÁPIDAS (ZERO CLIPPING) */}
+              <div className="px-4 py-2 bg-card/80 border-t border-border/60 flex items-center gap-2 overflow-x-auto no-scrollbar shrink-0">
+                <span className="text-[10px] font-black uppercase text-muted-foreground shrink-0 flex items-center gap-1">
+                  <Sparkles className="h-3 w-3 text-primary" /> Rápidas:
                 </span>
                 {QUICK_REPLIES.map((reply, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleSend(reply)}
                     disabled={sendMessage.isPending}
-                    className="px-3 py-1 rounded-full bg-muted hover:bg-primary/10 hover:text-primary text-[11px] font-bold text-muted-foreground whitespace-nowrap transition-all border border-border/60 hover:border-primary/30 shrink-0 shadow-2xs"
+                    className="px-3 py-1 rounded-full bg-muted/80 hover:bg-primary/10 hover:text-primary text-[11px] font-bold text-muted-foreground whitespace-nowrap transition-all border border-border/60 shrink-0 cursor-pointer"
                   >
                     {reply}
                   </button>
                 ))}
               </div>
 
-              {/* BARRA DE ENVIO DE MENSAGEM */}
-              <div className="p-3 bg-card border-t border-border/80">
+              {/* CAMPO DE ENVIO DE MENSAGEM */}
+              <div className="p-3 bg-card border-t border-border/70 shrink-0">
                 <div className="flex items-center gap-2 max-w-5xl mx-auto">
-                  <div className="flex-1 bg-muted/60 border border-border/80 rounded-2xl flex items-center px-4 py-1.5 shadow-inner focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
+                  <div className="flex-1 bg-muted/40 border border-border/80 rounded-xl flex items-center px-3.5 py-1 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all">
                     <input
                       type="text"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
                       placeholder="Escreva sua resposta como Administrador..."
-                      className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground/60 py-2 font-medium"
+                      className="flex-1 bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground/60 py-2 font-medium"
                     />
                   </div>
                   
                   <button
                     onClick={() => handleSend()}
                     disabled={!message.trim() || sendMessage.isPending}
-                    className="w-12 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 hover:opacity-90 disabled:opacity-40 cursor-pointer shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                    className="w-10 h-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center shrink-0 hover:opacity-90 disabled:opacity-40 cursor-pointer shadow-sm active:scale-95 transition-all"
                   >
-                    {sendMessage.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                    {sendMessage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                   </button>
                 </div>
               </div>
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/20 flex items-center justify-center mb-5 text-primary shadow-xl shadow-primary/5">
-                <MessageSquare className="h-12 w-12" />
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 text-primary shadow-xs">
+                <MessageSquare className="h-8 w-8" />
               </div>
-              <h2 className="text-2xl font-black text-foreground mb-2">Central de Atendimento Unificada</h2>
-              <p className="text-xs text-muted-foreground max-w-md mb-6 font-medium leading-relaxed">
+              <h2 className="text-lg font-black text-foreground mb-1">Central de Atendimento Unificada</h2>
+              <p className="text-xs text-muted-foreground max-w-sm mb-5 font-medium leading-relaxed">
                 Selecione qualquer conversa ao lado para responder em tempo real, 
                 auditar conversas de pedidos entre <strong>Lojas e Clientes</strong> ou acompanhar solicitações de <strong>Entregadores</strong>.
               </p>
-              <Button onClick={() => setShowContacts(true)} className="gap-2.5 rounded-2xl font-extrabold px-6 py-3 shadow-lg shadow-primary/20 active:scale-95 transition-all">
+              <Button onClick={() => setShowContacts(true)} className="gap-2 rounded-xl font-bold px-5 py-2.5 shadow-sm">
                 <Plus className="h-4 w-4" /> Iniciar Nova Conversa
               </Button>
             </div>
