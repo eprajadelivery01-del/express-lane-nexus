@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { 
   MessageSquare, User, Loader2, Send, Search, ArrowLeft, 
   Building2, Bike, UserCircle, Plus, Trash2, Eraser, 
-  Store, ShoppingBag, ShieldAlert, Sparkles, Filter
+  Store, ShoppingBag, ShieldAlert, Sparkles, Filter,
+  UserCheck, HelpCircle, Users
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
@@ -17,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 type ContactType = "company" | "driver" | "customer";
-type ChatCategory = "all" | "admin_support" | "store_customer" | "driver_application";
+type ChatCategory = "all" | "drivers" | "companies" | "store_customer" | "customers" | "driver_application";
 
 interface Contact {
   user_id: string;
@@ -306,7 +307,7 @@ export default function AdminChatPage() {
     }
   };
 
-  // Helper to determine conversation category
+  // Helper to determine conversation category with high precision
   const getConversationCategory = (conv: any): ChatCategory => {
     const topic = (conv.topic || "").toLowerCase();
     const title = (conv.title || "").toLowerCase();
@@ -317,29 +318,44 @@ export default function AdminChatPage() {
       firstMsgContent = (first?.content || "").toLowerCase();
     }
 
-    // 1. Driver Application
+    // 1. Driver Application (Pré-Cadastro de Entregador)
     if (
       topic === 'driver_application' || 
       title.includes('cadastro') || 
-      title.includes('entregador') || 
+      title.includes('seja um entregador') ||
       firstMsgContent.includes('cadastro de entregador') ||
       firstMsgContent.includes('seja um entregador')
     ) {
       return 'driver_application';
     }
 
-    // 2. Store <-> Customer
-    if (
-      conv.order_id || 
-      topic === 'suporte do pedido' || 
-      topic === 'order_support' || 
-      (conv.participants?.length === 2 && conv.participants.some((p: string) => profilesMap?.[p]?.role === 'company'))
-    ) {
+    // 2. Store <-> Customer (Intermediação Pedido)
+    const isOrderLinked = !!conv.order_id || topic === 'suporte do pedido' || topic === 'order_support';
+    const hasCompany = conv.participants?.some((p: string) => profilesMap?.[p]?.role === 'company');
+    const hasNonAdminUser = conv.participants?.some((p: string) => {
+      const role = profilesMap?.[p]?.role;
+      return role !== 'company' && role !== 'admin';
+    });
+
+    if (isOrderLinked || (hasCompany && hasNonAdminUser && conv.participants?.length >= 2)) {
       return 'store_customer';
     }
 
-    // 3. General Support / Direct
-    return 'admin_support';
+    // 3. Driver direct chat (Entregadores Parceiros)
+    const otherId = conv.participants?.find((id: string) => id !== user?.id) || conv.participants?.[0];
+    const otherProfile = profilesMap?.[otherId];
+
+    if (otherProfile?.role === 'driver' || topic.includes('driver') || topic.includes('entregador')) {
+      return 'drivers';
+    }
+
+    // 4. Company direct chat (Lojistas)
+    if (otherProfile?.role === 'company' || topic.includes('company') || topic.includes('lojista')) {
+      return 'companies';
+    }
+
+    // 5. Customer direct support (Clientes)
+    return 'customers';
   };
 
   const getOtherProfile = (conv: any) => {
@@ -370,7 +386,17 @@ export default function AdminChatPage() {
 
     if (category === 'driver_application') {
       const otherProfile = getOtherProfile(conv);
-      return `🏍️ Cadastro: ${otherProfile?.full_name || "Candidato a Entregador"}`;
+      return `🏍️ Pré-Cadastro: ${otherProfile?.full_name || "Candidato a Entregador"}`;
+    }
+
+    if (category === 'drivers') {
+      const otherProfile = getOtherProfile(conv);
+      return `🏍️ ${otherProfile?.full_name || "Entregador Parceiro"}`;
+    }
+
+    if (category === 'companies') {
+      const otherProfile = getOtherProfile(conv);
+      return `🏪 ${otherProfile?.full_name || "Lojista Parceiro"}`;
     }
 
     if (conv.order_id) return `Pedido #${conv.order_id.slice(0, 8)}`;
@@ -385,7 +411,7 @@ export default function AdminChatPage() {
 
     const profile = getOtherProfile(conv);
     if (profile?.full_name) return extractedTopic ? `${profile.full_name} (${extractedTopic})` : profile.full_name;
-    return extractedTopic || conv.title || "Suporte";
+    return extractedTopic || conv.title || "Cliente / Suporte";
   };
 
   const formatConvTime = (dateStr?: string) => {
@@ -399,8 +425,8 @@ export default function AdminChatPage() {
   const typeIcon = (type: ContactType) => {
     switch (type) {
       case "company": return <Building2 className="h-3 w-3 text-blue-500" />;
-      case "driver": return <Bike className="h-3 w-3 text-orange-500" />;
-      case "customer": return <UserCircle className="h-3 w-3 text-emerald-500" />;
+      case "driver": return <Bike className="h-3 w-3 text-emerald-500" />;
+      case "customer": return <UserCircle className="h-3 w-3 text-indigo-500" />;
     }
   };
 
@@ -444,13 +470,15 @@ export default function AdminChatPage() {
     });
   }, [conversations, profilesMap, search, activeCategory]);
 
-  // Counts for tabs
+  // Counts for all granular tabs
   const categoryCounts = useMemo(() => {
-    if (!conversations) return { all: 0, admin_support: 0, store_customer: 0, driver_application: 0 };
+    if (!conversations) return { all: 0, drivers: 0, companies: 0, store_customer: 0, customers: 0, driver_application: 0 };
     return {
       all: conversations.length,
-      admin_support: conversations.filter(c => getConversationCategory(c) === 'admin_support').length,
+      drivers: conversations.filter(c => getConversationCategory(c) === 'drivers').length,
+      companies: conversations.filter(c => getConversationCategory(c) === 'companies').length,
       store_customer: conversations.filter(c => getConversationCategory(c) === 'store_customer').length,
+      customers: conversations.filter(c => getConversationCategory(c) === 'customers').length,
       driver_application: conversations.filter(c => getConversationCategory(c) === 'driver_application').length,
     };
   }, [conversations, profilesMap]);
@@ -466,10 +494,10 @@ export default function AdminChatPage() {
   }, [contacts, filterType, search]);
 
   return (
-    <AdminLayout title="Central de Chat & Suporte" subtitle="Comunicação com lojistas, entregadores, clientes e monitoramento de pedidos">
+    <AdminLayout title="Central de Atendimento e Chats" subtitle="Comunicação segregada por Entregadores, Lojas, Clientes e Pedidos">
       <div className="flex h-[calc(100vh-13rem)] bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
         {/* Sidebar */}
-        <div className={cn("w-full md:w-96 lg:w-[420px] border-r border-border flex flex-col bg-card shrink-0", selectedConv && "hidden md:flex")}>
+        <div className={cn("w-full md:w-96 lg:w-[440px] border-r border-border flex flex-col bg-card shrink-0", selectedConv && "hidden md:flex")}>
           {/* Header */}
           <div className="p-3 border-b border-border space-y-2.5">
             <div className="flex items-center justify-between gap-1">
@@ -503,67 +531,115 @@ export default function AdminChatPage() {
               )}
             </div>
 
-            {/* Category Filter Tabs (Organizador por Tipo) */}
+            {/* Granular Category Filter Tabs */}
             {!showContacts && (
-              <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+              <div className="grid grid-cols-3 gap-1.5 pt-0.5">
+                {/* 1. Todos */}
                 <button
                   onClick={() => setActiveCategory("all")}
                   className={cn(
-                    "flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                    "flex flex-col items-center justify-center p-2 rounded-xl text-[10.5px] font-extrabold transition-all border text-center relative",
                     activeCategory === "all" 
-                      ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                      ? "bg-foreground text-background border-foreground shadow-sm" 
                       : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
                   )}
                 >
-                  <span>📋 Todos</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "all" ? "bg-white/20 text-white" : "bg-muted text-foreground")}>
-                    {categoryCounts.all}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span>📋 Todos</span>
+                    <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "all" ? "bg-background/20 text-background" : "bg-muted-foreground/20 text-foreground")}>
+                      {categoryCounts.all}
+                    </span>
+                  </div>
                 </button>
 
+                {/* 2. Entregadores */}
                 <button
-                  onClick={() => setActiveCategory("admin_support")}
+                  onClick={() => setActiveCategory("drivers")}
                   className={cn(
-                    "flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
-                    activeCategory === "admin_support" 
-                      ? "bg-blue-600 text-white border-blue-600 shadow-sm" 
-                      : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
+                    "flex flex-col items-center justify-center p-2 rounded-xl text-[10.5px] font-extrabold transition-all border text-center relative",
+                    activeCategory === "drivers" 
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm" 
+                      : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20"
                   )}
                 >
-                  <span className="truncate mr-1">💬 Suporte Direto</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "admin_support" ? "bg-white/20 text-white" : "bg-muted text-foreground")}>
-                    {categoryCounts.admin_support}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="truncate">🏍️ Entregador</span>
+                    <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "drivers" ? "bg-white/20 text-white" : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-200")}>
+                      {categoryCounts.drivers}
+                    </span>
+                  </div>
                 </button>
 
+                {/* 3. Lojas / Empresas */}
+                <button
+                  onClick={() => setActiveCategory("companies")}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-2 rounded-xl text-[10.5px] font-extrabold transition-all border text-center relative",
+                    activeCategory === "companies" 
+                      ? "bg-blue-600 text-white border-blue-600 shadow-sm" 
+                      : "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20 hover:bg-blue-500/20"
+                  )}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="truncate">🏪 Lojistas</span>
+                    <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "companies" ? "bg-white/20 text-white" : "bg-blue-500/20 text-blue-800 dark:text-blue-200")}>
+                      {categoryCounts.companies}
+                    </span>
+                  </div>
+                </button>
+
+                {/* 4. Lojas <-> Clientes */}
                 <button
                   onClick={() => setActiveCategory("store_customer")}
                   className={cn(
-                    "flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                    "flex flex-col items-center justify-center p-2 rounded-xl text-[10.5px] font-extrabold transition-all border text-center relative",
                     activeCategory === "store_customer" 
                       ? "bg-purple-600 text-white border-purple-600 shadow-sm" 
-                      : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
+                      : "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20 hover:bg-purple-500/20"
                   )}
                 >
-                  <span className="truncate mr-1">🏪 Lojas ↔ Clientes</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "store_customer" ? "bg-white/20 text-white" : "bg-muted text-foreground")}>
-                    {categoryCounts.store_customer}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="truncate">🛒 Loja ↔ Cli</span>
+                    <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "store_customer" ? "bg-white/20 text-white" : "bg-purple-500/20 text-purple-800 dark:text-purple-200")}>
+                      {categoryCounts.store_customer}
+                    </span>
+                  </div>
                 </button>
 
+                {/* 5. Clientes Suporte */}
+                <button
+                  onClick={() => setActiveCategory("customers")}
+                  className={cn(
+                    "flex flex-col items-center justify-center p-2 rounded-xl text-[10.5px] font-extrabold transition-all border text-center relative",
+                    activeCategory === "customers" 
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-sm" 
+                      : "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20 hover:bg-indigo-500/20"
+                  )}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="truncate">👤 Clientes</span>
+                    <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "customers" ? "bg-white/20 text-white" : "bg-indigo-500/20 text-indigo-800 dark:text-indigo-200")}>
+                      {categoryCounts.customers}
+                    </span>
+                  </div>
+                </button>
+
+                {/* 6. Pré-Cadastro Entregador */}
                 <button
                   onClick={() => setActiveCategory("driver_application")}
                   className={cn(
-                    "flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                    "flex flex-col items-center justify-center p-2 rounded-xl text-[10.5px] font-extrabold transition-all border text-center relative",
                     activeCategory === "driver_application" 
                       ? "bg-orange-600 text-white border-orange-600 shadow-sm" 
-                      : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
+                      : "bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-500/20 hover:bg-orange-500/20"
                   )}
                 >
-                  <span className="truncate mr-1">🏍️ Cad. Entregador</span>
-                  <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "driver_application" ? "bg-white/20 text-white" : "bg-muted text-foreground")}>
-                    {categoryCounts.driver_application}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="truncate">📝 Pré-Cad.</span>
+                    <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "driver_application" ? "bg-white/20 text-white" : "bg-orange-500/20 text-orange-800 dark:text-orange-200")}>
+                      {categoryCounts.driver_application}
+                    </span>
+                  </div>
                 </button>
               </div>
             )}
@@ -575,7 +651,7 @@ export default function AdminChatPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={showContacts ? "Buscar por nome ou loja..." : "Filtrar conversas, lojas, pedidos..."}
+                placeholder={showContacts ? "Buscar por nome ou loja..." : "Filtrar por nome, loja, telefone, pedido..."}
                 className="w-full pl-9 pr-3 py-2 rounded-xl bg-muted/60 border border-border text-xs outline-none focus:ring-2 focus:ring-primary/20 font-medium"
               />
             </div>
@@ -660,12 +736,16 @@ export default function AdminChatPage() {
                     <div className="relative shrink-0">
                       <div className={cn(
                         "w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden border shadow-sm",
-                        category === 'driver_application' ? "bg-orange-500/10 border-orange-500/30 text-orange-600" :
+                        category === 'drivers' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" :
+                        category === 'companies' ? "bg-blue-500/10 border-blue-500/30 text-blue-600" :
                         category === 'store_customer' ? "bg-purple-500/10 border-purple-500/30 text-purple-600" :
-                        "bg-blue-500/10 border-blue-500/30 text-blue-600"
+                        category === 'driver_application' ? "bg-orange-500/10 border-orange-500/30 text-orange-600" :
+                        "bg-indigo-500/10 border-indigo-500/30 text-indigo-600"
                       )}>
-                        {category === 'driver_application' ? <Bike className="h-5 w-5" /> :
+                        {category === 'drivers' ? <Bike className="h-5 w-5" /> :
+                         category === 'companies' ? <Building2 className="h-5 w-5" /> :
                          category === 'store_customer' ? <ShoppingBag className="h-5 w-5" /> :
+                         category === 'driver_application' ? <UserCheck className="h-5 w-5" /> :
                          profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> :
                          <User className="h-5 w-5 text-muted-foreground" />}
                       </div>
@@ -676,13 +756,17 @@ export default function AdminChatPage() {
                       <div className="flex justify-between items-center mb-1">
                         <span className={cn(
                           "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider",
-                          category === 'driver_application' ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300" :
+                          category === 'drivers' ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300" :
+                          category === 'companies' ? "bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300" :
                           category === 'store_customer' ? "bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300" :
-                          "bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300"
+                          category === 'driver_application' ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300" :
+                          "bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300"
                         )}>
-                          {category === 'driver_application' ? '🏍️ Cadastro Entregador' :
-                           category === 'store_customer' ? '🏪 Loja ↔ Cliente' :
-                           '💬 Suporte'}
+                          {category === 'drivers' ? '🏍️ Entregador' :
+                           category === 'companies' ? '🏪 Lojista' :
+                           category === 'store_customer' ? '🛒 Loja ↔ Cliente' :
+                           category === 'driver_application' ? '📝 Pré-Cadastro' :
+                           '👤 Cliente'}
                         </span>
                         <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">{formatConvTime(lastMsg?.created_at)}</span>
                       </div>
@@ -726,12 +810,16 @@ export default function AdminChatPage() {
                   
                   <div className={cn(
                     "w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden border shadow-sm shrink-0",
-                    getConversationCategory(selectedConv) === 'driver_application' ? "bg-orange-500/10 border-orange-500/30 text-orange-600" :
+                    getConversationCategory(selectedConv) === 'drivers' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600" :
+                    getConversationCategory(selectedConv) === 'companies' ? "bg-blue-500/10 border-blue-500/30 text-blue-600" :
                     getConversationCategory(selectedConv) === 'store_customer' ? "bg-purple-500/10 border-purple-500/30 text-purple-600" :
-                    "bg-blue-500/10 border-blue-500/30 text-blue-600"
+                    getConversationCategory(selectedConv) === 'driver_application' ? "bg-orange-500/10 border-orange-500/30 text-orange-600" :
+                    "bg-indigo-500/10 border-indigo-500/30 text-indigo-600"
                   )}>
-                    {getConversationCategory(selectedConv) === 'driver_application' ? <Bike className="h-6 w-6" /> :
+                    {getConversationCategory(selectedConv) === 'drivers' ? <Bike className="h-6 w-6" /> :
+                     getConversationCategory(selectedConv) === 'companies' ? <Building2 className="h-6 w-6" /> :
                      getConversationCategory(selectedConv) === 'store_customer' ? <ShoppingBag className="h-6 w-6" /> :
+                     getConversationCategory(selectedConv) === 'driver_application' ? <UserCheck className="h-6 w-6" /> :
                      getOtherProfile(selectedConv)?.avatar_url ? <img src={getOtherProfile(selectedConv)?.avatar_url} alt="" className="w-full h-full object-cover" /> :
                      <User className="h-6 w-6 opacity-50" />}
                   </div>
@@ -741,13 +829,17 @@ export default function AdminChatPage() {
                       <h3 className="text-sm font-extrabold text-foreground leading-tight truncate">{getConvTitle(selectedConv)}</h3>
                       <span className={cn(
                         "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shrink-0",
-                        getConversationCategory(selectedConv) === 'driver_application' ? "bg-orange-500/10 text-orange-600 border border-orange-500/20" :
+                        getConversationCategory(selectedConv) === 'drivers' ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" :
+                        getConversationCategory(selectedConv) === 'companies' ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" :
                         getConversationCategory(selectedConv) === 'store_customer' ? "bg-purple-500/10 text-purple-600 border border-purple-500/20" :
-                        "bg-blue-500/10 text-blue-600 border border-blue-500/20"
+                        getConversationCategory(selectedConv) === 'driver_application' ? "bg-orange-500/10 text-orange-600 border border-orange-500/20" :
+                        "bg-indigo-500/10 text-indigo-600 border border-indigo-500/20"
                       )}>
-                        {getConversationCategory(selectedConv) === 'driver_application' ? 'Candidato a Entregador' :
+                        {getConversationCategory(selectedConv) === 'drivers' ? 'Entregador Parceiro' :
+                         getConversationCategory(selectedConv) === 'companies' ? 'Lojista Parceiro' :
                          getConversationCategory(selectedConv) === 'store_customer' ? 'Intermediação Loja ↔ Cliente' :
-                         'Suporte Direto'}
+                         getConversationCategory(selectedConv) === 'driver_application' ? 'Pré-Cadastro Entregador' :
+                         'Cliente do Marketplace'}
                       </span>
                     </div>
                     <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
@@ -767,12 +859,28 @@ export default function AdminChatPage() {
                 </button>
               </div>
 
+              {/* Informative Banner for Driver Chat */}
+              {getConversationCategory(selectedConv) === 'drivers' && (
+                <div className="bg-emerald-500/10 border-b border-emerald-500/20 px-4 py-2 flex items-center gap-2 text-xs text-emerald-900 dark:text-emerald-200 font-medium">
+                  <Bike className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Canal exclusivo de comunicação direta entre a Administração e o <strong>Entregador Parceiro</strong>.</span>
+                </div>
+              )}
+
+              {/* Informative Banner for Company Chat */}
+              {getConversationCategory(selectedConv) === 'companies' && (
+                <div className="bg-blue-500/10 border-b border-blue-500/20 px-4 py-2 flex items-center gap-2 text-xs text-blue-900 dark:text-blue-200 font-medium">
+                  <Building2 className="h-4 w-4 text-blue-600 shrink-0" />
+                  <span>Canal exclusivo de suporte e comunicação direta com o <strong>Lojista / Estabelecimento</strong>.</span>
+                </div>
+              )}
+
               {/* Informative Banner for Store <-> Customer */}
               {getConversationCategory(selectedConv) === 'store_customer' && (
                 <div className="bg-purple-500/10 border-b border-purple-500/20 px-4 py-2 flex items-center justify-between text-xs text-purple-900 dark:text-purple-200">
                   <div className="flex items-center gap-2 font-medium">
                     <Store className="h-4 w-4 text-purple-600 shrink-0" />
-                    <span>Você está visualizando o histórico de mensagens trocadas entre o Estabelecimento e o Cliente.</span>
+                    <span>Visualizando o histórico de mensagens trocadas entre o Estabelecimento e o Cliente sobre o pedido.</span>
                   </div>
                   {selectedConv.order_id && (
                     <span className="font-bold text-[11px] bg-purple-200 dark:bg-purple-900/50 px-2 py-0.5 rounded-md">
@@ -785,8 +893,8 @@ export default function AdminChatPage() {
               {/* Informative Banner for Driver Application */}
               {getConversationCategory(selectedConv) === 'driver_application' && (
                 <div className="bg-orange-500/10 border-b border-orange-500/20 px-4 py-2 flex items-center gap-2 text-xs text-orange-900 dark:text-orange-200 font-medium">
-                  <Bike className="h-4 w-4 text-orange-600 shrink-0" />
-                  <span>Chat originado pela tela de solicitação de pré-cadastro de novo entregador parceiro.</span>
+                  <UserCheck className="h-4 w-4 text-orange-600 shrink-0" />
+                  <span>Solicitação de pré-cadastro de novo motorista querendo ingressar na plataforma.</span>
                 </div>
               )}
 
@@ -835,10 +943,10 @@ export default function AdminChatPage() {
               <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-4 text-primary shadow-sm">
                 <MessageSquare className="h-10 w-10" />
               </div>
-              <h2 className="text-xl font-black text-foreground mb-1">Central de Chat Unificada</h2>
+              <h2 className="text-xl font-black text-foreground mb-1">Central de Chat Segmentada</h2>
               <p className="text-xs text-muted-foreground max-w-md mb-6 font-medium leading-relaxed">
-                Navegue pelas abas acima para filtrar conversas de <strong>Suporte Direto</strong>, 
-                auditar chats entre <strong>Lojas e Clientes</strong> ou acompanhar pedidos de <strong>Cadastro de Entregadores</strong>.
+                Utilize as categorias acima para filtrar exclusivamente conversas com <strong>Entregadores</strong>, 
+                <strong>Lojistas</strong>, <strong>Clientes</strong> ou acompanhar <strong>Pré-Cadastros e Pedidos</strong>.
               </p>
               <Button onClick={() => setShowContacts(true)} className="gap-2 rounded-xl font-bold px-5 py-2.5 shadow-md">
                 <Plus className="h-4 w-4" /> Nova Conversa
