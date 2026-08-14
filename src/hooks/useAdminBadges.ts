@@ -22,40 +22,23 @@ export function useAdminBadges(_userId?: string) {
 
         let unreadChatsCount = 0;
 
-        // Count unread delivery chats (Commented out due to RLS recursion issue on database)
-        /*
+        // Count unread messages from official messages table
         try {
           let query = supabase
-            .from("chat_messages")
+            .from("messages")
             .select("id", { count: "exact", head: true })
-            .eq("read", false);
+            .is("read_at", null);
           
           if (_userId) {
             query = query.neq("sender_id", _userId);
           }
           
-          const { count: unreadChats } = await query;
-          unreadChatsCount += unreadChats ?? 0;
-        } catch (e) {
-          console.warn("[AdminBadges] Failed to query chat_messages:", e);
-        }
-        */
-
-        // Count unread general support chats (chat_message_logs)
-        try {
-          let query = supabase
-            .from("chat_message_logs")
-            .select("id", { count: "exact", head: true })
-            .eq("read", false);
-          
-          if (_userId) {
-            query = query.neq("sender_id", _userId);
+          const { count: unreadMsgs, error: msgsErr } = await query;
+          if (!msgsErr && unreadMsgs !== null) {
+            unreadChatsCount = unreadMsgs;
           }
-          
-          const { count: unreadLogs } = await query;
-          unreadChatsCount += unreadLogs ?? 0;
         } catch (e) {
-          console.warn("[AdminBadges] Failed to query chat_message_logs:", e);
+          // Safe catch to prevent error spikes
         }
 
         if (!cancelled) {
@@ -75,7 +58,7 @@ export function useAdminBadges(_userId?: string) {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [_userId]);
 
   return { badges };
 }
