@@ -148,3 +148,23 @@ export async function getDirectConversation(user1: string, user2: string) {
   if (error) throw error;
   return created;
 }
+
+export async function deleteConversation(conversationId: string) {
+  await supabase.from("messages").delete().eq("conversation_id", conversationId);
+  const { error } = await supabase.from("conversations").delete().eq("id", conversationId);
+  if (error) throw error;
+  return true;
+}
+
+export function useDeleteConversation() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: (conversationId: string) => deleteConversation(conversationId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-conversations", user?.id] });
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+    },
+  });
+}

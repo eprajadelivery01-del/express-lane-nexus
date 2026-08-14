@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, User, Loader2, Send, Search, ArrowLeft, Building2, Bike, UserCircle, Plus } from "lucide-react";
+import { MessageSquare, User, Loader2, Send, Search, ArrowLeft, Building2, Bike, UserCircle, Plus, Trash2, Eraser } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useMessages, useSendMessage } from "@/services/chat";
+import { useMessages, useSendMessage, useDeleteConversation } from "@/services/chat";
 import { useAuth } from "@/hooks/useAuth";
 import { WhatsAppBubble } from "@/components/chat/WhatsAppBubble";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -29,9 +29,10 @@ export default function AdminChatPage() {
   const [search, setSearch] = useState("");
   const [showContacts, setShowContacts] = useState(false);
   const [filterType, setFilterType] = useState<"all" | ContactType>("all");
+  const [isClearingEmpty, setIsClearingEmpty] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Existing conversations
+  // All conversations for admin
   const { data: conversations, isLoading: loadingConvs } = useQuery({
     queryKey: ["admin-conversations", user?.id],
     queryFn: async () => {
@@ -39,7 +40,6 @@ export default function AdminChatPage() {
       const { data, error } = await supabase
         .from("conversations")
         .select("*, messages(content, created_at, sender_id)")
-        .contains("participants", [user.id])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -47,14 +47,45 @@ export default function AdminChatPage() {
     enabled: !!user?.id,
   });
 
+  // Global Realtime listener for incoming/deleted messages
+  useEffect(() => {
+    if (!user?.id) return;
+    const channelId = `admin-chat-global-${Math.random().toString(36).substring(2, 7)}`;
+    const channel = supabase
+      .channel(channelId)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "messages" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["admin-conversations", user.id] });
+          if (selectedConv?.id) {
+            qc.invalidateQueries({ queryKey: ["messages", selectedConv.id] });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "conversations" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["admin-conversations", user.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, selectedConv?.id, qc]);
+
   // All profiles + roles for contact list
   const { data: contacts } = useQuery({
     queryKey: ["admin-contacts"],
     queryFn: async () => {
-      const [{ data: companies }, { data: drivers }, { data: profiles }] = await Promise.all([
+      const [{ data: companies }, { data: drivers }, { data: profiles }, { data: customers }] = await Promise.all([
         supabase.from("companies").select("user_id, name, logo_url").not("user_id", "is", null),
         supabase.from("delivery_drivers").select("user_id"),
         supabase.from("profiles").select("user_id, full_name, avatar_url, role"),
+        supabase.from("customers").select("id, user_id, name, phone"),
       ]);
 
       const list: Contact[] = [];
@@ -92,6 +123,19 @@ export default function AdminChatPage() {
         }
       });
 
+      customers?.forEach((cust) => {
+        const idToUse = cust.user_id || cust.id;
+        if (idToUse && !seen.has(idToUse) && idToUse !== user?.id) {
+          list.push({
+            user_id: idToUse,
+            full_name: cust.name || "Cliente",
+            avatar_url: null,
+            type: "customer",
+          });
+          seen.add(idToUse);
+        }
+      });
+
       return list;
     },
     enabled: !!user?.id,
@@ -107,15 +151,27 @@ export default function AdminChatPage() {
         conversations.flatMap(c => c.participants || [])
       ));
 
-      const [{ data: profiles }, { data: companies }, { data: drivers }] = await Promise.all([
+      const [{ data: profiles }, { data: companies }, { data: drivers }, { data: customers }] = await Promise.all([
         supabase.from("profiles").select("user_id, full_name, avatar_url, role").in("user_id", participantIds),
         supabase.from("companies").select("user_id, name, logo_url").in("user_id", participantIds),
         supabase.from("delivery_drivers").select("user_id").in("user_id", participantIds),
+        supabase.from("customers").select("id, user_id, name, phone").or(`user_id.in.(${participantIds.join(',')}),id.in.(${participantIds.join(',')})`),
       ]);
       
       const map: Record<string, any> = {};
       profiles?.forEach(p => {
         if (p.user_id) map[p.user_id] = { ...p };
+      });
+      customers?.forEach(cust => {
+        const idMap = (idToMap: string) => {
+          if (!map[idToMap]) map[idToMap] = { user_id: idToMap };
+          if (!map[idToMap].full_name || map[idToMap].full_name === 'Usuário' || map[idToMap].full_name.startsWith('Usuário #')) {
+            map[idToMap].full_name = cust.name;
+          }
+          map[idToMap].role = map[idToMap].role || 'customer';
+        };
+        if (cust.user_id) idMap(cust.user_id);
+        if (cust.id) idMap(cust.id);
       });
       companies?.forEach(c => {
         if (c.user_id) {
@@ -140,6 +196,7 @@ export default function AdminChatPage() {
 
   const { data: messages } = useMessages(selectedConv?.id);
   const sendMessage = useSendMessage();
+  const deleteConversationMutation = useDeleteConversation();
 
   const startConversation = useMutation({
     mutationFn: async (contact: Contact) => {
@@ -148,153 +205,239 @@ export default function AdminChatPage() {
       // Look for existing conversation
       const { data: existing } = await supabase
         .from("conversations")
-        .select("*")
+        .select("*, messages(content, created_at, sender_id)")
         .contains("participants", [user.id, contact.user_id])
         .is("order_id", null)
         .maybeSingle();
 
       if (existing) return existing;
 
-      const { data, error } = await supabase
+      const { data: created, error } = await supabase
         .from("conversations")
-        .insert({ participants: [user.id, contact.user_id], order_id: null })
-        .select()
+        .insert({
+          participants: [user.id, contact.user_id],
+          updated_at: new Date().toISOString(),
+        })
+        .select("*, messages(content, created_at, sender_id)")
         .single();
+
       if (error) throw error;
-      return data;
+      return created;
     },
     onSuccess: (conv) => {
-      qc.invalidateQueries({ queryKey: ["admin-conversations"] });
+      qc.invalidateQueries({ queryKey: ["admin-conversations", user?.id] });
       setSelectedConv(conv);
       setShowContacts(false);
-      toast.success("Conversa aberta");
     },
-    onError: (err: any) => toast.error("Erro ao iniciar conversa: " + err.message),
+    onError: (err: any) => {
+      toast.error(err.message || "Erro ao iniciar conversa");
+    },
   });
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const handleSend = async () => {
-    if (!message.trim() || !selectedConv) return;
+    if (!message.trim() || !selectedConv || !user?.id) return;
+    const content = message.trim();
+    setMessage("");
+
     try {
-      await sendMessage.mutateAsync({ conversationId: selectedConv.id, content: message.trim() });
-      setMessage("");
-      qc.invalidateQueries({ queryKey: ["admin-conversations"] });
+      await sendMessage.mutateAsync({
+        conversationId: selectedConv.id,
+        content,
+      });
     } catch (err: any) {
-      toast.error("Falha ao enviar: " + err.message);
+      console.error(err);
+      toast.error("Erro ao enviar mensagem");
     }
   };
 
-  const filteredContacts = useMemo(() => {
-    if (!contacts) return [];
-    return contacts.filter((c) => {
-      if (filterType !== "all" && c.type !== filterType) return false;
-      if (search && !c.full_name.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    });
-  }, [contacts, filterType, search]);
+  const handleDeleteConversation = async (convId: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!window.confirm("Tem certeza que deseja apagar esta conversa e todo o histórico?")) return;
 
-  const filteredConvs = useMemo(() => {
-    if (!conversations) return [];
-    if (!search) return conversations;
-    return conversations.filter((c: any) => {
-      const otherId = c.participants.find((p: string) => p !== user?.id);
-      const profile = profilesMap?.[otherId];
-      const name = profile?.full_name || "";
-      return name.toLowerCase().includes(search.toLowerCase());
-    });
-  }, [conversations, search, profilesMap, user?.id]);
+    try {
+      await deleteConversationMutation.mutateAsync(convId);
+      toast.success("Conversa apagada com sucesso!");
+      if (selectedConv?.id === convId) {
+        setSelectedConv(null);
+      }
+    } catch (err: any) {
+      console.error("Erro ao apagar conversa:", err);
+      toast.error("Erro ao apagar conversa: " + (err.message || "Tente novamente"));
+    }
+  };
+
+  const handleClearEmptyConversations = async () => {
+    const emptyConvs = (conversations || []).filter((c: any) => !c.messages || c.messages.length === 0);
+    if (emptyConvs.length === 0) {
+      toast.info("Não há conversas vazias para limpar.");
+      return;
+    }
+
+    if (!window.confirm(`Deseja apagar todas as ${emptyConvs.length} conversas vazias (sem mensagens)?`)) return;
+
+    setIsClearingEmpty(true);
+    try {
+      const ids = emptyConvs.map((c: any) => c.id);
+      await supabase.from("conversations").delete().in("id", ids);
+      qc.invalidateQueries({ queryKey: ["admin-conversations", user?.id] });
+      toast.success(`${emptyConvs.length} conversas vazias apagadas!`);
+      if (selectedConv && ids.includes(selectedConv.id)) {
+        setSelectedConv(null);
+      }
+    } catch (err: any) {
+      console.error("Erro ao limpar conversas vazias:", err);
+      toast.error("Erro ao limpar conversas vazias");
+    } finally {
+      setIsClearingEmpty(false);
+    }
+  };
 
   const getOtherProfile = (conv: any) => {
-    const otherId = conv?.participants?.find((p: string) => p !== user?.id);
-    return profilesMap?.[otherId];
+    const otherId = conv.participants?.find((id: string) => id !== user?.id) || conv.participants?.[0];
+    return profilesMap?.[otherId] || null;
   };
 
   const getConvTitle = (conv: any) => {
     if (conv.order_id) return `Pedido #${conv.order_id.slice(0, 8)}`;
     
-    // Tenta extrair o Assunto da primeira mensagem caso seja um chat de suporte
     let extractedTopic = null;
     if (conv.messages && conv.messages.length > 0) {
-      const sorted = [...conv.messages].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-      const firstMsg = sorted[0];
+      const firstMsg = [...conv.messages].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
       if (firstMsg?.content?.startsWith('[Assunto:')) {
         extractedTopic = firstMsg.content.replace('[Assunto:', '').replace(']', '').trim();
       }
     }
 
     const profile = getOtherProfile(conv);
-    if (profile?.full_name) {
-      return extractedTopic ? `${profile.full_name} (${extractedTopic})` : profile.full_name;
-    }
-
-    const otherId = conv?.participants?.find((p: string) => p !== user?.id);
-    if (otherId) {
-      return extractedTopic || `Usuário #${otherId.slice(0, 6).toUpperCase()}`;
-    }
-    
-    return extractedTopic || conv.topic || "Conversa";
+    if (profile?.full_name) return extractedTopic ? `${profile.full_name} (${extractedTopic})` : profile.full_name;
+    return extractedTopic || conv.title || "Conversa";
   };
 
-  const formatConvTime = (date?: string) => {
-    if (!date) return "";
-    const d = new Date(date);
-    if (isToday(d)) return format(d, "HH:mm");
-    if (isYesterday(d)) return "Ontem";
-    return format(d, "dd/MM", { locale: ptBR });
+  const formatConvTime = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isToday(date)) return format(date, "HH:mm");
+    if (isYesterday(date)) return "Ontem";
+    return format(date, "dd/MM", { locale: ptBR });
   };
 
   const typeIcon = (type: ContactType) => {
-    if (type === "company") return <Building2 className="h-3 w-3" />;
-    if (type === "driver") return <Bike className="h-3 w-3" />;
-    return <UserCircle className="h-3 w-3" />;
+    switch (type) {
+      case "company": return <Building2 className="h-3 w-3 text-blue-500" />;
+      case "driver": return <Bike className="h-3 w-3 text-orange-500" />;
+      case "customer": return <UserCircle className="h-3 w-3 text-emerald-500" />;
+    }
   };
 
   const typeLabel = (type: ContactType) => {
-    if (type === "company") return "Lojista";
-    if (type === "driver") return "Entregador";
-    return "Cliente";
+    switch (type) {
+      case "company": return "Lojista";
+      case "driver": return "Entregador";
+      case "customer": return "Cliente";
+    }
   };
+
+  // Filtered & sorted conversations
+  const filteredConvs = useMemo(() => {
+    if (!conversations) return [];
+    
+    // Sort so conversations with newest messages are at top
+    const list = [...conversations].sort((a, b) => {
+      const lastMsgA = a.messages && a.messages.length > 0 
+        ? Math.max(...a.messages.map((m: any) => new Date(m.created_at).getTime()))
+        : new Date(a.created_at).getTime();
+
+      const lastMsgB = b.messages && b.messages.length > 0 
+        ? Math.max(...b.messages.map((m: any) => new Date(m.created_at).getTime()))
+        : new Date(b.created_at).getTime();
+
+      return lastMsgB - lastMsgA;
+    });
+
+    if (!search.trim()) return list;
+
+    const q = search.toLowerCase();
+    return list.filter((c: any) => {
+      const title = getConvTitle(c).toLowerCase();
+      const lastMsg = (c.messages?.[c.messages.length - 1]?.content || "").toLowerCase();
+      return title.includes(q) || lastMsg.includes(q);
+    });
+  }, [conversations, profilesMap, search]);
+
+  // Filtered contacts
+  const filteredContacts = useMemo(() => {
+    if (!contacts) return [];
+    return contacts.filter((c) => {
+      const matchType = filterType === "all" || c.type === filterType;
+      const matchSearch = !search.trim() || c.full_name.toLowerCase().includes(search.toLowerCase());
+      return matchType && matchSearch;
+    });
+  }, [contacts, filterType, search]);
 
   return (
     <AdminLayout title="Chat" subtitle="Comunicação com lojistas, entregadores e clientes">
-      <div className="flex h-[calc(100vh-180px)] bg-card border border-border/50 rounded-2xl overflow-hidden shadow-sm -mx-2">
+      <div className="flex h-[calc(100vh-14rem)] bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
         {/* Sidebar */}
-        <div className={cn("w-full md:w-80 lg:w-96 border-r border-border flex flex-col shrink-0", selectedConv && "hidden md:flex")}>
+        <div className={cn("w-full md:w-80 lg:w-96 border-r border-border flex flex-col bg-card", selectedConv && "hidden md:flex")}>
           {/* Header */}
-          <div className="p-3 border-b border-border flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-primary" />
-              {showContacts ? "Novo Contato" : "Conversas"}
-            </h2>
-            <Button size="sm" variant={showContacts ? "secondary" : "default"} onClick={() => setShowContacts((v) => !v)} className="gap-1.5 h-8">
-              {showContacts ? <ArrowLeft className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
-              {showContacts ? "Voltar" : "Nova"}
-            </Button>
-          </div>
+          <div className="p-3 border-b border-border space-y-2">
+            <div className="flex items-center justify-between gap-1">
+              <div className="flex rounded-lg bg-muted p-0.5 text-xs font-medium">
+                <button
+                  onClick={() => setShowContacts(false)}
+                  className={cn("px-3 py-1 rounded-md transition-all", !showContacts ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}
+                >
+                  Conversas ({filteredConvs.length})
+                </button>
+                <button
+                  onClick={() => setShowContacts(true)}
+                  className={cn("px-3 py-1 rounded-md transition-all flex items-center gap-1", showContacts ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}
+                >
+                  <Plus className="h-3 w-3" /> Nova
+                </button>
+              </div>
 
-          {/* Search */}
-          <div className="p-2 border-b border-border/50">
+              {!showContacts && (
+                <button
+                  onClick={handleClearEmptyConversations}
+                  disabled={isClearingEmpty}
+                  title="Apagar todas as conversas sem mensagens"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-destructive/10 text-destructive text-[0.65rem] font-bold uppercase tracking-wider hover:bg-destructive/20 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isClearingEmpty ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eraser className="h-3 w-3" />}
+                  <span>Limpar Vazias</span>
+                </button>
+              )}
+            </div>
+
+            {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
+                type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={showContacts ? "Buscar contato..." : "Buscar conversa..."}
-                className="w-full bg-muted/50 rounded-lg py-2 pl-9 pr-3 text-xs outline-none focus:ring-1 focus:ring-primary/30"
+                placeholder={showContacts ? "Buscar contatos..." : "Buscar conversas..."}
+                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-muted/60 border border-border text-xs outline-none focus:ring-1 focus:ring-primary/30"
               />
             </div>
+
+            {/* Filter tags for contacts */}
             {showContacts && (
-              <div className="flex gap-1 mt-2">
+              <div className="flex gap-1 pt-1">
                 {(["all", "company", "driver", "customer"] as const).map((t) => (
                   <button
                     key={t}
                     onClick={() => setFilterType(t)}
                     className={cn(
-                      "flex-1 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide transition-colors",
-                      filterType === t ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted",
+                      "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all",
+                      filterType === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground",
                     )}
                   >
                     {t === "all" ? "Todos" : typeLabel(t as ContactType)}
@@ -351,11 +494,11 @@ export default function AdminChatPage() {
                 const profile = getOtherProfile(conv);
                 const lastMsg = conv.messages?.[conv.messages.length - 1];
                 return (
-                  <button
+                  <div
                     key={conv.id}
                     onClick={() => setSelectedConv(conv)}
                     className={cn(
-                      "w-full p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors border-b border-border/30 text-left",
+                      "w-full p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors border-b border-border/30 text-left cursor-pointer group justify-between",
                       selectedConv?.id === conv.id && "bg-primary/5 border-l-2 border-l-primary",
                     )}
                   >
@@ -366,14 +509,23 @@ export default function AdminChatPage() {
                         <User className="h-5 w-5 text-muted-foreground" />
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
+                    <div className="min-w-0 flex-1 pr-1">
                       <div className="flex justify-between items-center mb-0.5">
                         <span className="text-sm font-semibold text-foreground truncate">{getConvTitle(conv)}</span>
                         <span className="text-[10px] text-muted-foreground whitespace-nowrap">{formatConvTime(lastMsg?.created_at)}</span>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate leading-snug">{lastMsg?.content || "Inicie a conversa"}</p>
+                      <p className="text-xs text-muted-foreground truncate leading-snug">{lastMsg?.content?.replace(/\u200B/g, '') || "Inicie a conversa"}</p>
                     </div>
-                  </button>
+
+                    {/* Botão de Excluir Conversa na Lista */}
+                    <button
+                      onClick={(e) => handleDeleteConversation(conv.id, e)}
+                      title="Apagar conversa"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 );
               })
             )}
@@ -384,21 +536,33 @@ export default function AdminChatPage() {
         <div className={cn("flex-1 flex flex-col relative bg-muted/20", !selectedConv && "hidden md:flex")}>
           {selectedConv ? (
             <>
-              <div className="p-3 bg-card border-b border-border flex items-center gap-3">
-                <button className="md:hidden" onClick={() => setSelectedConv(null)}>
-                  <ArrowLeft className="h-5 w-5" />
+              <div className="p-3 bg-card border-b border-border flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <button className="md:hidden" onClick={() => setSelectedConv(null)}>
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                  <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border border-border shrink-0 flex items-center justify-center">
+                    {getOtherProfile(selectedConv)?.avatar_url ? (
+                      <img src={getOtherProfile(selectedConv)?.avatar_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="h-5 w-5 opacity-50" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-bold text-foreground leading-tight truncate">{getConvTitle(selectedConv)}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Online</p>
+                  </div>
+                </div>
+
+                {/* Botão Apagar Chat Aberto */}
+                <button
+                  onClick={() => handleDeleteConversation(selectedConv.id)}
+                  title="Apagar esta conversa e mensagens"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-bold transition-all cursor-pointer shrink-0"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Apagar Chat</span>
                 </button>
-                <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border border-border shrink-0 flex items-center justify-center">
-                  {getOtherProfile(selectedConv)?.avatar_url ? (
-                    <img src={getOtherProfile(selectedConv)?.avatar_url} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <User className="h-5 w-5 opacity-50" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-bold text-foreground leading-tight truncate">{getConvTitle(selectedConv)}</h3>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Online</p>
-                </div>
               </div>
 
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:px-8 scroll-smooth">
@@ -412,9 +576,9 @@ export default function AdminChatPage() {
                   {messages?.map((msg, i) => (
                     <WhatsAppBubble
                       key={msg.id}
-                      content={msg.content}
+                      content={msg.content.replace(/\u200B/g, '')}
                       timestamp={msg.created_at}
-                      isMe={msg.sender_id === user?.id}
+                      isMe={msg.sender_id === user?.id || msg.content.endsWith('\u200B')}
                       showTail={i === 0 || messages[i - 1].sender_id !== msg.sender_id}
                     />
                   ))}
@@ -433,7 +597,7 @@ export default function AdminChatPage() {
                 <button
                   onClick={handleSend}
                   disabled={!message.trim() || sendMessage.isPending}
-                  className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 hover:bg-primary/90 disabled:opacity-50"
+                  className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
                 >
                   {sendMessage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>
