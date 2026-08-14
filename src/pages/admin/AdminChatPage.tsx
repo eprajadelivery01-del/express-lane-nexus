@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSquare, User, Loader2, Send, Search, ArrowLeft, Building2, Bike, UserCircle, Plus, Trash2, Eraser } from "lucide-react";
+import { 
+  MessageSquare, User, Loader2, Send, Search, ArrowLeft, 
+  Building2, Bike, UserCircle, Plus, Trash2, Eraser, 
+  Store, ShoppingBag, ShieldAlert, Sparkles, Filter
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -13,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
 type ContactType = "company" | "driver" | "customer";
+type ChatCategory = "all" | "admin_support" | "store_customer" | "driver_application";
 
 interface Contact {
   user_id: string;
@@ -29,6 +34,7 @@ export default function AdminChatPage() {
   const [search, setSearch] = useState("");
   const [showContacts, setShowContacts] = useState(false);
   const [filterType, setFilterType] = useState<"all" | ContactType>("all");
+  const [activeCategory, setActiveCategory] = useState<ChatCategory>("all");
   const [isClearingEmpty, setIsClearingEmpty] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -153,7 +159,7 @@ export default function AdminChatPage() {
 
       const [{ data: profiles }, { data: companies }, { data: drivers }, { data: customers }] = await Promise.all([
         supabase.from("profiles").select("user_id, full_name, avatar_url, role").in("user_id", participantIds),
-        supabase.from("companies").select("user_id, name, logo_url").in("user_id", participantIds),
+        supabase.from("companies").select("id, user_id, name, logo_url").or(`user_id.in.(${participantIds.join(',')}),id.in.(${participantIds.join(',')})`),
         supabase.from("delivery_drivers").select("user_id").in("user_id", participantIds),
         supabase.from("customers").select("id, user_id, name, phone").or(`user_id.in.(${participantIds.join(',')}),id.in.(${participantIds.join(',')})`),
       ]);
@@ -174,12 +180,14 @@ export default function AdminChatPage() {
         if (cust.id) idMap(cust.id);
       });
       companies?.forEach(c => {
-        if (c.user_id) {
-          if (!map[c.user_id]) map[c.user_id] = { user_id: c.user_id };
-          map[c.user_id].full_name = c.name;
-          map[c.user_id].avatar_url = c.logo_url;
-          map[c.user_id].role = 'company';
-        }
+        const idMap = (idToMap: string) => {
+          if (!map[idToMap]) map[idToMap] = { user_id: idToMap };
+          map[idToMap].full_name = c.name;
+          map[idToMap].avatar_url = c.logo_url;
+          map[idToMap].role = 'company';
+        };
+        if (c.user_id) idMap(c.user_id);
+        if (c.id) idMap(c.id);
       });
       drivers?.forEach(d => {
         if (d.user_id) {
@@ -298,12 +306,73 @@ export default function AdminChatPage() {
     }
   };
 
+  // Helper to determine conversation category
+  const getConversationCategory = (conv: any): ChatCategory => {
+    const topic = (conv.topic || "").toLowerCase();
+    const title = (conv.title || "").toLowerCase();
+    
+    let firstMsgContent = "";
+    if (conv.messages && conv.messages.length > 0) {
+      const first = [...conv.messages].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
+      firstMsgContent = (first?.content || "").toLowerCase();
+    }
+
+    // 1. Driver Application
+    if (
+      topic === 'driver_application' || 
+      title.includes('cadastro') || 
+      title.includes('entregador') || 
+      firstMsgContent.includes('cadastro de entregador') ||
+      firstMsgContent.includes('seja um entregador')
+    ) {
+      return 'driver_application';
+    }
+
+    // 2. Store <-> Customer
+    if (
+      conv.order_id || 
+      topic === 'suporte do pedido' || 
+      topic === 'order_support' || 
+      (conv.participants?.length === 2 && conv.participants.some((p: string) => profilesMap?.[p]?.role === 'company'))
+    ) {
+      return 'store_customer';
+    }
+
+    // 3. General Support / Direct
+    return 'admin_support';
+  };
+
   const getOtherProfile = (conv: any) => {
     const otherId = conv.participants?.find((id: string) => id !== user?.id) || conv.participants?.[0];
     return profilesMap?.[otherId] || null;
   };
 
+  const getStoreCustomerParticipants = (conv: any) => {
+    const p1 = conv.participants?.[0] ? profilesMap?.[conv.participants[0]] : null;
+    const p2 = conv.participants?.[1] ? profilesMap?.[conv.participants[1]] : null;
+    
+    let store = p1?.role === 'company' ? p1 : p2?.role === 'company' ? p2 : null;
+    let customer = p1?.role !== 'company' ? p1 : p2;
+
+    return { store, customer };
+  };
+
   const getConvTitle = (conv: any) => {
+    const category = getConversationCategory(conv);
+
+    if (category === 'store_customer') {
+      const { store, customer } = getStoreCustomerParticipants(conv);
+      const storeName = store?.full_name || "Loja";
+      const customerName = customer?.full_name || "Cliente";
+      const orderTag = conv.order_id ? ` (#${conv.order_id.slice(0, 4).toUpperCase()})` : '';
+      return `${storeName} ↔ ${customerName}${orderTag}`;
+    }
+
+    if (category === 'driver_application') {
+      const otherProfile = getOtherProfile(conv);
+      return `🏍️ Cadastro: ${otherProfile?.full_name || "Candidato a Entregador"}`;
+    }
+
     if (conv.order_id) return `Pedido #${conv.order_id.slice(0, 8)}`;
     
     let extractedTopic = null;
@@ -316,7 +385,7 @@ export default function AdminChatPage() {
 
     const profile = getOtherProfile(conv);
     if (profile?.full_name) return extractedTopic ? `${profile.full_name} (${extractedTopic})` : profile.full_name;
-    return extractedTopic || conv.title || "Conversa";
+    return extractedTopic || conv.title || "Suporte";
   };
 
   const formatConvTime = (dateStr?: string) => {
@@ -360,15 +429,31 @@ export default function AdminChatPage() {
       return lastMsgB - lastMsgA;
     });
 
-    if (!search.trim()) return list;
-
-    const q = search.toLowerCase();
     return list.filter((c: any) => {
+      const cat = getConversationCategory(c);
+      const matchCat = activeCategory === "all" || cat === activeCategory;
+      if (!matchCat) return false;
+
+      if (!search.trim()) return true;
+
+      const q = search.toLowerCase();
       const title = getConvTitle(c).toLowerCase();
       const lastMsg = (c.messages?.[c.messages.length - 1]?.content || "").toLowerCase();
-      return title.includes(q) || lastMsg.includes(q);
+      const orderId = (c.order_id || "").toLowerCase();
+      return title.includes(q) || lastMsg.includes(q) || orderId.includes(q);
     });
-  }, [conversations, profilesMap, search]);
+  }, [conversations, profilesMap, search, activeCategory]);
+
+  // Counts for tabs
+  const categoryCounts = useMemo(() => {
+    if (!conversations) return { all: 0, admin_support: 0, store_customer: 0, driver_application: 0 };
+    return {
+      all: conversations.length,
+      admin_support: conversations.filter(c => getConversationCategory(c) === 'admin_support').length,
+      store_customer: conversations.filter(c => getConversationCategory(c) === 'store_customer').length,
+      driver_application: conversations.filter(c => getConversationCategory(c) === 'driver_application').length,
+    };
+  }, [conversations, profilesMap]);
 
   // Filtered contacts
   const filteredContacts = useMemo(() => {
@@ -381,25 +466,27 @@ export default function AdminChatPage() {
   }, [contacts, filterType, search]);
 
   return (
-    <AdminLayout title="Chat" subtitle="Comunicação com lojistas, entregadores e clientes">
-      <div className="flex h-[calc(100vh-14rem)] bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
+    <AdminLayout title="Central de Chat & Suporte" subtitle="Comunicação com lojistas, entregadores, clientes e monitoramento de pedidos">
+      <div className="flex h-[calc(100vh-13rem)] bg-card rounded-2xl border border-border overflow-hidden shadow-sm">
         {/* Sidebar */}
-        <div className={cn("w-full md:w-80 lg:w-96 border-r border-border flex flex-col bg-card", selectedConv && "hidden md:flex")}>
+        <div className={cn("w-full md:w-96 lg:w-[420px] border-r border-border flex flex-col bg-card shrink-0", selectedConv && "hidden md:flex")}>
           {/* Header */}
-          <div className="p-3 border-b border-border space-y-2">
+          <div className="p-3 border-b border-border space-y-2.5">
             <div className="flex items-center justify-between gap-1">
-              <div className="flex rounded-lg bg-muted p-0.5 text-xs font-medium">
+              <div className="flex rounded-xl bg-muted p-1 text-xs font-semibold">
                 <button
                   onClick={() => setShowContacts(false)}
-                  className={cn("px-3 py-1 rounded-md transition-all", !showContacts ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}
+                  className={cn("px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5", !showContacts ? "bg-card text-foreground shadow-sm font-bold" : "text-muted-foreground")}
                 >
-                  Conversas ({filteredConvs.length})
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  <span>Conversas</span>
                 </button>
                 <button
                   onClick={() => setShowContacts(true)}
-                  className={cn("px-3 py-1 rounded-md transition-all flex items-center gap-1", showContacts ? "bg-card text-foreground shadow-sm" : "text-muted-foreground")}
+                  className={cn("px-3 py-1.5 rounded-lg transition-all flex items-center gap-1", showContacts ? "bg-card text-foreground shadow-sm font-bold" : "text-muted-foreground")}
                 >
-                  <Plus className="h-3 w-3" /> Nova
+                  <Plus className="h-3.5 w-3.5" /> 
+                  <span>Nova</span>
                 </button>
               </div>
 
@@ -408,13 +495,78 @@ export default function AdminChatPage() {
                   onClick={handleClearEmptyConversations}
                   disabled={isClearingEmpty}
                   title="Apagar todas as conversas sem mensagens"
-                  className="flex items-center gap-1 px-2 py-1 rounded-lg bg-destructive/10 text-destructive text-[0.65rem] font-bold uppercase tracking-wider hover:bg-destructive/20 transition-all disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-destructive/10 text-destructive text-[0.68rem] font-bold uppercase tracking-wider hover:bg-destructive/20 transition-all disabled:opacity-50 cursor-pointer"
                 >
                   {isClearingEmpty ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eraser className="h-3 w-3" />}
                   <span>Limpar Vazias</span>
                 </button>
               )}
             </div>
+
+            {/* Category Filter Tabs (Organizador por Tipo) */}
+            {!showContacts && (
+              <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                <button
+                  onClick={() => setActiveCategory("all")}
+                  className={cn(
+                    "flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                    activeCategory === "all" 
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm" 
+                      : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
+                  )}
+                >
+                  <span>📋 Todos</span>
+                  <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "all" ? "bg-white/20 text-white" : "bg-muted text-foreground")}>
+                    {categoryCounts.all}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setActiveCategory("admin_support")}
+                  className={cn(
+                    "flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                    activeCategory === "admin_support" 
+                      ? "bg-blue-600 text-white border-blue-600 shadow-sm" 
+                      : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
+                  )}
+                >
+                  <span className="truncate mr-1">💬 Suporte Direto</span>
+                  <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "admin_support" ? "bg-white/20 text-white" : "bg-muted text-foreground")}>
+                    {categoryCounts.admin_support}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setActiveCategory("store_customer")}
+                  className={cn(
+                    "flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                    activeCategory === "store_customer" 
+                      ? "bg-purple-600 text-white border-purple-600 shadow-sm" 
+                      : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
+                  )}
+                >
+                  <span className="truncate mr-1">🏪 Lojas ↔ Clientes</span>
+                  <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "store_customer" ? "bg-white/20 text-white" : "bg-muted text-foreground")}>
+                    {categoryCounts.store_customer}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setActiveCategory("driver_application")}
+                  className={cn(
+                    "flex items-center justify-between px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all border",
+                    activeCategory === "driver_application" 
+                      ? "bg-orange-600 text-white border-orange-600 shadow-sm" 
+                      : "bg-muted/40 text-muted-foreground border-border/50 hover:bg-muted"
+                  )}
+                >
+                  <span className="truncate mr-1">🏍️ Cad. Entregador</span>
+                  <span className={cn("px-1.5 py-0.2 rounded-full text-[9px] font-black", activeCategory === "driver_application" ? "bg-white/20 text-white" : "bg-muted text-foreground")}>
+                    {categoryCounts.driver_application}
+                  </span>
+                </button>
+              </div>
+            )}
 
             {/* Search */}
             <div className="relative">
@@ -423,8 +575,8 @@ export default function AdminChatPage() {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={showContacts ? "Buscar contatos..." : "Buscar conversas..."}
-                className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-muted/60 border border-border text-xs outline-none focus:ring-1 focus:ring-primary/30"
+                placeholder={showContacts ? "Buscar por nome ou loja..." : "Filtrar conversas, lojas, pedidos..."}
+                className="w-full pl-9 pr-3 py-2 rounded-xl bg-muted/60 border border-border text-xs outline-none focus:ring-2 focus:ring-primary/20 font-medium"
               />
             </div>
 
@@ -436,8 +588,8 @@ export default function AdminChatPage() {
                     key={t}
                     onClick={() => setFilterType(t)}
                     className={cn(
-                      "px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all",
-                      filterType === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground",
+                      "px-2.5 py-1 rounded-full text-[10px] font-bold transition-all",
+                      filterType === t ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground hover:text-foreground",
                     )}
                   >
                     {t === "all" ? "Todos" : typeLabel(t as ContactType)}
@@ -448,19 +600,19 @@ export default function AdminChatPage() {
           </div>
 
           {/* List */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin">
+          <div className="flex-1 overflow-y-auto scrollbar-thin divide-y divide-border/30">
             {showContacts ? (
               filteredContacts.length === 0 ? (
-                <p className="p-6 text-center text-xs text-muted-foreground">Nenhum contato</p>
+                <div className="p-8 text-center text-xs text-muted-foreground">Nenhum contato encontrado</div>
               ) : (
                 filteredContacts.map((c) => (
                   <button
                     key={c.user_id}
                     onClick={() => startConversation.mutate(c)}
                     disabled={startConversation.isPending}
-                    className="w-full p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors border-b border-border/30 text-left"
+                    className="w-full p-3.5 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
                   >
-                    <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0 shadow-sm">
                       {c.avatar_url ? (
                         <img src={c.avatar_url} alt="" className="w-full h-full object-cover" />
                       ) : (
@@ -468,8 +620,8 @@ export default function AdminChatPage() {
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-foreground truncate">{c.full_name}</p>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                      <p className="text-sm font-bold text-foreground truncate">{c.full_name}</p>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-0.5">
                         {typeIcon(c.type)}
                         {typeLabel(c.type)}
                       </span>
@@ -478,50 +630,79 @@ export default function AdminChatPage() {
                 ))
               )
             ) : loadingConvs ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : filteredConvs.length === 0 ? (
-              <div className="p-6 text-center">
-                <MessageSquare className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground mb-3">Nenhuma conversa ainda.</p>
-                <Button size="sm" onClick={() => setShowContacts(true)} className="gap-1.5">
+              <div className="p-8 text-center">
+                <MessageSquare className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-muted-foreground mb-3">Nenhuma conversa encontrada nesta categoria.</p>
+                <Button size="sm" onClick={() => setShowContacts(true)} className="gap-1.5 rounded-xl font-bold">
                   <Plus className="h-3.5 w-3.5" /> Iniciar conversa
                 </Button>
               </div>
             ) : (
               filteredConvs.map((conv: any) => {
+                const category = getConversationCategory(conv);
                 const profile = getOtherProfile(conv);
                 const lastMsg = conv.messages?.[conv.messages.length - 1];
+
                 return (
                   <div
                     key={conv.id}
                     onClick={() => setSelectedConv(conv)}
                     className={cn(
-                      "w-full p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors border-b border-border/30 text-left cursor-pointer group justify-between",
-                      selectedConv?.id === conv.id && "bg-primary/5 border-l-2 border-l-primary",
+                      "w-full p-3.5 flex items-start gap-3 hover:bg-muted/50 transition-all text-left cursor-pointer group justify-between relative",
+                      selectedConv?.id === conv.id && "bg-primary/5 border-l-4 border-l-primary shadow-sm",
                     )}
                   >
-                    <div className="w-10 h-10 rounded-full bg-muted border border-border flex items-center justify-center overflow-hidden shrink-0">
-                      {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="h-5 w-5 text-muted-foreground" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1 pr-1">
-                      <div className="flex justify-between items-center mb-0.5">
-                        <span className="text-sm font-semibold text-foreground truncate">{getConvTitle(conv)}</span>
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">{formatConvTime(lastMsg?.created_at)}</span>
+                    {/* Avatar / Icon Badge */}
+                    <div className="relative shrink-0">
+                      <div className={cn(
+                        "w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden border shadow-sm",
+                        category === 'driver_application' ? "bg-orange-500/10 border-orange-500/30 text-orange-600" :
+                        category === 'store_customer' ? "bg-purple-500/10 border-purple-500/30 text-purple-600" :
+                        "bg-blue-500/10 border-blue-500/30 text-blue-600"
+                      )}>
+                        {category === 'driver_application' ? <Bike className="h-5 w-5" /> :
+                         category === 'store_customer' ? <ShoppingBag className="h-5 w-5" /> :
+                         profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" /> :
+                         <User className="h-5 w-5 text-muted-foreground" />}
                       </div>
-                      <p className="text-xs text-muted-foreground truncate leading-snug">{lastMsg?.content?.replace(/\u200B/g, '') || "Inicie a conversa"}</p>
+                    </div>
+
+                    <div className="min-w-0 flex-1 pr-1">
+                      {/* Top row: Category tag + Time */}
+                      <div className="flex justify-between items-center mb-1">
+                        <span className={cn(
+                          "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider",
+                          category === 'driver_application' ? "bg-orange-100 dark:bg-orange-950/60 text-orange-700 dark:text-orange-300" :
+                          category === 'store_customer' ? "bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300" :
+                          "bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300"
+                        )}>
+                          {category === 'driver_application' ? '🏍️ Cadastro Entregador' :
+                           category === 'store_customer' ? '🏪 Loja ↔ Cliente' :
+                           '💬 Suporte'}
+                        </span>
+                        <span className="text-[10px] font-medium text-muted-foreground whitespace-nowrap">{formatConvTime(lastMsg?.created_at)}</span>
+                      </div>
+
+                      {/* Main Title */}
+                      <p className="text-xs font-bold text-foreground truncate leading-snug">
+                        {getConvTitle(conv)}
+                      </p>
+
+                      {/* Message preview */}
+                      <p className="text-[11px] text-muted-foreground/80 truncate leading-snug mt-0.5 italic">
+                        {lastMsg?.content?.replace(/\u200B/g, '') || "Nenhuma mensagem trocada ainda"}
+                      </p>
                     </div>
 
                     {/* Botão de Excluir Conversa na Lista */}
                     <button
                       onClick={(e) => handleDeleteConversation(conv.id, e)}
                       title="Apagar conversa"
-                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all shrink-0"
+                      className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all shrink-0 self-center"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -532,25 +713,46 @@ export default function AdminChatPage() {
           </div>
         </div>
 
-        {/* Chat */}
+        {/* Chat window */}
         <div className={cn("flex-1 flex flex-col relative bg-muted/20", !selectedConv && "hidden md:flex")}>
           {selectedConv ? (
             <>
-              <div className="p-3 bg-card border-b border-border flex items-center justify-between gap-3">
+              {/* Header */}
+              <div className="p-3.5 bg-card border-b border-border flex items-center justify-between gap-3 shadow-sm">
                 <div className="flex items-center gap-3 min-w-0">
-                  <button className="md:hidden" onClick={() => setSelectedConv(null)}>
+                  <button className="md:hidden p-1.5 rounded-lg hover:bg-muted" onClick={() => setSelectedConv(null)}>
                     <ArrowLeft className="h-5 w-5" />
                   </button>
-                  <div className="w-10 h-10 rounded-full bg-muted overflow-hidden border border-border shrink-0 flex items-center justify-center">
-                    {getOtherProfile(selectedConv)?.avatar_url ? (
-                      <img src={getOtherProfile(selectedConv)?.avatar_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="h-5 w-5 opacity-50" />
-                    )}
+                  
+                  <div className={cn(
+                    "w-11 h-11 rounded-2xl flex items-center justify-center overflow-hidden border shadow-sm shrink-0",
+                    getConversationCategory(selectedConv) === 'driver_application' ? "bg-orange-500/10 border-orange-500/30 text-orange-600" :
+                    getConversationCategory(selectedConv) === 'store_customer' ? "bg-purple-500/10 border-purple-500/30 text-purple-600" :
+                    "bg-blue-500/10 border-blue-500/30 text-blue-600"
+                  )}>
+                    {getConversationCategory(selectedConv) === 'driver_application' ? <Bike className="h-6 w-6" /> :
+                     getConversationCategory(selectedConv) === 'store_customer' ? <ShoppingBag className="h-6 w-6" /> :
+                     getOtherProfile(selectedConv)?.avatar_url ? <img src={getOtherProfile(selectedConv)?.avatar_url} alt="" className="w-full h-full object-cover" /> :
+                     <User className="h-6 w-6 opacity-50" />}
                   </div>
+
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-bold text-foreground leading-tight truncate">{getConvTitle(selectedConv)}</h3>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Online</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-extrabold text-foreground leading-tight truncate">{getConvTitle(selectedConv)}</h3>
+                      <span className={cn(
+                        "px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider shrink-0",
+                        getConversationCategory(selectedConv) === 'driver_application' ? "bg-orange-500/10 text-orange-600 border border-orange-500/20" :
+                        getConversationCategory(selectedConv) === 'store_customer' ? "bg-purple-500/10 text-purple-600 border border-purple-500/20" :
+                        "bg-blue-500/10 text-blue-600 border border-blue-500/20"
+                      )}>
+                        {getConversationCategory(selectedConv) === 'driver_application' ? 'Candidato a Entregador' :
+                         getConversationCategory(selectedConv) === 'store_customer' ? 'Intermediação Loja ↔ Cliente' :
+                         'Suporte Direto'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-medium mt-0.5">
+                      {selectedConv.order_id ? `Vinculado ao Pedido: #${selectedConv.order_id}` : `ID do Chat: ${selectedConv.id.slice(0, 8)}`}
+                    </p>
                   </div>
                 </div>
 
@@ -558,19 +760,43 @@ export default function AdminChatPage() {
                 <button
                   onClick={() => handleDeleteConversation(selectedConv.id)}
                   title="Apagar esta conversa e mensagens"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-bold transition-all cursor-pointer shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-bold transition-all cursor-pointer shrink-0"
                 >
                   <Trash2 className="h-4 w-4" />
                   <span>Apagar Chat</span>
                 </button>
               </div>
 
+              {/* Informative Banner for Store <-> Customer */}
+              {getConversationCategory(selectedConv) === 'store_customer' && (
+                <div className="bg-purple-500/10 border-b border-purple-500/20 px-4 py-2 flex items-center justify-between text-xs text-purple-900 dark:text-purple-200">
+                  <div className="flex items-center gap-2 font-medium">
+                    <Store className="h-4 w-4 text-purple-600 shrink-0" />
+                    <span>Você está visualizando o histórico de mensagens trocadas entre o Estabelecimento e o Cliente.</span>
+                  </div>
+                  {selectedConv.order_id && (
+                    <span className="font-bold text-[11px] bg-purple-200 dark:bg-purple-900/50 px-2 py-0.5 rounded-md">
+                      Pedido #{selectedConv.order_id.slice(-6).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Informative Banner for Driver Application */}
+              {getConversationCategory(selectedConv) === 'driver_application' && (
+                <div className="bg-orange-500/10 border-b border-orange-500/20 px-4 py-2 flex items-center gap-2 text-xs text-orange-900 dark:text-orange-200 font-medium">
+                  <Bike className="h-4 w-4 text-orange-600 shrink-0" />
+                  <span>Chat originado pela tela de solicitação de pré-cadastro de novo entregador parceiro.</span>
+                </div>
+              )}
+
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:px-8 scroll-smooth">
                 <div className="flex flex-col gap-1 pb-4">
                   {messages?.length === 0 && (
-                    <div className="text-center py-12">
-                      <MessageSquare className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
-                      <p className="text-xs text-muted-foreground">Envie a primeira mensagem</p>
+                    <div className="text-center py-16">
+                      <MessageSquare className="h-12 w-12 text-muted-foreground/30 mx-auto mb-2" />
+                      <p className="text-xs font-semibold text-muted-foreground">Nenhuma mensagem registrada nesta conversa.</p>
+                      <p className="text-[11px] text-muted-foreground/70 mt-1">Envie uma mensagem abaixo para falar com os participantes.</p>
                     </div>
                   )}
                   {messages?.map((msg, i) => (
@@ -585,19 +811,20 @@ export default function AdminChatPage() {
                 </div>
               </div>
 
+              {/* Input */}
               <div className="p-3 bg-card border-t border-border flex items-center gap-3">
                 <input
                   type="text"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSend())}
-                  placeholder="Digite uma mensagem..."
-                  className="flex-1 bg-muted/50 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary/30"
+                  placeholder="Responder como Administrador..."
+                  className="flex-1 bg-muted/50 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/20 font-medium"
                 />
                 <button
                   onClick={handleSend}
                   disabled={!message.trim() || sendMessage.isPending}
-                  className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 hover:bg-primary/90 disabled:opacity-50 cursor-pointer"
+                  className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center shrink-0 hover:bg-primary/90 disabled:opacity-50 cursor-pointer shadow-sm active:scale-95 transition-all"
                 >
                   {sendMessage.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </button>
@@ -605,12 +832,15 @@ export default function AdminChatPage() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <MessageSquare className="h-16 w-16 text-primary/20 mb-4" />
-              <h2 className="text-lg font-bold text-foreground mb-1">Central de Chat</h2>
-              <p className="text-xs text-muted-foreground max-w-sm mb-4">
-                Selecione uma conversa ou inicie uma nova com qualquer lojista, entregador ou cliente.
+              <div className="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center mb-4 text-primary shadow-sm">
+                <MessageSquare className="h-10 w-10" />
+              </div>
+              <h2 className="text-xl font-black text-foreground mb-1">Central de Chat Unificada</h2>
+              <p className="text-xs text-muted-foreground max-w-md mb-6 font-medium leading-relaxed">
+                Navegue pelas abas acima para filtrar conversas de <strong>Suporte Direto</strong>, 
+                auditar chats entre <strong>Lojas e Clientes</strong> ou acompanhar pedidos de <strong>Cadastro de Entregadores</strong>.
               </p>
-              <Button onClick={() => setShowContacts(true)} className="gap-1.5">
+              <Button onClick={() => setShowContacts(true)} className="gap-2 rounded-xl font-bold px-5 py-2.5 shadow-md">
                 <Plus className="h-4 w-4" /> Nova Conversa
               </Button>
             </div>
