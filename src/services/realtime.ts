@@ -17,27 +17,6 @@ export function safeRemoveChannel(channel: any) {
   } catch { /* noop */ }
 }
 
-
-/**
- * Remove um canal de forma segura, evitando erros de
- * "WebSocket is closed before the connection is established".
- */
-export function safeRemoveChannel(channel: any) {
-  if (!channel) return;
-  try {
-    const state = channel.state;
-    if (state === "joining") {
-      setTimeout(() => {
-        try { supabase.removeChannel(channel); } catch { /* noop */ }
-      }, 300);
-      return;
-    }
-    supabase.removeChannel(channel);
-  } catch {
-    /* noop */
-  }
-}
-
 /**
  * useAdminRealtime
  * Centralized hook for Admin Panel to monitor everything.
