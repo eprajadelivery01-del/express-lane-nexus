@@ -372,7 +372,7 @@ export async function createDeliveryRequest(orderId: string) {
     // Assegura status = pending e dispara push
     await supabase.from("deliveries").update({ status: "pending" }).eq("id", existingDelivery.id);
     
-    const storeName = order.company_name || order.store_name || "É Pra Já Delivery";
+    const storeName = (order as any).company_name || (order as any).store_name || "É Pra Já Delivery";
     const detailsStr = `🏬 Loja: ${storeName}\n📍 Coleta: ${existingDelivery.pickup_address || 'Retirada na Loja'}\n🏁 Entrega: ${existingDelivery.delivery_address || dropoff}\n💰 Ganhos: R$ ${Number(existingDelivery.value || existingDelivery.commission || 0).toFixed(2).replace('.', ',')}`;
 
     supabase.functions.invoke("send-push", {
@@ -416,13 +416,13 @@ export async function createDeliveryRequest(orderId: string) {
       delivery_latitude: (order as any).delivery_latitude || null,
       delivery_longitude: (order as any).delivery_longitude || null,
       status: "pending",
-    })
+    } as any)
     .select()
     .single();
 
   if (deliveryError) throw deliveryError;
 
-  const storeName = order.company_name || order.store_name || "É Pra Já Delivery";
+  const storeName = (order as any).company_name || (order as any).store_name || "É Pra Já Delivery";
   const detailsStr = `🏬 Loja: ${storeName}\n📍 Coleta: Retirada na Loja\n🏁 Entrega: ${dropoff}\n💰 Ganhos: R$ ${Number(order.delivery_fee || 0).toFixed(2).replace('.', ',')}`;
 
   supabase.functions.invoke("send-push", {
