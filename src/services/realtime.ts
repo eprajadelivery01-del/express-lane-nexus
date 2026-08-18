@@ -3,6 +3,21 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAudioAlert } from "@/hooks/useAudioAlert";
 
+/** Remove um canal com segurança, evitando erro de WebSocket fechado antes de conectar. */
+export function safeRemoveChannel(channel: any) {
+  if (!channel) return;
+  try {
+    if (channel.state === "joining") {
+      setTimeout(() => {
+        try { supabase.removeChannel(channel); } catch { /* noop */ }
+      }, 300);
+      return;
+    }
+    supabase.removeChannel(channel);
+  } catch { /* noop */ }
+}
+
+
 /**
  * useAdminRealtime
  * Centralized hook for Admin Panel to monitor everything.
