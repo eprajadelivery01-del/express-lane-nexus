@@ -356,7 +356,7 @@ export async function createDeliveryRequest(orderId: string) {
 
   const dropoff = address ? `${address.street}, ${address.number} - ${address.neighborhood}` : "Endereço não cadastrado";
 
-  const estimatedValue = Number(order.total || 0);
+  const estimatedValue = Math.max(0, Number(order.total || 0) - Number(order.delivery_fee || 0));
 
   // VERIFICAÇÃO DE DUPLICIDADE
   const { data: existingDelivery } = await supabase
@@ -396,8 +396,6 @@ export async function createDeliveryRequest(orderId: string) {
 
     return existingDelivery;
   }
-
-  const estimatedValue = Math.max(0, Number(order.total || 0) - Number(order.delivery_fee || 0));
 
   const { data: delivery, error: deliveryError } = await supabase
     .from("deliveries")
