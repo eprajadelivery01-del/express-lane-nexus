@@ -12,11 +12,9 @@ export function useAdminRealtime() {
   const qc = useQueryClient();
 
   useEffect(() => {
-    // Unique ID for this session
-    const sessionId = Math.random().toString(36).substring(2, 10);
-
     const deliverablesChannel = supabase
-      .channel(`admin-deliveries-${sessionId}`)
+      .channel("admin-deliveries")
+
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "deliveries" },
@@ -28,7 +26,7 @@ export function useAdminRealtime() {
       .subscribe();
 
     const driversChannel = supabase
-      .channel(`admin-drivers-${sessionId}`)
+      .channel("admin-drivers")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "delivery_drivers" },
@@ -39,7 +37,7 @@ export function useAdminRealtime() {
       .subscribe();
 
     const notificationsChannel = supabase
-      .channel(`admin-notifications-${sessionId}`)
+      .channel("admin-notifications")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "system_logs" },
@@ -50,11 +48,12 @@ export function useAdminRealtime() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(deliverablesChannel);
-      supabase.removeChannel(driversChannel);
-      supabase.removeChannel(notificationsChannel);
+      safeRemoveChannel(deliverablesChannel);
+      safeRemoveChannel(driversChannel);
+      safeRemoveChannel(notificationsChannel);
     };
   }, []); // Run only once on mount
+
 }
 
 /**
@@ -67,7 +66,7 @@ export function useDriverRealtime() {
 
   useEffect(() => {
     const channel = supabase
-      .channel(`driver-deliveries-${Math.random()}`)
+      .channel("driver-deliveries")
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "deliveries" },
@@ -89,7 +88,7 @@ export function useDriverRealtime() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { safeRemoveChannel(channel); };
   }, [qc]);
 }
 

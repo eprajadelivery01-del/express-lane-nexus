@@ -1,18 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Send, Bell, Image as ImageIcon, Tag, Smile, UploadCloud, Loader2, X } from "lucide-react";
+import { Send, Bell, Image as ImageIcon, Tag, Smile, UploadCloud, Loader2, X, Trash2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMarketingNotifications } from "@/hooks/useMarketingNotifications";
 
 export function AdminNotificationsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<any[]>([]);
+
+  // Hook customizado para listagem e exclusão de notificações
+  const { history, deletingId, fetchHistory, deleteNotification } = useMarketingNotifications();
 
   // Form states
   const [title, setTitle] = useState("");
@@ -51,26 +54,6 @@ export function AdminNotificationsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchHistory();
-  }, []);
-
-  const fetchHistory = async () => {
-    try {
-      const { data, error } = await (supabase as any)
-        .from("marketing_notifications")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      
-      if (!error && data) {
-        setHistory(data);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   const handleSendNotification = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -87,7 +70,8 @@ export function AdminNotificationsPage() {
         emoji: emoji.trim() || null,
         image_url: imageUrl.trim() || null,
         coupon_code: couponCode.trim() || null,
-        created_by: user?.id
+        created_by: user?.id,
+        status: "active"
       };
 
       const { error } = await (supabase as any).from("marketing_notifications").insert(payload);
@@ -138,6 +122,12 @@ export function AdminNotificationsPage() {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string, itemTitle: string) => {
+    if (window.confirm(`Tem certeza que deseja excluir a notificação "${itemTitle}"? Ela não aparecerá mais no App dos Clientes.`)) {
+      await deleteNotification(id);
     }
   };
 
@@ -264,9 +254,9 @@ export function AdminNotificationsPage() {
             ) : (
               <div className="space-y-4">
                 {history.map(notif => (
-                  <div key={notif.id} className="p-3 border rounded-lg bg-muted/30 flex items-start gap-3">
+                  <div key={notif.id} className="p-3 border rounded-lg bg-muted/30 flex items-start gap-3 relative group">
                     <div className="text-2xl mt-1">{notif.emoji || "🔔"}</div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 pr-6">
                       <h4 className="font-semibold text-sm truncate">{notif.title}</h4>
                       <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notif.message}</p>
                       
@@ -281,6 +271,22 @@ export function AdminNotificationsPage() {
                         </span>
                       </div>
                     </div>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={deletingId === notif.id}
+                      onClick={() => handleDelete(notif.id, notif.title)}
+                      className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      title="Excluir notificação"
+                    >
+                      {deletingId === notif.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
                   </div>
                 ))}
               </div>

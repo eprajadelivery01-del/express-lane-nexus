@@ -20,6 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { useUniqueDeliveries } from "@/hooks/useUniqueDeliveries";
 import type { DeliveryStatus } from "@/types/models";
+import { DeliveryRouteMap } from "@/components/deliveries/DeliveryRouteMap";
 
 const statusFilters = [
   { label: "Todas", value: "all" },
@@ -523,6 +524,16 @@ export default function DeliveriesPage() {
                   <p className="text-sm font-medium text-foreground">{detailDelivery.dropoff_address || detailDelivery.address || "—"}</p>
                 </div>
               </div>
+
+              {/* Rota + posição do entregador em tempo real */}
+              <div className="space-y-1">
+
+                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest px-1">
+                  Rota & Posição ao Vivo
+                </p>
+                <DeliveryRouteMap delivery={detailDelivery} height={280} />
+              </div>
+
               
               {detailDelivery.notes && (
                 <div className="space-y-1">

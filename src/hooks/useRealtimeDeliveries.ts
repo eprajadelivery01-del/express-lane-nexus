@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { safeRemoveChannel } from "@/services/realtime";
 
 import { useAudioAlert } from "@/hooks/useAudioAlert";
 
@@ -55,7 +56,7 @@ export function useRealtimeDeliveries() {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      safeRemoveChannel(channel);
     };
   }, [qc]);
 }
