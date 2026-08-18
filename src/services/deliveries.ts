@@ -397,8 +397,6 @@ export async function createDeliveryRequest(orderId: string) {
     return existingDelivery;
   }
 
-  const estimatedValue = Math.max(0, Number(order.total || 0) - Number(order.delivery_fee || 0));
-
   const { data: delivery, error: deliveryError } = await supabase
     .from("deliveries")
     .insert({
