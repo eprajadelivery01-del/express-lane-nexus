@@ -456,7 +456,7 @@ export default function RegionsPage() {
 
   return (
     <AdminLayout title="Regiões" subtitle="Gestão de regiões e precificação" fullHeight>
-      <div className="flex flex-col lg:flex-row h-[calc(100vh-73px)] w-full relative">
+      <div className="flex flex-col lg:flex-row h-full w-full relative min-w-0 min-h-0 overflow-hidden">
         {/* Map */}
         <div className="flex-1 relative h-full min-h-[300px]">
           <div ref={mapContainerRef} className="absolute inset-0" />

@@ -102,10 +102,10 @@ export default function ChatPage() {
   };
 
   return (
-    <AdminLayout title="Chat Operacional" subtitle="Comunicação rápida com lojistas e entregadores">
-      <div className="flex h-[calc(100vh-160px)] -m-4 md:-m-6 bg-[#f0f2f5] dark:bg-[#0b141a] overflow-hidden">
+    <AdminLayout title="Chat Operacional" subtitle="Comunicação rápida com lojistas e entregadores" fullHeight>
+      <div className="flex h-full w-full min-w-0 min-h-0 bg-[#f0f2f5] dark:bg-[#0b141a] overflow-hidden">
         {/* Sidebar */}
-        <div className="w-96 border-r border-border flex flex-col bg-card">
+        <div className="w-80 md:w-96 shrink-0 border-r border-border flex flex-col bg-card min-w-0 overflow-hidden">
           <div className="p-4 bg-[#f0f2f5] dark:bg-[#202c33] flex items-center justify-between border-b border-border/10">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
               <User className="h-6 w-6 text-primary" />

@@ -330,8 +330,8 @@ export default function TrackingPage() {
   };
 
   return (
-    <AdminLayout title="Rastreio em Tempo Real" subtitle="Monitore a localização da frota no mapa">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-170px)] min-h-[500px]">
+    <AdminLayout title="Rastreio em Tempo Real" subtitle="Monitore a localização da frota no mapa" fullHeight>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full w-full p-4 md:p-6 min-h-[500px] min-w-0 min-h-0 overflow-hidden">
         
         {/* Left Sidebar - Active Drivers List */}
         <div className="lg:col-span-1 bg-card border border-border/50 rounded-[2rem] p-5 flex flex-col h-full shadow-lg">
