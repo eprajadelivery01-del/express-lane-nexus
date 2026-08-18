@@ -1,5 +1,7 @@
 import { useContext, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { safeRemoveChannel } from "@/services/realtime";
 import { AuthContext } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
