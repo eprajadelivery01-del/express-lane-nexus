@@ -2453,12 +2453,14 @@ export type Database = {
           banner_url: string | null
           business_hours: string | null
           category: string | null
+          city: string | null
           city_id: string | null
           cover_url: string | null
           created_at: string | null
           delivery_fee: number | null
           delivery_mode: string | null
           description: string | null
+          gallery: Json | null
           id: string | null
           is_active: boolean | null
           is_open: boolean | null
@@ -2467,20 +2469,27 @@ export type Database = {
           longitude: number | null
           name: string | null
           opening_hours: Json | null
+          prep_time: number | null
+          prep_time_max: number | null
+          prep_time_min: number | null
           rating: number | null
-          show_in_marketplace: boolean | null
+          region_id: string | null
+          state: string | null
+          timezone: string | null
         }
         Insert: {
           active?: boolean | null
           banner_url?: string | null
           business_hours?: string | null
           category?: string | null
+          city?: string | null
           city_id?: string | null
           cover_url?: string | null
           created_at?: string | null
           delivery_fee?: number | null
           delivery_mode?: string | null
           description?: string | null
+          gallery?: Json | null
           id?: string | null
           is_active?: boolean | null
           is_open?: boolean | null
@@ -2489,20 +2498,27 @@ export type Database = {
           longitude?: number | null
           name?: string | null
           opening_hours?: Json | null
+          prep_time?: number | null
+          prep_time_max?: number | null
+          prep_time_min?: number | null
           rating?: number | null
-          show_in_marketplace?: boolean | null
+          region_id?: string | null
+          state?: string | null
+          timezone?: string | null
         }
         Update: {
           active?: boolean | null
           banner_url?: string | null
           business_hours?: string | null
           category?: string | null
+          city?: string | null
           city_id?: string | null
           cover_url?: string | null
           created_at?: string | null
           delivery_fee?: number | null
           delivery_mode?: string | null
           description?: string | null
+          gallery?: Json | null
           id?: string | null
           is_active?: boolean | null
           is_open?: boolean | null
@@ -2511,10 +2527,23 @@ export type Database = {
           longitude?: number | null
           name?: string | null
           opening_hours?: Json | null
+          prep_time?: number | null
+          prep_time_max?: number | null
+          prep_time_min?: number | null
           rating?: number | null
-          show_in_marketplace?: boolean | null
+          region_id?: string | null
+          state?: string | null
+          timezone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "companies_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       store_public_info: {
         Row: {
@@ -2714,6 +2743,7 @@ export type Database = {
         Args: { p_payment_id: string }
         Returns: undefined
       }
+      push_title_for_status: { Args: { p_status: string }; Returns: string }
       request_wallet_withdrawal: { Args: { _amount: number }; Returns: Json }
       safe_delete_customer: { Args: { p_user_id: string }; Returns: undefined }
       safe_delete_driver: { Args: { p_driver_id: string }; Returns: undefined }
