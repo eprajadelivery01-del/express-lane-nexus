@@ -592,7 +592,7 @@ export default function DeliveriesPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <StatusTimeCard label="Criada" time={detailDelivery.created_at} active />
                   <StatusTimeCard label="Aceita" time={detailDelivery.accepted_at} active={!!detailDelivery.accepted_at} />
-                  <StatusTimeCard label="Coletada" time={detailDelivery.collected_at} active={!!detailDelivery.collected_at} />
+                  <StatusTimeCard label="Coletada" time={detailDelivery.collected_at || detailDelivery.picked_up_at} active={!!(detailDelivery.collected_at || detailDelivery.picked_up_at)} />
                   <StatusTimeCard label="Finalizada" time={detailDelivery.delivered_at} active={!!detailDelivery.delivered_at} />
                 </div>
                 {detailDelivery.cancelled_at && (
