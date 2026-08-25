@@ -51,9 +51,9 @@ export default function DashboardPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [autoRefresh, setAutoRefresh] = useState<AutoRefreshOption>(() => {
     try {
-      const v = Number(localStorage.getItem("epj_dashboard_autorefresh") ?? "30");
-      return ([0, 15, 30, 60].includes(v) ? v : 30) as AutoRefreshOption;
-    } catch { return 30; }
+      const v = Number(localStorage.getItem("epj_dashboard_autorefresh") ?? "0");
+      return ([0, 15, 30, 60].includes(v) ? v : 0) as AutoRefreshOption;
+    } catch { return 0; }
   });
   const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== "undefined" ? navigator.onLine : true);
   const [liveError, setLiveError] = useState<string | null>(null);

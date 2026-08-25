@@ -221,7 +221,6 @@ export function useDeliveryStats() {
         todayRevenue: normalizedData.filter((d) => d.status === "delivered").reduce((sum, d) => sum + (Number(d.price) || Number((d as any).value) || 0), 0),
       };
     },
-    refetchInterval: 30000,
   });
 }
 
