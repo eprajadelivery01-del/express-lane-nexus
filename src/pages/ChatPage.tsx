@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { useMessages, useSendMessage } from "@/services/chat";
 import { useAuth } from "@/hooks/useAuth";
+import { markConversationAsOpened } from "@/hooks/useAdminBadges";
 import { useSearchParams } from "react-router-dom";
 import { WhatsAppBubble } from "@/components/chat/WhatsAppBubble";
 
@@ -19,6 +20,12 @@ export default function ChatPage() {
   const [selectedConv, setSelectedConv] = useState<any>(null);
   const [message, setMessage] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedConv?.id) {
+      markConversationAsOpened(selectedConv.id);
+    }
+  }, [selectedConv?.id]);
   
   // Fetch profiles for participants
   const { data: profiles } = useQuery({

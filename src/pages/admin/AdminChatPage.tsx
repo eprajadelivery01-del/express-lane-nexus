@@ -14,6 +14,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useMessages, useSendMessage, useDeleteConversation } from "@/services/chat";
 import { useAuth } from "@/hooks/useAuth";
+import { useAdminBadges, markConversationAsOpened } from "@/hooks/useAdminBadges";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -254,6 +255,12 @@ export default function AdminChatPage() {
       toast.error(err.message || "Erro ao iniciar conversa");
     },
   });
+
+  useEffect(() => {
+    if (selectedConv?.id) {
+      markConversationAsOpened(selectedConv.id);
+    }
+  }, [selectedConv?.id]);
 
   useEffect(() => {
     if (scrollRef.current) {
