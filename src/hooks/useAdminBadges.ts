@@ -46,16 +46,26 @@ export function useAdminBadges(_userId?: string) {
             } catch {}
           }
 
-          // Busca conversas de forma ultra leve sem carregar mensagens inteiras
-          const { data: conversations } = await supabase
-            .from("conversations")
-            .select("id")
-            .order("created_at", { ascending: false })
-            .limit(100);
+          // Busca apenas mensagens não lidas enviadas por OUTROS usuários
+          let query = supabase
+            .from("messages")
+            .select("conversation_id, sender_id")
+            .is("read_at", null);
 
-          if (conversations) {
-            // Conta APENAS conversas que NUNCA foram abertas pelo usuário
-            unreadChatsCount = conversations.filter((c: any) => !openedIds.has(c.id)).length;
+          if (_userId) {
+            query = query.neq("sender_id", _userId);
+          }
+
+          const { data: unreadMessages } = await query;
+
+          if (unreadMessages && unreadMessages.length > 0) {
+            // Agrupa por conversa e filtra apenas conversas que NÃO foram abertas
+            const unreadConvIds = new Set(
+              unreadMessages
+                .map((m: any) => m.conversation_id)
+                .filter((id: any): id is string => !!id && !openedIds.has(id))
+            );
+            unreadChatsCount = unreadConvIds.size;
           }
         } catch (e) {
           console.error("[AdminBadges] Erro ao calcular chats não lidos:", e);
