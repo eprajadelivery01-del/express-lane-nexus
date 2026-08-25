@@ -134,6 +134,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
           orders(
             total,
             delivery_fee,
+            payment_method,
             order_items(quantity, price, products(name))
           ),
           companies!deliveries_company_id_fkey(name, phone),
@@ -145,7 +146,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
       if (status && status !== "all") query = query.eq("status", toDbStatus(status) as any);
       
       if (search) {
-        query = query.or(`customer_name.ilike.%${search}%,address.ilike.%${search}%,dropoff_address.ilike.%${search}%`);
+        query = query.or(`customer_name.ilike.%${search}%,address.ilike.%${search}%`);
       }
       if (companyId) query = query.eq("company_id", companyId);
       if (driverId) query = query.eq("driver_id", driverId);
@@ -161,29 +162,30 @@ export function useDeliveries(params?: UseDeliveriesParams) {
       const { data, error, count } = await query;
       if (error) throw error;
 
-      const orderIds = Array.from(
-        new Set((data ?? []).map((delivery: any) => delivery.order_id).filter(Boolean))
-      ) as string[];
-
-      const paymentMethodsByOrderId = new Map<string, string | null>();
-      if (orderIds.length > 0) {
-        const { data: ordersData, error: ordersError } = await supabase
-          .from("orders")
-          .select("id, payment_method")
-          .in("id", orderIds);
-
-        if (ordersError) {
-          console.error("Erro ao buscar formas de pagamento das entregas:", ordersError);
-        } else {
-          (ordersData ?? []).forEach((order: any) => {
-            paymentMethodsByOrderId.set(order.id, order.payment_method ?? null);
-          });
-        }
-      }
-
       const filteredData = (data ?? []).filter((d: any) => !d.notes?.includes("Cancelamento automático"));
 
-      const normalizedData = normalizeDeliveryData(filteredData, paymentMethodsByOrderId);
+      const normalizedData = filteredData.map((delivery: any) => {
+        const rawDriver = delivery.delivery_drivers;
+        let normalizedDriver = null;
+        if (rawDriver) {
+          normalizedDriver = {
+            id: rawDriver.id,
+            user_id: rawDriver.user_id,
+            full_name: rawDriver.full_name || "Entregador Atribuído",
+            phone: rawDriver.phone || null,
+            vehicle_type: rawDriver.vehicle_type || null,
+            vehicle_plate: rawDriver.vehicle_plate || null,
+          };
+        }
+
+        return {
+          ...delivery,
+          status: toAppStatus(delivery.status),
+          delivered_at: delivery.delivered_at ?? delivery.completed_at ?? null,
+          payment_method: delivery.orders?.payment_method ?? null,
+          delivery_drivers: normalizedDriver,
+        };
+      });
 
       return { data: normalizedData as unknown as DeliveryWithRelations[], count: count || 0 };
     },
@@ -245,54 +247,24 @@ export function useUpdateDeliveryStatus() {
         // Silently ignore to proceed to REST fallbacks
       }
 
-      // Fallback: Original REST-based combination updates (backward compatible)
-      // Combination 1: dbStatus + completed_at (Ideal normalized database state)
-      const updates1: Record<string, unknown> = { status: dbStatus, updated_at: now };
-      if (status === "accepted") updates1.accepted_at = now;
-      if (status === "collecting") updates1.collected_at = now;
-      if (status === "delivered") updates1.completed_at = now;
-      if (status === "cancelled") updates1.cancelled_at = now;
+      // Fallback: Single optimized REST update using standard database schema
+      const updates: Record<string, unknown> = { status: dbStatus, updated_at: now };
+      if (status === "accepted") updates.accepted_at = now;
+      if (status === "collecting") updates.collected_at = now;
+      if (status === "delivered") updates.completed_at = now;
+      if (status === "cancelled") updates.cancelled_at = now;
 
-      const res1 = await supabase.from("deliveries").update(updates1 as any).eq("id", id).select();
+      const { data, error } = await supabase
+        .from("deliveries")
+        .update(updates as any)
+        .eq("id", id)
+        .select();
 
-      if (res1.error || !res1.data || res1.data.length === 0) {
-        // Combination 2: dbStatus + delivered_at
-        const updates2: Record<string, unknown> = { status: dbStatus, updated_at: now };
-        if (status === "accepted") updates2.accepted_at = now;
-        if (status === "collecting") updates2.collected_at = now;
-        if (status === "delivered") updates2.delivered_at = now;
-        if (status === "cancelled") updates2.cancelled_at = now;
-
-        const res2 = await supabase.from("deliveries").update(updates2 as any).eq("id", id).select();
-
-        if (res2.error || !res2.data || res2.data.length === 0) {
-          // Combination 3: appStatus (status) + completed_at
-          const updates3: Record<string, unknown> = { status: status, updated_at: now };
-          if (status === "accepted") updates3.accepted_at = now;
-          if (status === "collecting") updates3.collected_at = now;
-          if (status === "delivered") updates3.completed_at = now;
-          if (status === "cancelled") updates3.cancelled_at = now;
-
-          const res3 = await supabase.from("deliveries").update(updates3 as any).eq("id", id).select();
-
-          if (res3.error || !res3.data || res3.data.length === 0) {
-            // Combination 4: appStatus (status) + delivered_at (Legacy and default database states)
-            const updates4: Record<string, unknown> = { status: status, updated_at: now };
-            if (status === "accepted") updates4.accepted_at = now;
-            if (status === "collecting") updates4.collected_at = now;
-            if (status === "delivered") updates4.delivered_at = now;
-            if (status === "cancelled") updates4.cancelled_at = now;
-
-            const res4 = await supabase.from("deliveries").update(updates4 as any).eq("id", id).select();
-
-            if (res4.error) {
-              throw res4.error;
-            }
-            if (!res4.data || res4.data.length === 0) {
-              throw new Error("Não foi possível atualizar a corrida. Ela pode ter sido cancelada ou aceita por outro entregador.");
-            }
-          }
-        }
+      if (error) {
+        throw error;
+      }
+      if (!data || data.length === 0) {
+        throw new Error("Não foi possível atualizar a corrida. Ela pode ter sido cancelada ou aceita por outro entregador.");
       }
 
       // Update linked order status to keep customer/merchant informed
