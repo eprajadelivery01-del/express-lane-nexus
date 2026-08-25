@@ -46,22 +46,16 @@ export function useAdminBadges(_userId?: string) {
             } catch {}
           }
 
-          // Busca todas as conversas existentes
+          // Busca conversas de forma ultra leve sem carregar mensagens inteiras
           const { data: conversations } = await supabase
             .from("conversations")
-            .select("id, created_at, messages(id, sender_id)");
+            .select("id")
+            .order("created_at", { ascending: false })
+            .limit(100);
 
           if (conversations) {
             // Conta APENAS conversas que NUNCA foram abertas pelo usuário
-            unreadChatsCount = conversations.filter((c: any) => {
-              if (openedIds.has(c.id)) return false; // Se foi aberta, NUNCA mais conta!
-
-              if (c.messages && c.messages.length > 0) {
-                const hasIncoming = c.messages.some((m: any) => m.sender_id !== _userId);
-                return hasIncoming;
-              }
-              return true;
-            }).length;
+            unreadChatsCount = conversations.filter((c: any) => !openedIds.has(c.id)).length;
           }
         } catch (e) {
           console.error("[AdminBadges] Erro ao calcular chats não lidos:", e);
@@ -79,7 +73,7 @@ export function useAdminBadges(_userId?: string) {
     }
 
     load();
-    const interval = setInterval(load, 10000);
+    const interval = setInterval(load, 60000);
 
     const handleOpened = () => load();
     if (typeof window !== "undefined") {
