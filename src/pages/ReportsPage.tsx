@@ -507,14 +507,28 @@ export default function ReportsPage() {
         ? Number(co.commission_percentage) : 10.00;
       return s + c.revenue * (pct / 100);
     }, 0);
+    const totalCompanyOrders = companyBillingBreakdown.reduce((s, c) => s + c.count, 0);
+    const totalCompanyRevenue = companyBillingBreakdown.reduce((s, c) => s + c.revenue, 0);
 
     const totalDriverDue = driverBreakdown.reduce((s, d) => s + d.totalCommission, 0);
+    const totalDriverCount = driverBreakdown.reduce((s, d) => s + d.count, 0);
+    const totalDriverRevenue = driverBreakdown.reduce((s, d) => s + d.revenue, 0);
 
-    // Validação de Integridade Financeira: (Desabilitada temporariamente por causar bloqueio de relatório)
-    // Opcionalmente podemos desabilitar ou fazer uma validação mais simples,
-    // já que agora centralizamos no hook useFinancialTotals.
-    const sumRowsValue = enrichedDeliveries.reduce((acc, curr) => acc + curr.calculatedValue, 0);
-    const sumRowsCommission = enrichedDeliveries.reduce((acc, curr) => acc + curr.calculatedCommission, 0);
+    let kpiComissaoLabel = "Comissões Plataforma";
+    let kpiComissaoValue = totalCompanyDue + totalDriverDue;
+    let kpiComissaoSub = `Lojistas (R$ ${totalCompanyDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) + Entregadores (R$ ${totalDriverDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+
+    if (driverFilter) {
+      const dr = (drivers ?? []).find(d => d.id === driverFilter);
+      kpiComissaoLabel = "Comissão Plataforma (Entregador)";
+      kpiComissaoValue = totalDriverDue;
+      kpiComissaoSub = dr?.full_name ? `Entregador: ${dr.full_name}` : "Taxa por entrega realizada";
+    } else if (companyFilter) {
+      const co = (companies ?? []).find(c => c.id === companyFilter);
+      kpiComissaoLabel = "Comissão Plataforma (Lojista)";
+      kpiComissaoValue = totalCompanyDue;
+      kpiComissaoSub = co?.name ? `Empresa: ${co.name}` : "Comissão sobre vendas";
+    }
 
     const html = `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -554,6 +568,7 @@ export default function ReportsPage() {
     tfoot td { padding: 8px 10px; font-weight: 900; font-size: 10px; }
     
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .one-col { display: block; }
     
     .footer { margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 12px; display: flex; justify-content: space-between; color: #94a3b8; font-size: 9px; }
     
@@ -588,8 +603,8 @@ export default function ReportsPage() {
   <div class="kpis">
     <div class="kpi">
       <div class="kpi-label">Total de Corridas</div>
-      <div class="kpi-value">${deliveries.length}</div>
-      <div class="kpi-sub">${completedCount} finalizadas (${successRate.toFixed(1)}% sucesso)</div>
+      <div class="kpi-value">${completedCount}</div>
+      <div class="kpi-sub">${deliveries.length} registros (${successRate.toFixed(1)}% sucesso)</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Faturamento Total</div>
@@ -597,9 +612,9 @@ export default function ReportsPage() {
       <div class="kpi-sub">Receita bruta processada</div>
     </div>
     <div class="kpi">
-      <div class="kpi-label">Comissões Plataforma</div>
-      <div class="kpi-value">R$ ${(totalCompanyDue + totalDriverDue).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-      <div class="kpi-sub">Lojistas + Entregadores</div>
+      <div class="kpi-label">${kpiComissaoLabel}</div>
+      <div class="kpi-value">R$ ${kpiComissaoValue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      <div class="kpi-sub">${kpiComissaoSub}</div>
     </div>
     <div class="kpi">
       <div class="kpi-label">Ticket Médio</div>
@@ -608,7 +623,8 @@ export default function ReportsPage() {
     </div>
   </div>
 
-  <div class="two-col">
+  <div class="${driverFilter || companyFilter ? 'one-col' : 'two-col'}">
+    ${!driverFilter ? `
     <div class="section">
       <div class="section-title">🏢 Cobrança de Lojistas</div>
       <table>
@@ -624,13 +640,17 @@ export default function ReportsPage() {
         <tbody>${companyBillingRows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:12px">Sem dados</td></tr>'}</tbody>
         <tfoot>
           <tr>
-            <td colspan="4">TOTAL DEVIDO (Lojistas)</td>
-            <td style="text-align:right">R$ ${totalCompanyDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="font-weight:900">TOTAL</td>
+            <td style="text-align:center;font-weight:900">${totalCompanyOrders}</td>
+            <td style="text-align:right;font-weight:900">R$ ${totalCompanyRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="text-align:center;font-weight:900">—</td>
+            <td style="text-align:right;font-weight:900;color:#6366f1">R$ ${totalCompanyDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           </tr>
         </tfoot>
       </table>
-    </div>
+    </div>` : ''}
 
+    ${!companyFilter ? `
     <div class="section">
       <div class="section-title">🏍️ Cobrança de Entregadores</div>
       <table>
@@ -646,12 +666,15 @@ export default function ReportsPage() {
         <tbody>${driverBillingRows || '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:12px">Sem dados</td></tr>'}</tbody>
         <tfoot>
           <tr>
-            <td colspan="4">TOTAL DEVIDO (Entregadores)</td>
-            <td style="text-align:right">R$ ${totalDriverDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="font-weight:900">TOTAL</td>
+            <td style="text-align:center;font-weight:900">${totalDriverCount}</td>
+            <td style="text-align:right;font-weight:900">R$ ${totalDriverRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+            <td style="text-align:right;font-weight:900">—</td>
+            <td style="text-align:right;font-weight:900;color:#6366f1">R$ ${totalDriverDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
           </tr>
         </tfoot>
       </table>
-    </div>
+    </div>` : ''}
   </div>
 
   <div class="section" style="margin-top: 8px">
@@ -1029,70 +1052,74 @@ export default function ReportsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className={`grid grid-cols-1 ${driverFilter || companyFilter ? 'md:grid-cols-1' : 'md:grid-cols-2'} gap-8`}>
           {/* Lojistas (Merchants) */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2 text-left">
-              🏢 Cobrança de Lojistas (% sobre Vendas)
-            </h4>
-            <div className="border border-border rounded-2xl overflow-hidden bg-background/50 divide-y divide-border">
-              {companyBillingBreakdown.length > 0 ? (
-                companyBillingBreakdown.map((c: any) => {
-                  const companyObj = (companies ?? []).find(co => co.id === c.companyId);
-                  const commPct = companyObj?.commission_percentage !== undefined && companyObj?.commission_percentage !== null ? Number(companyObj.commission_percentage) : 10.00;
-                  const totalDue = c.revenue * (commPct / 100);
-                  return (
-                    <div key={c.companyId} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors">
-                      <div className="text-left">
-                        <p className="text-sm font-bold text-foreground">{c.name}</p>
-                        <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
-                          Vendas: R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • Taxa: {commPct.toFixed(1)}%
-                        </p>
+          {!driverFilter && (
+            <div className="space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2 text-left">
+                🏢 Cobrança de Lojistas (% sobre Vendas)
+              </h4>
+              <div className="border border-border rounded-2xl overflow-hidden bg-background/50 divide-y divide-border">
+                {companyBillingBreakdown.length > 0 ? (
+                  companyBillingBreakdown.map((c: any) => {
+                    const companyObj = (companies ?? []).find(co => co.id === c.companyId);
+                    const commPct = companyObj?.commission_percentage !== undefined && companyObj?.commission_percentage !== null ? Number(companyObj.commission_percentage) : 10.00;
+                    const totalDue = c.revenue * (commPct / 100);
+                    return (
+                      <div key={c.companyId} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors">
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-foreground">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                            Vendas: R$ {c.revenue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} • Taxa: {commPct.toFixed(1)}%
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Devido</p>
+                          <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Devido</p>
-                        <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="p-6 text-center text-xs text-muted-foreground">Nenhum lojista com movimentação</div>
-              )}
+                    );
+                  })
+                ) : (
+                  <div className="p-6 text-center text-xs text-muted-foreground">Nenhum lojista com movimentação</div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Entregadores (Drivers) */}
-          <div className="space-y-4">
-            <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2 text-left">
-              🏍️ Cobrança de Entregadores (Taxa por Entrega)
-            </h4>
-            <div className="border border-border rounded-2xl overflow-hidden bg-background/50 divide-y divide-border">
-              {driverBreakdown.length > 0 ? (
-                driverBreakdown.map((d: any) => {
-                  const driverObj = (drivers ?? []).find(dr => dr.id === d.driverId);
-                  const commRate = driverObj?.commission_rate !== undefined && driverObj?.commission_rate !== null ? Number(driverObj.commission_rate) : 0.40;
-                  const totalDue = d.count * commRate;
-                  return (
-                    <div key={d.driverId} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors">
-                      <div className="text-left">
-                        <p className="text-sm font-bold text-foreground">{d.name}</p>
-                        <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
-                          Corridas: {d.count} • Taxa por entrega: R$ {commRate.toFixed(2).replace('.', ',')}
-                        </p>
+          {!companyFilter && (
+            <div className="space-y-4">
+              <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2 text-left">
+                🏍️ Cobrança de Entregadores (Taxa por Entrega)
+              </h4>
+              <div className="border border-border rounded-2xl overflow-hidden bg-background/50 divide-y divide-border">
+                {driverBreakdown.length > 0 ? (
+                  driverBreakdown.map((d: any) => {
+                    const driverObj = (drivers ?? []).find(dr => dr.id === d.driverId);
+                    const commRate = driverObj?.commission_rate !== undefined && driverObj?.commission_rate !== null ? Number(driverObj.commission_rate) : 0.40;
+                    const totalDue = d.count * commRate;
+                    return (
+                      <div key={d.driverId} className="p-4 flex items-center justify-between hover:bg-primary/5 transition-colors">
+                        <div className="text-left">
+                          <p className="text-sm font-bold text-foreground">{d.name}</p>
+                          <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">
+                            Corridas: {d.count} • Taxa por entrega: R$ {commRate.toFixed(2).replace('.', ',')}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Devido</p>
+                          <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Devido</p>
-                        <p className="text-sm font-black text-primary">R$ {totalDue.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="p-6 text-center text-xs text-muted-foreground">Nenhum entregador com movimentação</div>
-              )}
+                    );
+                  })
+                ) : (
+                  <div className="p-6 text-center text-xs text-muted-foreground">Nenhum entregador com movimentação</div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

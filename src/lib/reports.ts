@@ -30,6 +30,9 @@ export function getValidDeliveries(deliveries: DeliveryWithRelations[]) {
 export function calculateReportsTotals(validDeliveries: DeliveryWithRelations[], drivers?: any[]) {
   const totalValue = validDeliveries.reduce((s, d) => s + getDeliveryValue(d), 0);
   const totalCommission = validDeliveries.reduce((s, d) => {
+    if (d.commission !== undefined && d.commission !== null) {
+      return s + Number(d.commission);
+    }
     let rate = 0.40;
     if (d.driver_id && drivers) {
       const driver = drivers.find(dr => dr.id === d.driver_id);
