@@ -8,6 +8,11 @@ export interface ErrorPayload {
 }
 
 let isReporting = false;
+const recentlyReported = new Map<string, number>();
+const REPORT_DEDUP_WINDOW_MS = 60_000;
+
+const isExpectedAuthLifecycleError = (message: string) =>
+  /pgrst303|jwt expired|invalid jwt|token is expired|invalid refresh token|refresh token not found|failed to fetch|load failed|network request failed|networkerror|refreshtoken|authsessionmissingerror|lock broken/i.test(message);
 
 export async function reportErrorToTelegram(payload: ErrorPayload, appName = "Central de Comando (Admin)") {
   // Prevent infinite loops if reporting itself fails
@@ -20,7 +25,12 @@ export async function reportErrorToTelegram(payload: ErrorPayload, appName = "Ce
   }
 
   // Ignore specific harmless user-facing errors
-  const msg = payload.error_message?.toLowerCase() || "";
+  const rawMessage = `${payload.error_message || ""} ${JSON.stringify(payload.additional_info || {})}`;
+  const msg = rawMessage.toLowerCase();
+  
+  // Expiração/renovação de sessão e oscilações transitórias de rede fazem parte do ciclo normal do app mobile.
+  if (isExpectedAuthLifecycleError(rawMessage)) return;
+
   if (
     msg.includes("corrida já foi aceita") || 
     msg.includes("senha") || 
@@ -29,9 +39,22 @@ export async function reportErrorToTelegram(payload: ErrorPayload, appName = "Ce
     msg.includes("offline") ||
     msg.includes("não encontrada") ||
     msg.includes("acesso negado") ||
-    msg.includes("exclusivo para entregadores")
+    msg.includes("exclusivo para entregadores") ||
+    msg.includes("load failed") ||
+    msg.includes("failed to fetch") ||
+    msg.includes("network request failed")
   ) {
     return;
+  }
+
+  const dedupKey = `${appName}:${payload.error_message}`.slice(0, 1200);
+  const now = Date.now();
+  const lastReportedAt = recentlyReported.get(dedupKey) ?? 0;
+  if (now - lastReportedAt < REPORT_DEDUP_WINDOW_MS) return;
+  recentlyReported.set(dedupKey, now);
+
+  for (const [key, timestamp] of recentlyReported) {
+    if (now - timestamp > REPORT_DEDUP_WINDOW_MS) recentlyReported.delete(key);
   }
   
   isReporting = true;
@@ -72,10 +95,10 @@ export function initializeGlobalErrorHandlers(appName: string) {
   // 1. Unhandled exceptions
   window.onerror = (message, source, lineno, colno, error) => {
     const errorMsg = String(message);
-    if (errorMsg === 'Script error.') return false;
+    if (errorMsg === 'Script error.' || isExpectedAuthLifecycleError(errorMsg)) return false;
 
     reportErrorToTelegram({
-      error_message: String(message),
+      error_message: errorMsg,
       stack_trace: error?.stack || `At ${source}:${lineno}:${colno}`,
       url: window.location.href,
       additional_info: {
@@ -90,10 +113,9 @@ export function initializeGlobalErrorHandlers(appName: string) {
   // 2. Unhandled promise rejections
   window.onunhandledrejection = (event) => {
     const reason = event.reason;
-    const msg = String(reason?.message || reason);
-    if (msg.includes("Failed to fetch") || msg.includes("refreshAccessToken") || msg.includes("AuthSessionMissingError") || msg.includes("Lock broken") || msg.includes("steal") || msg.includes("offline") || msg.includes("NetworkError")) {
-      return;
-    }
+    const reasonMsg = reason?.message || String(reason);
+
+    if (isExpectedAuthLifecycleError(reasonMsg)) return;
 
     reportErrorToTelegram({
       error_message: `Unhandled Rejection: ${reason?.message || reason}`,
@@ -117,8 +139,8 @@ export function initializeGlobalErrorHandlers(appName: string) {
     // Invoke original console logger
     originalConsoleError.apply(console, args);
 
-    // Skip nested reporting to prevent loops
-    if (isReporting) return;
+    // Skip nested reporting or expected auth/network lifecycle errors
+    if (isReporting || isExpectedAuthLifecycleError(msg)) return;
 
     reportErrorToTelegram({
       error_message: `[Console Error] ${msg.slice(0, 1000)}`,
@@ -129,4 +151,4 @@ export function initializeGlobalErrorHandlers(appName: string) {
       }
     }, appName).catch(() => {});
   };
-};
+}
