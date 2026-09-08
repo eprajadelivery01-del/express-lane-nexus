@@ -19,7 +19,8 @@ export function useGlobalChatNotifications() {
     if (!user) return;
 
     const channel = supabase
-      .channel(`global-notifications-${user.id}`)
+      .channel(`global-notifications-${user.id}-${Math.random().toString(36).slice(2)}`)
+
 
       .on(
         "postgres_changes",
