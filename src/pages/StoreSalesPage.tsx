@@ -118,7 +118,7 @@ export default function StoreSalesPage() {
         .from("profiles")
         .select("*")
         .eq("id", selectedOrder.user_id)
-        .single();
+        .maybeSingle();
       if (error) {
         console.error("Erro ao buscar profile", error);
         return null;
