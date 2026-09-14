@@ -75,21 +75,11 @@ export function AdminNotificationsPage() {
       };
 
       const { error } = await (supabase as any).from("marketing_notifications").insert(payload);
-
       if (error) throw error;
 
-      // Dispara o push para todos os aparelhos de clientes em modo Broadcast
-      await (supabase as any).functions.invoke('send-push', {
-        body: {
-          action: 'send',
-          title: `${emoji.trim() ? emoji.trim() + ' ' : ''}${title.trim()}`,
-          body: message.trim(),
-          message: message.trim(),
-          url: imageUrl.trim() || undefined,
-          coupon_code: couponCode.trim() || undefined,
-          isBroadcast: true
-        }
-      }).catch((e: any) => console.warn('[MarketingPush] Erro ao invocar send-push:', e));
+      // O insert na tabela marketing_notifications dispara automaticamente o gatilho
+      // tr_marketing_push_notification no banco de dados, que invoca a Edge Function send-push (FCM)
+      // uma única vez de forma canônica e sem duplicações.
 
       toast({ 
         title: "Sucesso!", 
