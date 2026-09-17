@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
-import { Send, Bell, Image as ImageIcon, Tag, Smile, UploadCloud, Loader2, X, Trash2 } from "lucide-react";
+import { Send, Bell, Image as ImageIcon, Tag, Smile, UploadCloud, Loader2, X, Trash2, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMarketingNotifications } from "@/hooks/useMarketingNotifications";
 
@@ -18,6 +18,7 @@ export function AdminNotificationsPage() {
   const { history, deletingId, fetchHistory, deleteNotification } = useMarketingNotifications();
 
   // Form states
+  const [targetAudience, setTargetAudience] = useState<"customers" | "stores" | "drivers">("customers");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [emoji, setEmoji] = useState("🎉");
@@ -70,6 +71,7 @@ export function AdminNotificationsPage() {
         emoji: emoji.trim() || null,
         image_url: imageUrl.trim() || null,
         coupon_code: couponCode.trim() || null,
+        target_audience: targetAudience,
         created_by: user?.id,
         status: "active"
       };
@@ -77,13 +79,14 @@ export function AdminNotificationsPage() {
       const { error } = await (supabase as any).from("marketing_notifications").insert(payload);
       if (error) throw error;
 
-      // O insert na tabela marketing_notifications dispara automaticamente o gatilho
-      // tr_marketing_push_notification no banco de dados, que invoca a Edge Function send-push (FCM)
-      // uma única vez de forma canônica e sem duplicações.
+      const audienceName = 
+        targetAudience === "stores" ? "Lojistas (br.com.epraja.lojista)" :
+        targetAudience === "drivers" ? "Entregadores (br.com.epraja.entregador)" :
+        "Clientes (Marketplace / br.com.epraja.appFma)";
 
       toast({ 
         title: "Sucesso!", 
-        description: "Notificação disparada para o App dos Clientes." 
+        description: `Notificação enviada exclusivamente para: ${audienceName}.` 
       });
 
       // Clear form
@@ -92,6 +95,7 @@ export function AdminNotificationsPage() {
       setEmoji("🎉");
       setImageUrl("");
       setCouponCode("");
+      setTargetAudience("customers");
 
       // Refresh
       fetchHistory();
@@ -134,10 +138,57 @@ export function AdminNotificationsPage() {
         <Card className="border-primary/20 shadow-md">
           <CardHeader className="bg-primary/5 border-b pb-4">
             <CardTitle className="flex items-center gap-2 text-primary"><Send className="h-5 w-5" /> Disparar Nova Notificação</CardTitle>
-            <CardDescription className="text-sm">Preencha os dados abaixo. A mensagem aparecerá instantaneamente no App Cliente.</CardDescription>
+            <CardDescription className="text-sm">Selecione o público alvo e preencha a notificação com envio segmentado.</CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <form onSubmit={handleSendNotification} className="space-y-4">
+              
+              {/* Seletor de Público Alvo */}
+              <div>
+                <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
+                  <Users className="h-4 w-4 text-primary" /> Público Alvo (Segmentação Estrita) *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTargetAudience("customers")}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
+                      targetAudience === "customers"
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                        : "bg-background hover:bg-muted border-border text-muted-foreground"
+                    }`}
+                  >
+                    🛍️ Clientes (Marketplace)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTargetAudience("stores")}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
+                      targetAudience === "stores"
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                        : "bg-background hover:bg-muted border-border text-muted-foreground"
+                    }`}
+                  >
+                    🏪 Lojistas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTargetAudience("drivers")}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
+                      targetAudience === "drivers"
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                        : "bg-background hover:bg-muted border-border text-muted-foreground"
+                    }`}
+                  >
+                    🏍️ Entregadores
+                  </button>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  {targetAudience === "customers" && "📱 Envio exclusivo para o App Cliente (br.com.epraja.appFma). Nunca chegará a Lojistas ou Entregadores."}
+                  {targetAudience === "stores" && "🏪 Envio exclusivo para o App Lojista (br.com.epraja.lojista)."}
+                  {targetAudience === "drivers" && "🏍️ Envio exclusivo para o App Entregador (br.com.epraja.entregador)."}
+                </p>
+              </div>
               
               <div className="grid grid-cols-12 gap-4">
                 <div className="col-span-3 lg:col-span-2">
@@ -250,7 +301,10 @@ export function AdminNotificationsPage() {
                       <h4 className="font-semibold text-sm truncate">{notif.title}</h4>
                       <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{notif.message}</p>
                       
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-background border border-border text-foreground">
+                          {notif.target_audience === "stores" ? "🏪 Lojistas" : notif.target_audience === "drivers" ? "🏍️ Entregadores" : "🛍️ Clientes"}
+                        </span>
                         {notif.coupon_code && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary uppercase">
                             Cupom: {notif.coupon_code}
