@@ -74,14 +74,43 @@ serve(async (req) => {
     const address = record.pickup_address || record.delivery_address || 'Novo local de coleta';
     
     const message = {
+      notification: {
+        title: '🛵 Nova corrida disponível!',
+        body: address
+      },
       data: {
         type: 'delivery',
-        deliveryId: record.id,
-        address: address, // Added address to data so the app can display it
-        title: 'ÉpraJá - Nova corrida!'
+        deliveryId: String(record.id),
+        address: address,
+        title: '🛵 Nova corrida disponível!',
+        body: address,
+        app: 'entregador',
+        bundleId: 'br.com.epraja.entregador'
       },
       android: {
-        priority: 'high' as const
+        priority: 'high' as const,
+        notification: {
+          channelId: 'delivery-incoming-v9',
+          sound: 'notification_sound.mp3'
+        }
+      },
+      apns: {
+        headers: {
+          "apns-priority": "10",
+          "apns-push-type": "alert"
+        },
+        payload: {
+          aps: {
+            alert: {
+              title: '🛵 Nova corrida disponível!',
+              body: address
+            },
+            sound: 'notification_sound.mp3',
+            badge: 1,
+            "content-available": 1,
+            "mutable-content": 1
+          }
+        }
       },
       tokens: tokens
     };

@@ -83,10 +83,19 @@ serve(async (req) => {
         }
       },
       apns: {
+        headers: {
+          "apns-priority": "10",
+          "apns-push-type": "alert"
+        },
         payload: {
           aps: {
-            sound: 'default',
-            badge: 1
+            alert: {
+              title: '📦 Novo pedido recebido!',
+              body: `Pedido #${record.id.substring(0, 6).toUpperCase()} no valor de R$ ${record.total || '0,00'}`
+            },
+            sound: 'notification_sound.mp3',
+            badge: 1,
+            "mutable-content": 1
           }
         }
       },
