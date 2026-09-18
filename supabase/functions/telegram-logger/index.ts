@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const DEFAULT_BOT_TOKEN = "8822944243:AAE1dZ0GhBzvnDZRoIw4w9kjv5mRM3oyuWk";
-const DEFAULT_CHAT_ID = "538563060";
+const DEFAULT_CHAT_ID = "-5164097344";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {

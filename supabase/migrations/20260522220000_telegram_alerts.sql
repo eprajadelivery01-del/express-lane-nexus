@@ -20,7 +20,7 @@ CREATE POLICY "Admins can manage settings" ON public.app_settings
 INSERT INTO public.app_settings (key, value, description)
 VALUES 
   ('telegram_bot_token', '8822944243:AAE1dZ0GhBzvnDZRoIw4w9kjv5mRM3oyuWk', 'Token do bot de monitoramento do Telegram'),
-  ('telegram_chat_id', '538563060', 'ID do chat do administrador para receber alertas')
+  ('telegram_chat_id', '-5164097344', 'ID do grupo de monitoramento para receber alertas')
 ON CONFLICT (key) DO UPDATE SET
   value = EXCLUDED.value;
 
