@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const DEFAULT_BOT_TOKEN = "8798211446:AAHLAxDhYh81qj7o39qBkkaez3vZvEJnXqw";
+const DEFAULT_BOT_TOKEN = "8822944243:AAE1dZ0GhBzvnDZRoIw4w9kjv5mRM3oyuWk";
 const DEFAULT_CHAT_ID = "538563060";
 
 Deno.serve(async (req) => {
