@@ -9,6 +9,7 @@ function toDbStatus(status: string) {
 }
 
 export function toAppStatus(status: string) {
+  if (status === "completed") return "delivered";
   return status as DeliveryStatus;
 }
 
@@ -143,7 +144,15 @@ export function useDeliveries(params?: UseDeliveriesParams) {
         .order("created_at", { ascending: false })
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (status && status !== "all") query = query.eq("status", toDbStatus(status) as any);
+      if (status && status !== "all") {
+        if (status === "delivered") {
+          query = query.in("status", ["delivered", "completed"]);
+        } else if (status === "in_transit") {
+          query = query.in("status", ["in_transit", "in_route"]);
+        } else {
+          query = query.eq("status", toDbStatus(status) as any);
+        }
+      }
       
       if (search) {
         query = query.or(`customer_name.ilike.%${search}%,address.ilike.%${search}%`);

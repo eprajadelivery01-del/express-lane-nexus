@@ -16,7 +16,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useRealtimeDeliveries } from "@/hooks/useRealtimeDeliveries";
 import { useToast } from "@/hooks/use-toast";
 import { useUniqueDeliveries } from "@/hooks/useUniqueDeliveries";
 import type { DeliveryStatus } from "@/types/models";
@@ -46,6 +47,7 @@ import NewDeliveryForm from "@/components/business/NewDeliveryForm";
 
 export default function DeliveriesPage() {
   const { toast } = useToast();
+  useRealtimeDeliveries();
 
   const [activeFilter, setActiveFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -471,6 +473,9 @@ export default function DeliveriesPage() {
               <Package className="h-5 w-5 text-primary" />
               OS #{detailDelivery?.id.slice(0, 8).toUpperCase()}
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Detalhes e informações operacionais da ordem de serviço.
+            </DialogDescription>
           </DialogHeader>
           {detailDelivery && (
             <div className="space-y-4 mt-2">
@@ -629,6 +634,9 @@ export default function DeliveriesPage() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Reatribuir Entregador</DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Selecione o entregador responsável por esta entrega.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <p className="text-sm text-muted-foreground">
@@ -671,6 +679,9 @@ export default function DeliveriesPage() {
               <Send className="h-5 w-5 text-info" />
               Enviar para Entregador
             </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Envie a ordem de serviço para um entregador específico.
+            </DialogDescription>
           </DialogHeader>
           {dispatchDelivery && (
             <div className="space-y-4 mt-2">

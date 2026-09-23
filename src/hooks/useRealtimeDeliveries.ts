@@ -38,7 +38,9 @@ export function useRealtimeDeliveries() {
               accepted: "✅ Entrega aceita",
               collecting: "📦 Coletando pedido",
               in_transit: "🏍️ Em trânsito",
+              in_route: "🏍️ Em trânsito",
               delivered: "🎉 Entrega finalizada",
+              completed: "🎉 Entrega finalizada",
               cancelled: "❌ Entrega cancelada",
             };
             const label = labels[d.status];
