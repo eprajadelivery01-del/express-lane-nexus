@@ -108,6 +108,7 @@ serve(async (req) => {
             sound: 'notification_sound.mp3',
             badge: 1,
             "content-available": 1,
+            contentAvailable: true,
             "mutable-content": 1
           }
         }
