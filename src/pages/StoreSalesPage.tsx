@@ -15,6 +15,82 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
+const isGenericCustomerName = (val: string | null | undefined): boolean => {
+  if (!val) return true;
+  const s = String(val).trim().toLowerCase();
+  return (
+    s === "" ||
+    s === "cliente marketplace" ||
+    s === "consumidor" ||
+    s === "cliente" ||
+    s === "usuário" ||
+    s === "usuario" ||
+    s === "visitante" ||
+    s === "null" ||
+    s === "undefined" ||
+    s === "não informado" ||
+    s === "nao informado"
+  );
+};
+
+export const getOrderCustomerName = (order: any): string => {
+  if (!order) return "Cliente";
+
+  // 1. Tenta nome gravado diretamente no pedido (customer_name)
+  if (order.customer_name && !isGenericCustomerName(order.customer_name)) {
+    return order.customer_name.trim();
+  }
+
+  // 2. Tenta nome do cadastro de clientes (customers.name) se não for genérico
+  if (order.customers?.name && !isGenericCustomerName(order.customers.name)) {
+    return order.customers.name.trim();
+  }
+
+  // 3. Tenta nome do perfil do usuário vinculado (profiles)
+  if (order.profile?.full_name && !isGenericCustomerName(order.profile.full_name)) {
+    return order.profile.full_name.trim();
+  }
+  if (order.profiles?.full_name && !isGenericCustomerName(order.profiles.full_name)) {
+    return order.profiles.full_name.trim();
+  }
+
+  // 4. Se tiver customer_name mesmo sendo genérico ou customers.name
+  if (order.customer_name && order.customer_name.trim() && !isGenericCustomerName(order.customer_name)) {
+    return order.customer_name.trim();
+  }
+  if (order.customers?.name && order.customers.name.trim() && !isGenericCustomerName(order.customers.name)) {
+    return order.customers.name.trim();
+  }
+  if (order.customer_name && order.customer_name.trim()) {
+    return order.customer_name.trim();
+  }
+  if (order.customers?.name && order.customers.name.trim()) {
+    return order.customers.name.trim();
+  }
+
+  return "Cliente";
+};
+
+export const getOrderCustomerPhone = (order: any): string => {
+  if (!order) return "Não informado";
+  const candidates = [
+    order.customer_phone,
+    order.customers?.phone,
+    order.profile?.phone,
+    order.profiles?.phone,
+    order.deliveries?.customer_phone,
+  ];
+  for (const c of candidates) {
+    if (c && typeof c === "string") {
+      const clean = c.trim();
+      if (clean && clean !== "Não informado" && clean !== "nao informado" && clean !== "null") {
+        return clean;
+      }
+    }
+  }
+  return "Não informado";
+};
+
 export default function StoreSalesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -58,7 +134,30 @@ export default function StoreSalesPage() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+
+      const ordersList = data || [];
+      const userIds = [...new Set(ordersList.map((o: any) => o.user_id).filter(Boolean))];
+      let profilesMap: Record<string, any> = {};
+      if (userIds.length > 0) {
+        try {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("id, full_name, phone, document")
+            .in("id", userIds);
+          if (profs) {
+            profs.forEach((p: any) => {
+              profilesMap[p.id] = p;
+            });
+          }
+        } catch (e) {
+          console.error("Erro ao enriquecer perfis dos pedidos:", e);
+        }
+      }
+
+      return ordersList.map((order: any) => ({
+        ...order,
+        profile: profilesMap[order.user_id] || null,
+      }));
     },
   });
 
@@ -72,9 +171,10 @@ export default function StoreSalesPage() {
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
         const storeName = order.companies?.name?.toLowerCase() || "";
-        const customerName = order.customers?.name?.toLowerCase() || "";
+        const customerName = getOrderCustomerName(order).toLowerCase();
+        const customerPhone = getOrderCustomerPhone(order).toLowerCase();
         const idStr = order.id.toLowerCase();
-        if (!storeName.includes(term) && !customerName.includes(term) && !idStr.includes(term)) {
+        if (!storeName.includes(term) && !customerName.includes(term) && !customerPhone.includes(term) && !idStr.includes(term)) {
           return false;
         }
       }
@@ -254,7 +354,7 @@ export default function StoreSalesPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium">{order.customers?.name || 'Cliente'}</span>
+                        <span className="font-medium text-foreground">{getOrderCustomerName(order)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -289,9 +389,9 @@ export default function StoreSalesPage() {
                 <h4 className="font-bold text-foreground mb-3 border-b border-border pb-2">Informações do Cliente</h4>
                 <div className="space-y-2 text-sm">
                   <p><span className="font-semibold text-muted-foreground">ID do Cliente:</span> {selectedOrder.customer_id || selectedOrder.user_id || 'Não informado'}</p>
-                  <p><span className="font-semibold text-muted-foreground">Nome:</span> {selectedOrder.customers?.name || selectedOrder.customer_name || profile?.full_name || 'Não informado'}</p>
-                  <p><span className="font-semibold text-muted-foreground">Telefone:</span> {selectedOrder.customers?.phone || selectedOrder.deliveries?.customer_phone || selectedOrder.customer_phone || profile?.phone || 'Não informado'}</p>
-                  <p><span className="font-semibold text-muted-foreground">CPF/Documento:</span> {selectedOrder.customers?.cpf || profile?.document || 'Não informado'}</p>
+                  <p><span className="font-semibold text-muted-foreground">Nome:</span> {getOrderCustomerName(selectedOrder)}</p>
+                  <p><span className="font-semibold text-muted-foreground">Telefone:</span> {getOrderCustomerPhone(selectedOrder)}</p>
+                  <p><span className="font-semibold text-muted-foreground">CPF/Documento:</span> {selectedOrder.customers?.cpf || selectedOrder.profile?.document || profile?.document || 'Não informado'}</p>
                 </div>
               </div>
               <div className="bg-muted/30 p-4 rounded-xl border border-border">
