@@ -93,7 +93,7 @@ serve(async (req) => {
               title: '📦 Novo pedido recebido!',
               body: `Pedido #${record.id.substring(0, 6).toUpperCase()} no valor de R$ ${record.total || '0,00'}`
             },
-            sound: 'notification_sound.mp3',
+            sound: 'notification_sound.wav',
             badge: 1,
             "content-available": 1,
             contentAvailable: true,

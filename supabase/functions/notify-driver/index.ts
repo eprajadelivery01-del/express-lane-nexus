@@ -105,7 +105,7 @@ serve(async (req) => {
               title: '🛵 Nova corrida disponível!',
               body: address
             },
-            sound: 'notification_sound.mp3',
+            sound: 'notification_sound.wav',
             badge: 1,
             "content-available": 1,
             contentAvailable: true,
