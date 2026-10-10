@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { DeliveryStatus } from "@/types/models";
+import { isGenericCustomerName, getDeliveryCustomerName, getDeliveryCustomerPhone } from "@/lib/delivery";
 
 // DB enum delivery_status: pending, broadcasted, accepted, collecting, in_transit, delivered, cancelled, returned, completed
 function toDbStatus(status: string) {
@@ -115,7 +115,9 @@ export function useDeliveries(params?: UseDeliveriesParams) {
           id, 
           company_id, 
           driver_id, 
+          order_id,
           customer_name, 
+          customer_phone,
           address, 
           value, 
           price,
@@ -133,10 +135,16 @@ export function useDeliveries(params?: UseDeliveriesParams) {
           notes,
           estimated_value,
           orders(
+            id,
             total,
             delivery_fee,
             payment_method,
-            order_items(quantity, price, products(name))
+            customer_name,
+            customer_phone,
+            user_id,
+            customer_id,
+            order_items(quantity, price, products(name)),
+            customers(name, phone)
           ),
           companies!deliveries_company_id_fkey(name, phone),
           delivery_drivers(id, user_id, full_name, phone, vehicle_type, vehicle_plate)
@@ -173,7 +181,88 @@ export function useDeliveries(params?: UseDeliveriesParams) {
 
       const filteredData = (data ?? []).filter((d: any) => !d.notes?.includes("Cancelamento automático"));
 
+      // Coleta IDs de usuários e clientes para entregas com nomes ausentes ou genéricos
+      const missingUserIds: string[] = [];
+      const missingCustomerIds: string[] = [];
+
+      filteredData.forEach((d: any) => {
+        const order = Array.isArray(d.orders) ? d.orders[0] : d.orders;
+        const currentName = d.customer_name;
+        if (isGenericCustomerName(currentName)) {
+          if (order?.user_id) missingUserIds.push(order.user_id);
+          if (order?.customer_id) missingCustomerIds.push(order.customer_id);
+        }
+      });
+
+      const uniqueUserIds = [...new Set(missingUserIds.filter(Boolean))];
+      const uniqueCustIds = [...new Set(missingCustomerIds.filter(Boolean))];
+
+      let profilesMap: Record<string, any> = {};
+      let customersMap: Record<string, any> = {};
+
+      if (uniqueUserIds.length > 0) {
+        try {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("id, full_name, phone")
+            .in("id", uniqueUserIds);
+          if (profs) {
+            profs.forEach((p: any) => {
+              profilesMap[p.id] = p;
+            });
+          }
+        } catch (e) {
+          console.warn("[Deliveries] Erro ao buscar perfis para enriquecer clientes:", e);
+        }
+      }
+
+      if (uniqueCustIds.length > 0) {
+        try {
+          const { data: custs } = await supabase
+            .from("customers")
+            .select("id, name, phone")
+            .in("id", uniqueCustIds);
+          if (custs) {
+            custs.forEach((c: any) => {
+              customersMap[c.id] = c;
+            });
+          }
+        } catch (e) {
+          console.warn("[Deliveries] Erro ao buscar clientes para enriquecer:", e);
+        }
+      }
+
       const normalizedData = filteredData.map((delivery: any) => {
+        const order = Array.isArray(delivery.orders) ? delivery.orders[0] : delivery.orders;
+        const prof = order?.user_id ? profilesMap[order.user_id] : null;
+        const cust = order?.customer_id ? customersMap[order.customer_id] : null;
+
+        const enrichedDelivery = {
+          ...delivery,
+          profile: prof,
+          customer: cust,
+        };
+
+        const resolvedCustomerName = getDeliveryCustomerName(enrichedDelivery);
+        const resolvedCustomerPhone = getDeliveryCustomerPhone(enrichedDelivery);
+
+        // Se no banco estava com nome genérico e encontramos o nome real, dispara auto-cura em background
+        if (
+          isGenericCustomerName(delivery.customer_name) &&
+          !isGenericCustomerName(resolvedCustomerName) &&
+          resolvedCustomerName !== "Cliente"
+        ) {
+          supabase
+            .from("deliveries")
+            .update({
+              customer_name: resolvedCustomerName,
+              ...(resolvedCustomerPhone && resolvedCustomerPhone !== "Não informado" ? { customer_phone: resolvedCustomerPhone } : {}),
+            })
+            .eq("id", delivery.id)
+            .then(() => {})
+            .catch(() => {});
+        }
+
         const rawDriver = delivery.delivery_drivers;
         let normalizedDriver = null;
         if (rawDriver) {
@@ -189,9 +278,11 @@ export function useDeliveries(params?: UseDeliveriesParams) {
 
         return {
           ...delivery,
+          customer_name: resolvedCustomerName,
+          customer_phone: resolvedCustomerPhone !== "Não informado" ? resolvedCustomerPhone : delivery.customer_phone,
           status: toAppStatus(delivery.status),
           delivered_at: delivery.delivered_at ?? delivery.completed_at ?? null,
-          payment_method: delivery.orders?.payment_method ?? null,
+          payment_method: order?.payment_method ?? null,
           delivery_drivers: normalizedDriver,
         };
       });
@@ -382,12 +473,48 @@ export async function createDeliveryRequest(orderId: string) {
     return existingDelivery;
   }
 
+  // Resolução resiliente do nome e telefone do cliente
+  let resolvedCustomerName = !isGenericCustomerName((order as any).customer_name) ? (order as any).customer_name.trim() : null;
+  let resolvedCustomerPhone = (order as any).customer_phone || null;
+
+  if (!resolvedCustomerName && (order as any).customer_id) {
+    const { data: cust } = await supabase
+      .from("customers")
+      .select("name, phone")
+      .eq("id", (order as any).customer_id)
+      .maybeSingle();
+    if (cust?.name && !isGenericCustomerName(cust.name)) {
+      resolvedCustomerName = cust.name.trim();
+    }
+    if (!resolvedCustomerPhone && cust?.phone) {
+      resolvedCustomerPhone = cust.phone;
+    }
+  }
+
+  if (!resolvedCustomerName && (order as any).user_id) {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("full_name, phone")
+      .eq("id", (order as any).user_id)
+      .maybeSingle();
+    if (prof?.full_name && !isGenericCustomerName(prof.full_name)) {
+      resolvedCustomerName = prof.full_name.trim();
+    }
+    if (!resolvedCustomerPhone && prof?.phone) {
+      resolvedCustomerPhone = prof.phone;
+    }
+  }
+
+  const finalCustomerName = resolvedCustomerName || "Cliente";
+  const finalCustomerPhone = resolvedCustomerPhone || null;
+
   const { data: delivery, error: deliveryError } = await supabase
     .from("deliveries")
     .insert({
       company_id: order.company_id,
       order_id: orderId,
-      customer_name: "Cliente Marketplace",
+      customer_name: finalCustomerName,
+      customer_phone: finalCustomerPhone,
       address: dropoff,
       dropoff_address: dropoff,
       delivery_address: dropoff,

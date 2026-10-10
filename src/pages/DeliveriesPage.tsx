@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatDeliveryValue } from "@/lib/delivery";
+import { formatDeliveryValue, getDeliveryCustomerName, getDeliveryCustomerPhone } from "@/lib/delivery";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { DeliveryStatusBadge } from "@/components/admin/DeliveryStatusBadge";
 import { useDeliveries, useUpdateDeliveryStatus, useReassignDelivery, type DeliveryWithRelations } from "@/services/deliveries";
@@ -178,7 +178,7 @@ export default function DeliveriesPage() {
         <div class="label">OS</div>
         <div class="value">#${delivery.id.slice(0, 8).toUpperCase()}</div>
         <div class="label">Cliente</div>
-        <div class="value">${delivery.customer_name} ${(delivery as any).customer_phone ? `(${(delivery as any).customer_phone})` : ""}</div>
+        <div class="value">${getDeliveryCustomerName(delivery)} ${getDeliveryCustomerPhone(delivery) !== "Não informado" ? `(${getDeliveryCustomerPhone(delivery)})` : ""}</div>
         <div class="label">Endereço</div>
         <div class="value">${delivery.dropoff_address || delivery.address || "—"}</div>
         <div class="label">Empresa</div>
@@ -303,7 +303,10 @@ export default function DeliveriesPage() {
                   {deliveries.map((delivery) => (
                     <tr key={delivery.id} className="hover:bg-muted/30 transition-colors">
                       <td className="p-4">
-                        <p className="text-sm font-medium text-foreground">{delivery.customer_name}</p>
+                        <p className="text-sm font-medium text-foreground">{getDeliveryCustomerName(delivery)}</p>
+                        {getDeliveryCustomerPhone(delivery) !== "Não informado" && (
+                          <p className="text-xs text-muted-foreground">{getDeliveryCustomerPhone(delivery)}</p>
+                        )}
                       </td>
                       <td className="p-4 hidden md:table-cell">
                         <p className="text-sm text-foreground">{delivery.companies?.name || "—"}</p>
@@ -508,7 +511,10 @@ export default function DeliveriesPage() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 bg-muted/30 p-4 rounded-2xl border border-border">
-                <DetailField label="Cliente" value={detailDelivery.customer_name || "—"} icon={<UserCheck className="h-3.5 w-3.5 text-primary" />} />
+                <DetailField label="Cliente" value={getDeliveryCustomerName(detailDelivery)} icon={<UserCheck className="h-3.5 w-3.5 text-primary" />} />
+                {getDeliveryCustomerPhone(detailDelivery) !== "Não informado" && (
+                  <DetailField label="Telefone do Cliente" value={getDeliveryCustomerPhone(detailDelivery)} icon={<MessageSquare className="h-3.5 w-3.5 text-primary" />} />
+                )}
                 <DetailField label="Empresa" value={detailDelivery.companies?.name || "—"} icon={<Package className="h-3.5 w-3.5 text-primary" />} />
                 <DetailField label="Valor da Corrida" value={`R$ ${formatDeliveryValue(detailDelivery)}`} icon={<Clock className="h-3.5 w-3.5 text-primary" />} />
                 <DetailField label="Criado em" value={format(new Date(detailDelivery.created_at), "dd/MM/yyyy HH:mm")} icon={<Calendar className="h-3.5 w-3.5 text-primary" />} />
@@ -688,7 +694,7 @@ export default function DeliveriesPage() {
               <div className="bg-muted/50 rounded-xl p-3">
                 <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">OS</p>
                 <p className="text-sm font-medium text-foreground">
-                  #{dispatchDelivery.id.slice(0, 8).toUpperCase()} — {dispatchDelivery.customer_name}
+                  #{dispatchDelivery.id.slice(0, 8).toUpperCase()} — {getDeliveryCustomerName(dispatchDelivery)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">{dispatchDelivery.dropoff_address || dispatchDelivery.address}</p>
               </div>
