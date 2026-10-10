@@ -114,9 +114,6 @@ export default function LoginPage() {
         </button>
 
         <div className="space-y-4">
-          <p className="text-center text-xs text-muted-foreground font-medium uppercase tracking-widest">
-            Acesso exclusivo por convite do administrador
-          </p>
           <div className="flex justify-center gap-4">
             <button 
               type="button"

@@ -123,10 +123,6 @@ export default function LoginPage() {
             <span>{loading ? "Entrando..." : "Entrar"}</span>
           </button>
         </form>
-
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          Acesso exclusivo por convite do administrador
-        </p>
       </div>
     </div>
   );
