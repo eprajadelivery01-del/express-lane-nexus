@@ -18,7 +18,7 @@ export function AdminNotificationsPage() {
   const { history, deletingId, fetchHistory, deleteNotification } = useMarketingNotifications();
 
   // Form states
-  const [targetAudience, setTargetAudience] = useState<"customers" | "stores" | "drivers">("customers");
+  const [targetAudience, setTargetAudience] = useState<"customers" | "stores" | "drivers" | "all">("customers");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [emoji, setEmoji] = useState("🎉");
@@ -76,17 +76,46 @@ export function AdminNotificationsPage() {
         status: "active"
       };
 
-      const { error } = await (supabase as any).from("marketing_notifications").insert(payload);
+      const { data: insertedData, error } = await (supabase as any)
+        .from("marketing_notifications")
+        .insert(payload)
+        .select()
+        .single();
       if (error) throw error;
 
+      // Dispara a Edge Function send-push diretamente para envio imediato via FCM HTTP v1
+      const audienceApp = targetAudience === "stores" ? "lojista" : targetAudience === "drivers" ? "entregador" : "marketplace";
+      const audienceBundle = targetAudience === "stores" ? "br.com.epraja.lojista" : targetAudience === "drivers" ? "br.com.epraja.entregador" : "br.com.epraja.appFma";
+
+      try {
+        await (supabase as any).functions.invoke("send-push", {
+          body: {
+            action: "send",
+            campaign_id: insertedData?.id || payload.title,
+            title: `${emoji.trim() ? emoji.trim() + " " : ""}${title.trim()}`,
+            body: message.trim(),
+            message: message.trim(),
+            url: imageUrl.trim() || undefined,
+            coupon_code: couponCode.trim() || undefined,
+            isBroadcast: true,
+            target_audience: targetAudience,
+            app: audienceApp,
+            bundleId: audienceBundle,
+          },
+        });
+      } catch (pushErr) {
+        console.warn("[AdminNotifications] Aviso ao disparar send-push:", pushErr);
+      }
+
       const audienceName = 
+        targetAudience === "all" ? "Todos (Clientes, Lojistas e Entregadores)" :
         targetAudience === "stores" ? "Lojistas (br.com.epraja.lojista)" :
         targetAudience === "drivers" ? "Entregadores (br.com.epraja.entregador)" :
         "Clientes (Marketplace / br.com.epraja.appFma)";
 
       toast({ 
         title: "Sucesso!", 
-        description: `Notificação enviada exclusivamente para: ${audienceName}.` 
+        description: `Notificação enviada com sucesso para: ${audienceName}.` 
       });
 
       // Clear form
@@ -148,7 +177,7 @@ export function AdminNotificationsPage() {
                 <label className="text-sm font-medium mb-1.5 flex items-center gap-1.5">
                   <Users className="h-4 w-4 text-primary" /> Público Alvo (Segmentação Estrita) *
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <button
                     type="button"
                     onClick={() => setTargetAudience("customers")}
@@ -159,6 +188,17 @@ export function AdminNotificationsPage() {
                     }`}
                   >
                     🛍️ Clientes (Marketplace)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTargetAudience("all")}
+                    className={`px-3 py-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
+                      targetAudience === "all"
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm ring-2 ring-primary/20"
+                        : "bg-background hover:bg-muted border-border text-muted-foreground"
+                    }`}
+                  >
+                    📢 Todos (Geral)
                   </button>
                   <button
                     type="button"
@@ -184,7 +224,8 @@ export function AdminNotificationsPage() {
                   </button>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1.5">
-                  {targetAudience === "customers" && "📱 Envio exclusivo para o App Cliente (br.com.epraja.appFma). Nunca chegará a Lojistas ou Entregadores."}
+                  {targetAudience === "customers" && "📱 Envio para todos os Clientes do Marketplace (br.com.epraja.appFma)."}
+                  {targetAudience === "all" && "📢 Envio amplo para Clientes, Lojistas e Entregadores (Ideal para avisos de chuva/temporal, atrasos ou novidades)."}
                   {targetAudience === "stores" && "🏪 Envio exclusivo para o App Lojista (br.com.epraja.lojista)."}
                   {targetAudience === "drivers" && "🏍️ Envio exclusivo para o App Entregador (br.com.epraja.entregador)."}
                 </p>
