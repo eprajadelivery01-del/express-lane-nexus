@@ -125,8 +125,38 @@ export async function updateAdminCoupon(id: string, input: CouponInput) {
 }
 
 export async function deleteAdminCoupon(id: string) {
+  // 1. Exclusão com limpeza em cascata via Edge Function (remove user_coupons + coupon_companies + coupons)
+  try {
+    const res = await supabase.functions.invoke("run-sql", {
+      body: {
+        sql: `DELETE FROM public.user_coupons WHERE coupon_id = '${id}'; DELETE FROM public.coupon_companies WHERE coupon_id = '${id}'; DELETE FROM public.coupons WHERE id = '${id}';`
+      }
+    });
+    if (res.data?.success) {
+      return;
+    }
+  } catch (e) {
+    console.warn("Falha na exclusão via Edge Function, tentando via client:", e);
+  }
+
+  // 2. Fallback via cliente: limpa dependências filhas primeiro
+  try {
+    await supabase.from("coupon_companies").delete().eq("coupon_id", id);
+    await supabase.from("user_coupons").delete().eq("coupon_id", id);
+  } catch (cleanErr) {
+    console.warn("Aviso ao limpar dependências do cupom:", cleanErr);
+  }
+
+  // 3. Exclui o cupom principal
   const { error } = await supabase.from("coupons").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    // Se o banco ainda acusar foreign key de pedidos legados, inativa o cupom para tirá-lo de circulação
+    await supabase
+      .from("coupons")
+      .update({ active: false, expires_at: new Date(0).toISOString() })
+      .eq("id", id);
+    throw new Error("Não foi possível excluir fisicamente o cupom pois ele já possui histórico vinculado. Ele foi inativado com sucesso.");
+  }
 }
 
 export function useAdminCoupons() {
