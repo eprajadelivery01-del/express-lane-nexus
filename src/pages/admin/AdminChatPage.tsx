@@ -56,13 +56,18 @@ export default function AdminChatPage() {
       if (!user?.id) return [];
       const { data, error } = await supabase
         .from("conversations")
-        .select("*, messages(content, created_at, sender_id)")
+        .select("*, messages(id, content, created_at, sender_id)")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
     enabled: !!user?.id,
   });
+
+  const activeConvIds = useMemo(() => {
+    if (!selectedConv) return undefined;
+    return selectedConv.all_ids || [selectedConv.id];
+  }, [selectedConv]);
 
   // Global Realtime listener for incoming/deleted messages
   useEffect(() => {
@@ -75,8 +80,12 @@ export default function AdminChatPage() {
         { event: "INSERT", schema: "public", table: "messages" },
         () => {
           qc.invalidateQueries({ queryKey: ["admin-conversations", user.id] });
-          if (selectedConv?.id) {
-            qc.invalidateQueries({ queryKey: ["messages", selectedConv.id] });
+          if (activeConvIds && activeConvIds.length > 0) {
+            const idsKey = activeConvIds.slice().sort().join(",");
+            qc.invalidateQueries({ queryKey: ["messages", idsKey] });
+            activeConvIds.forEach((id: string) => {
+              qc.invalidateQueries({ queryKey: ["messages", id] });
+            });
           }
         }
       )
@@ -92,7 +101,7 @@ export default function AdminChatPage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user?.id, selectedConv?.id, qc]);
+  }, [user?.id, activeConvIds, qc]);
 
   // All profiles + roles for contact list
   const { data: contacts } = useQuery({
@@ -187,6 +196,7 @@ export default function AdminChatPage() {
           }
           if (cust.phone) map[idToMap].phone = cust.phone;
           map[idToMap].role = map[idToMap].role || 'customer';
+          map[idToMap].customer_id = cust.id;
         };
         if (cust.user_id) idMap(cust.user_id);
         if (cust.id) idMap(cust.id);
@@ -198,6 +208,7 @@ export default function AdminChatPage() {
           map[idToMap].avatar_url = c.logo_url;
           if (c.phone) map[idToMap].phone = c.phone;
           map[idToMap].role = 'company';
+          map[idToMap].company_id = c.id;
         };
         if (c.user_id) idMap(c.user_id);
         if (c.id) idMap(c.id);
@@ -216,7 +227,7 @@ export default function AdminChatPage() {
     },
   });
 
-  const { data: messages, isLoading: loadingMessages } = useMessages(selectedConv?.id);
+  const { data: messages, isLoading: loadingMessages } = useMessages(activeConvIds);
   const sendMessage = useSendMessage();
   const deleteConversationMutation = useDeleteConversation();
 
@@ -227,7 +238,7 @@ export default function AdminChatPage() {
       // Look for existing conversation
       const { data: existing } = await supabase
         .from("conversations")
-        .select("*, messages(content, created_at, sender_id)")
+        .select("*, messages(id, content, created_at, sender_id)")
         .contains("participants", [user.id, contact.user_id])
         .is("order_id", null)
         .maybeSingle();
@@ -240,7 +251,7 @@ export default function AdminChatPage() {
           participants: [user.id, contact.user_id],
           updated_at: new Date().toISOString(),
         })
-        .select("*, messages(content, created_at, sender_id)")
+        .select("*, messages(id, content, created_at, sender_id)")
         .single();
 
       if (error) throw error;
@@ -256,11 +267,14 @@ export default function AdminChatPage() {
     },
   });
 
-  useEffect(() => {
-    if (selectedConv?.id) {
-      markConversationAsOpened(selectedConv.id);
+  const handleSelectConv = (conv: any) => {
+    setSelectedConv(conv);
+    if (conv?.all_ids && Array.isArray(conv.all_ids)) {
+      conv.all_ids.forEach((id: string) => markConversationAsOpened(id));
+    } else if (conv?.id) {
+      markConversationAsOpened(conv.id);
     }
-  }, [selectedConv?.id]);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -274,8 +288,9 @@ export default function AdminChatPage() {
     if (!customContent) setMessage("");
 
     try {
+      const targetIds = selectedConv.all_ids || [selectedConv.id];
       await sendMessage.mutateAsync({
-        conversationId: selectedConv.id,
+        conversationId: targetIds,
         content: textToSend,
       });
     } catch (err: any) {
@@ -284,14 +299,20 @@ export default function AdminChatPage() {
     }
   };
 
-  const handleDeleteConversation = async (convId: string, e?: React.MouseEvent) => {
+  const handleDeleteConversation = async (convOrId: any, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!window.confirm("Tem certeza que deseja apagar esta conversa e todo o histórico?")) return;
 
     try {
-      await deleteConversationMutation.mutateAsync(convId);
+      const ids = typeof convOrId === "object" && convOrId?.all_ids
+        ? convOrId.all_ids
+        : typeof convOrId === "string"
+        ? [convOrId]
+        : [convOrId?.id];
+
+      await deleteConversationMutation.mutateAsync(ids);
       toast.success("Conversa apagada com sucesso!");
-      if (selectedConv?.id === convId) {
+      if (selectedConv && (ids.includes(selectedConv.id) || selectedConv.all_ids?.some((id: string) => ids.includes(id)))) {
         setSelectedConv(null);
       }
     } catch (err: any) {
@@ -312,10 +333,11 @@ export default function AdminChatPage() {
     setIsClearingEmpty(true);
     try {
       const ids = emptyConvs.map((c: any) => c.id);
+      await supabase.from("messages").delete().in("conversation_id", ids);
       await supabase.from("conversations").delete().in("id", ids);
       qc.invalidateQueries({ queryKey: ["admin-conversations", user?.id] });
       toast.success(`${emptyConvs.length} conversas vazias apagadas!`);
-      if (selectedConv && ids.includes(selectedConv.id)) {
+      if (selectedConv && (ids.includes(selectedConv.id) || selectedConv.all_ids?.some((id: string) => ids.includes(id)))) {
         setSelectedConv(null);
       }
     } catch (err: any) {
@@ -432,7 +454,8 @@ export default function AdminChatPage() {
   // Extract topic cleanly for secondary badge
   const getConvTopicBadge = (conv: any) => {
     if (conv.order_id) {
-      return `Pedido #${conv.order_id.slice(-6).toUpperCase()}`;
+      const extraCount = conv.all_order_ids && conv.all_order_ids.length > 1 ? ` (+${conv.all_order_ids.length - 1})` : '';
+      return `Pedido #${conv.order_id.slice(-6).toUpperCase()}${extraCount}`;
     }
     if (conv.messages && conv.messages.length > 0) {
       const firstMsg = [...conv.messages].sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())[0];
@@ -476,23 +499,132 @@ export default function AdminChatPage() {
     }
   };
 
-  // Filtered & sorted conversations
-  const filteredConvs = useMemo(() => {
+  // Helper para determinar a chave única de unificação
+  const getConversationGroupKey = (conv: any): string => {
+    const cat = getConversationCategory(conv);
+
+    if (cat === 'store_customer') {
+      const { store, customer } = getStoreCustomerParticipants(conv);
+      const storeKey = store?.company_id || store?.user_id || store?.full_name || conv.participants?.[0] || 'store';
+      const customerKey = customer?.phone || customer?.customer_id || customer?.user_id || customer?.full_name || conv.participants?.[1] || 'customer';
+      return `store_customer:${storeKey}:${customerKey}`;
+    }
+
+    if (cat === 'driver_application') {
+      const otherProfile = getOtherProfile(conv);
+      const candidateKey = otherProfile?.phone || otherProfile?.user_id || conv.participants?.find((id: string) => id !== user?.id) || conv.id;
+      return `driver_application:${candidateKey}`;
+    }
+
+    if (cat === 'drivers') {
+      const otherId = conv.participants?.find((id: string) => id !== user?.id) || conv.participants?.[0] || conv.id;
+      return `driver:${otherId}`;
+    }
+
+    if (cat === 'companies') {
+      const otherProfile = getOtherProfile(conv);
+      const companyKey = otherProfile?.company_id || otherProfile?.user_id || conv.participants?.find((id: string) => id !== user?.id) || conv.id;
+      return `company:${companyKey}`;
+    }
+
+    if (cat === 'customers') {
+      const otherProfile = getOtherProfile(conv);
+      const customerKey = otherProfile?.phone || otherProfile?.customer_id || otherProfile?.user_id || otherProfile?.full_name || conv.participants?.find((id: string) => id !== user?.id) || conv.id;
+      return `customer:${customerKey}`;
+    }
+
+    const sortedParts = [...(conv.participants || [])].sort().join(":");
+    return `${cat}:${sortedParts || conv.id}`;
+  };
+
+  // Agrupa e unifica conversas pelo mesmo cliente/participantes (estilo WhatsApp)
+  const unifiedConversations = useMemo(() => {
     if (!conversations) return [];
-    
-    const list = [...conversations].sort((a, b) => {
-      const lastMsgA = a.messages && a.messages.length > 0 
+
+    const groups: Record<string, any[]> = {};
+
+    conversations.forEach((conv: any) => {
+      const key = getConversationGroupKey(conv);
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(conv);
+    });
+
+    const unified = Object.values(groups).map((group) => {
+      // Ordena da mais recente para a mais antiga
+      const sortedConvs = [...group].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      const primary = sortedConvs[0];
+      const allIds = Array.from(new Set(group.map((c) => c.id)));
+      const allParticipants = Array.from(new Set(group.flatMap((c) => c.participants || [])));
+      const allOrderIds = Array.from(new Set(group.map((c) => c.order_id).filter(Boolean)));
+      const latestOrderId = sortedConvs.find((c) => c.order_id)?.order_id || null;
+
+      // Junta e deduplica todas as mensagens de todas as conversas agrupadas
+      const allMessages = group
+        .flatMap((c) => c.messages || [])
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      const seen = new Set<string>();
+      const deduplicated = allMessages.filter((m) => {
+        if (!m) return false;
+        if (m.id && seen.has(m.id)) return false;
+
+        const clean = (m.content || "").replace(/\u200B/g, "").trim();
+        const timeBucket = Math.floor(new Date(m.created_at).getTime() / (120 * 1000));
+        const contentKey = `${m.sender_id}_${clean}_${timeBucket}`;
+        if (seen.has(contentKey)) return false;
+
+        if (m.id) seen.add(m.id);
+        seen.add(contentKey);
+        return true;
+      });
+
+      return {
+        ...primary,
+        id: primary.id,
+        all_ids: allIds,
+        participants: allParticipants,
+        order_id: latestOrderId,
+        all_order_ids: allOrderIds,
+        messages: deduplicated,
+      };
+    });
+
+    return unified.sort((a, b) => {
+      const lastMsgA = a.messages && a.messages.length > 0
         ? Math.max(...a.messages.map((m: any) => new Date(m.created_at).getTime()))
         : new Date(a.created_at).getTime();
 
-      const lastMsgB = b.messages && b.messages.length > 0 
-        ? Math.max(...b.messages.map((m: any) => new Date(m.created_at).getTime()))
+      const lastMsgB = b.messages && b.messages.length > 0
+        ? Math.max(...b.messages.map((m: any) => new Date(b.created_at).getTime()))
         : new Date(b.created_at).getTime();
 
       return lastMsgB - lastMsgA;
     });
+  }, [conversations, profilesMap, user?.id]);
 
-    return list.filter((c: any) => {
+  // Sincroniza conversa selecionada caso novas salas ou pedidos sejam vinculados em tempo real
+  useEffect(() => {
+    if (selectedConv) {
+      const found = unifiedConversations.find((c: any) => 
+        c.id === selectedConv.id || 
+        (c.all_ids && c.all_ids.includes(selectedConv.id)) ||
+        (selectedConv.all_ids && selectedConv.all_ids.some((id: string) => c.all_ids?.includes(id)))
+      );
+      if (found && (found.all_ids?.length !== selectedConv.all_ids?.length || found.order_id !== selectedConv.order_id)) {
+        setSelectedConv(found);
+      }
+    }
+  }, [unifiedConversations]);
+
+  // Filtered & sorted conversations
+  const filteredConvs = useMemo(() => {
+    if (!unifiedConversations) return [];
+
+    return unifiedConversations.filter((c: any) => {
       const cat = getConversationCategory(c);
       const matchCat = activeCategory === "all" || cat === activeCategory;
       if (!matchCat) return false;
@@ -503,22 +635,26 @@ export default function AdminChatPage() {
       const title = getConvTitle(c).toLowerCase();
       const lastMsg = (c.messages?.[c.messages.length - 1]?.content || "").toLowerCase();
       const orderId = (c.order_id || "").toLowerCase();
-      return title.includes(q) || lastMsg.includes(q) || orderId.includes(q);
+      const otherProfile = getOtherProfile(c);
+      const phone = (otherProfile?.phone || "").toLowerCase();
+      const allOrdersMatch = c.all_order_ids?.some((oid: string) => oid.toLowerCase().includes(q));
+
+      return title.includes(q) || lastMsg.includes(q) || orderId.includes(q) || phone.includes(q) || allOrdersMatch;
     });
-  }, [conversations, profilesMap, search, activeCategory]);
+  }, [unifiedConversations, search, activeCategory, profilesMap]);
 
   // Counts for all granular tabs
   const categoryCounts = useMemo(() => {
-    if (!conversations) return { all: 0, store_customer: 0, drivers: 0, companies: 0, customers: 0, driver_application: 0 };
+    if (!unifiedConversations) return { all: 0, store_customer: 0, drivers: 0, companies: 0, customers: 0, driver_application: 0 };
     return {
-      all: conversations.length,
-      store_customer: conversations.filter(c => getConversationCategory(c) === 'store_customer').length,
-      drivers: conversations.filter(c => getConversationCategory(c) === 'drivers').length,
-      companies: conversations.filter(c => getConversationCategory(c) === 'companies').length,
-      customers: conversations.filter(c => getConversationCategory(c) === 'customers').length,
-      driver_application: conversations.filter(c => getConversationCategory(c) === 'driver_application').length,
+      all: unifiedConversations.length,
+      store_customer: unifiedConversations.filter(c => getConversationCategory(c) === 'store_customer').length,
+      drivers: unifiedConversations.filter(c => getConversationCategory(c) === 'drivers').length,
+      companies: unifiedConversations.filter(c => getConversationCategory(c) === 'companies').length,
+      customers: unifiedConversations.filter(c => getConversationCategory(c) === 'customers').length,
+      driver_application: unifiedConversations.filter(c => getConversationCategory(c) === 'driver_application').length,
     };
-  }, [conversations, profilesMap]);
+  }, [unifiedConversations, profilesMap]);
 
   // Filtered contacts
   const filteredContacts = useMemo(() => {
@@ -695,12 +831,14 @@ export default function AdminChatPage() {
                 const lastMsg = conv.messages?.[conv.messages.length - 1];
                 const topicBadge = getConvTopicBadge(conv);
                 const cleanSnippet = getCleanSnippet(conv);
-                const isSelected = selectedConv?.id === conv.id;
+                const isSelected = selectedConv?.id === conv.id || 
+                  (selectedConv?.all_ids && selectedConv.all_ids.includes(conv.id)) ||
+                  (conv.all_ids && selectedConv?.id && conv.all_ids.includes(selectedConv.id));
 
                 return (
                   <div
                     key={conv.id}
-                    onClick={() => setSelectedConv(conv)}
+                    onClick={() => handleSelectConv(conv)}
                     className={cn(
                       "w-full p-3 rounded-2xl flex items-start gap-3 transition-all text-left cursor-pointer group relative border",
                       isSelected 
@@ -779,7 +917,7 @@ export default function AdminChatPage() {
 
                     {/* Botão de Excluir */}
                     <button
-                      onClick={(e) => handleDeleteConversation(conv.id, e)}
+                      onClick={(e) => handleDeleteConversation(conv, e)}
                       title="Apagar conversa"
                       className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/15 transition-all shrink-0 self-center"
                     >
@@ -851,11 +989,19 @@ export default function AdminChatPage() {
                         </span>
                       )}
 
-                      {selectedConv.order_id && (
+                      {selectedConv.all_order_ids && selectedConv.all_order_ids.length > 0 ? (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {selectedConv.all_order_ids.map((oid: string) => (
+                            <span key={oid} className="font-extrabold text-primary bg-primary/10 px-2 py-0.5 rounded-md text-[10px]">
+                              Pedido #{oid.slice(-6).toUpperCase()}
+                            </span>
+                          ))}
+                        </div>
+                      ) : selectedConv.order_id ? (
                         <span className="font-extrabold text-primary bg-primary/10 px-2 py-0.2 rounded-md">
                           Pedido #{selectedConv.order_id.slice(-6).toUpperCase()}
                         </span>
-                      )}
+                      ) : null}
 
                       <button 
                         onClick={() => copyChatId(selectedConv.id)}
@@ -871,7 +1017,7 @@ export default function AdminChatPage() {
 
                 {/* Botão de Exclusão */}
                 <button
-                  onClick={() => handleDeleteConversation(selectedConv.id)}
+                  onClick={() => handleDeleteConversation(selectedConv)}
                   title="Apagar esta conversa e histórico"
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 text-xs font-black transition-all cursor-pointer border border-destructive/20 active:scale-95"
                 >
@@ -885,11 +1031,11 @@ export default function AdminChatPage() {
                 <div className="bg-purple-500/10 border-b border-purple-500/20 px-4 py-1.5 flex items-center justify-between text-xs text-purple-900 dark:text-purple-200 shrink-0 font-medium">
                   <div className="flex items-center gap-2">
                     <Store className="h-3.5 w-3.5 text-purple-600 shrink-0" />
-                    <span>Canal de Intermediação: histórico de mensagens entre a Loja e o Cliente.</span>
+                    <span>Canal de Intermediação: histórico unificado de mensagens entre a Loja e o Cliente.</span>
                   </div>
                   {selectedConv.order_id && (
                     <span className="font-bold text-[10.5px] bg-purple-200 dark:bg-purple-900/60 px-2 py-0.5 rounded-md">
-                      Pedido #{selectedConv.order_id.slice(-6).toUpperCase()}
+                      Pedido #{selectedConv.order_id.slice(-6).toUpperCase()}{selectedConv.all_order_ids && selectedConv.all_order_ids.length > 1 ? ` (+${selectedConv.all_order_ids.length - 1} pedidos)` : ''}
                     </span>
                   )}
                 </div>
