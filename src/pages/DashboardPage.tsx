@@ -1,3 +1,4 @@
+import { BonaSoftWatermark } from '@/components/shared/BonaSoftWatermark';
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { MotoboysSidebar } from "@/components/admin/MotoboysSidebar";
 import { NotificationsPanel } from "@/components/admin/NotificationsPanel";

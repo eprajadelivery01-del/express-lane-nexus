@@ -1,3 +1,4 @@
+import { BonaSoftWatermark } from '@/components/shared/BonaSoftWatermark';
 import { useState, useRef } from "react";
 import { BonaSoftWatermark } from "@/components/shared/BonaSoftWatermark";
 import { AdminLayout } from "@/components/admin/AdminLayout";
