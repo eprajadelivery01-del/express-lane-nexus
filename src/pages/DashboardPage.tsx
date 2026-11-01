@@ -1,6 +1,7 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { MotoboysSidebar } from "@/components/admin/MotoboysSidebar";
 import { NotificationsPanel } from "@/components/admin/NotificationsPanel";
+import { BonaSoftWatermark } from "@/components/shared/BonaSoftWatermark";
 import { DashboardCharts } from "@/components/admin/DashboardCharts";
 import { useDeliveryStats, useDeliveries } from "@/services/deliveries";
 import { useOnlineDrivers, useDrivers } from "@/services/drivers";
@@ -402,26 +403,7 @@ export default function DashboardPage() {
         </section>
       </div>
             {/* ── BONASOFT Watermark ── */}
-      <div className="mt-16 pb-8 text-center select-none">
-        <a
-          href={`https://wa.me/5566992734632?text=${encodeURIComponent("Olá! Conheci a BonaSoft através do aplicativo É Pra Já e gostaria de conhecer melhor os serviços de desenvolvimento de aplicativos e sistemas. Podemos conversar?")}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => {
-            if (typeof window !== "undefined") {
-              const url = `https://wa.me/5566992734632?text=${encodeURIComponent("Olá! Conheci a BonaSoft através do aplicativo É Pra Já e gostaria de conhecer melhor os serviços de desenvolvimento de aplicativos e sistemas. Podemos conversar?")}`;
-              try {
-                window.open(url, "_system") || (window.location.href = url);
-              } catch {
-                window.location.href = url;
-              }
-            }
-          }}
-          className="text-[11px] font-black uppercase tracking-[0.6em] text-foreground opacity-30 hover:opacity-100 active:opacity-100 transition-opacity duration-200 ml-2 cursor-pointer inline-block"
-        >
-          B O N A S O F T
-        </a>
-      </div>
+      <BonaSoftWatermark />
     </AdminLayout>
   );
 }
